@@ -1,6 +1,7 @@
 import {Component, Input} from "@angular/core";
 import {NgForOf, NgIf} from "@angular/common";
 import {MoreRestDirective} from "../more/more-rest.directive";
+import {FitCases} from "../fit-cases";
 import {FITS_NO_PORTFOLIO, FITS_NOTE, FITS_NOT_MARKED, FITS_TITLE} from "../recommendations";
 
 /**
@@ -20,6 +21,8 @@ export class WhereItFitsComponent {
   @Input() lines: string[] = [];
   /** Whether the stock is marked DIP BUY now. */
   @Input() marked = false;
+  /** What its size in the portfolio being shown could lose or make; left out for a stock that has no size there. */
+  @Input() cases?: FitCases;
 
   readonly title = FITS_TITLE;
   readonly note = FITS_NOTE;

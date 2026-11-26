@@ -5,6 +5,7 @@
     <mat-icon *ngIf="signal.earningsSoon" class="earnings-flag" aria-hidden="false" aria-label="Reports its results within 2 weeks">flag</mat-icon>
   </ng-container>
   <ng-template #noSignal>
-    <span class="verdict-pill none">{{ noVerdictLabel }}</span>
+    <span class="verdict-pill none">{{ noMark }}</span>
+    <span class="below">{{ noVerdictLabel }}</span>
   </ng-template>
 </div>

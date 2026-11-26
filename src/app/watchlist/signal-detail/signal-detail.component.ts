@@ -1,5 +1,6 @@
 import {MoreComponent} from "../more/more.component";
 import {MoreService} from "../more/more.service";
+import {BusinessFactsComponent} from "../business-facts/business-facts.component";
 import {resultsSoonLine} from "../results-soon";
 
 // The sentence lives in a file without a component (results-soon.ts), so that code which is not part of the page
@@ -46,7 +47,7 @@ const REVISION_DAYS = 20;
   // does for a reader who came by the keyboard. Not a stop for the Tab key.
   host: {tabindex: '-1'},
   standalone: true,
-  imports: [NgIf, NgForOf, DropReadingComponent, MoreComponent, MoreRestDirective],
+  imports: [NgIf, NgForOf, DropReadingComponent, MoreComponent, MoreRestDirective, BusinessFactsComponent],
   templateUrl: "./signal-detail.component.html",
   styleUrls: ["./signal-detail.component.scss"]
 })

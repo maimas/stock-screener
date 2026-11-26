@@ -23,7 +23,7 @@
      The plan's BUY line jumps here: the box can be named and can take the keyboard without being a tab stop. -->
 <app-could-add id="could-add" tabindex="-1" [recommendations]="recommendations" [reading]="reading" [portfolio]="shownName" [marked]="marks.dipBuy"
                [fresh]="newlyMarked" [loading]="working" [instead]="noPrices ? noPricesShort : ''" (open)="showStock($event)"
-               [additions]="additions" [sizing]="sizing" [cash]="portfolio.cash" [names]="couldAddNames" [facts]="couldAddFacts"
+               [additions]="additions" [sizing]="sizing" [cash]="portfolio.cash" [names]="couldAddNames" [facts]="couldAddFacts" [cases]="couldAddCases"
                [prices]="couldAddPrices" [positions]="portfolio.positions" [today]="today" (trade)="recordTrade($event, true)" (trades)="recordTrades($event)"
                [portfolioId]="shownId" [tied]="tied" [unpriced]="unpricedHeld" [keep]="positions.reserve?.dollars"></app-could-add>
 
@@ -161,7 +161,7 @@
   <app-signal-detail [stock]="row" [noVerdict]="noVerdictFor(row)" [news]="newsFor(row)" [log]="log" [today]="today"
                      [back]="backFrom(symbolOf(row))" (goBack)="backToPlan()" (closeDetails)="closeStock(row)">
     <!-- The reader's stake in the stock: how much of it fits each portfolio, then what the shown one holds of it. -->
-    <app-where-it-fits [lines]="fitsOf(row)" [marked]="isMarked(row)"></app-where-it-fits>
+    <app-where-it-fits [lines]="fitsOf(row)" [marked]="isMarked(row)" [cases]="fitCasesOf(row)"></app-where-it-fits>
     <!-- Which portfolio the forms under it are about is chosen here, where they stand: the Watchlist used to follow
          whichever portfolio the other view showed (the owner: "mapping to a random portfolio is odd"). -->
     <div class="record-in" *ngIf="book.portfolios.length > 1" role="group" aria-label="Portfolio that what you record goes into">

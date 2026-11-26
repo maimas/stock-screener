@@ -197,6 +197,80 @@ td.starts {
   }
 }
 
+// "at your limit" on most rows of a portfolio whose limit binds made the table wider than its box: 22px beside the
+// plan on a full-width window with its scroll bar, 28px at 1440, 42px at 1280. In a box under 1,400px the tag reads
+// "limit": its first two words are not drawn (they are still read out), and the sentence is where the pointer rests.
+@container (max-width: 1399px) {
+  .capped .at {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+// The column that gives way. A table of seventeen columns can be wider than its box whatever is trimmed (a bigger
+// portfolio has longer figures in six of them), and "Add" was then cut off at the right. A sector, and the note of
+// a stock that is owned, may take a second line instead: the browser only does that when the table would otherwise
+// not fit, and a row whose sector is short stays one line tall.
+td.fit:not(.moves) {
+  white-space: normal;
+  line-height: 1.3;
+}
+
+// "Against": the tags where the box has room for them, their number where it has not (the rule after this one).
+td.against .count {
+  display: none;
+}
+
+// In a box under 1,100px (a window of about 1,100px) the table has up to seventeen columns since "Swings" and
+// "Against" joined it, and was 126px wider than its box. There its figures are a size smaller, the cells stand 6px
+// apart, a long sector takes two lines, and "Against" shows how many things there are (the tags are a hover away).
+@container (max-width: 1099px) {
+  table {
+    font-size: var(--text-meta);
+  }
+
+  th,
+  td {
+    padding-right: 6px;
+  }
+
+  th.starts,
+  td.starts {
+    padding-left: 6px;
+  }
+
+  // The sector's heading may take two lines there: on one line it held its column at its own width, and the
+  // column could not give way (the rule of "td.fit" above).
+  thead th.sector-head > .sort-head {
+    white-space: normal;
+    text-wrap: balance;
+    line-height: 1.25;
+  }
+
+  // The size gives way there as well, after the sector: "add 24.4% $2,837 limit" of an owned stock was 10px more
+  // than the box had. It breaks between its parts only (a share, an amount, the tag).
+  td.size {
+    white-space: normal;
+    line-height: 1.3;
+  }
+
+  td.size > span {
+    white-space: nowrap;
+  }
+
+  td.against .tags {
+    display: none;
+  }
+
+  td.against .count {
+    display: inline;
+  }
+}
+
 // The foot of the table while two or more rows are ticked: one button for all of them, under the tick boxes it
 // belongs to, and the form it opens. Not a row to click, and no line under it.
 tfoot td {
@@ -467,6 +541,26 @@ tbody tr:hover .symbol,
   color: var(--ink);
 }
 
+// The warning sign beside a swing that is beyond what the tests saw: the lists' own, in the orange of a warning.
+td.swings .beyond {
+  width: 13px;
+  height: 13px;
+  margin-left: 3px;
+  font-size: var(--text-data);
+  vertical-align: -2px;
+  color: #b34e00;
+}
+
+// The ticked stocks side by side, under the table: a step apart from it and from the line under it.
+.compare-block {
+  display: block;
+}
+
+// (While nothing is ticked it holds nothing and takes no room.)
+.compare-block:has(.compare) {
+  margin-top: 14px;
+}
+
 // Under the table, in sight: when the three cases were tested. A caption's size and ink, on one line.
 .caveat {
   margin: 8px 0 0;
@@ -485,7 +579,8 @@ td.for-cash {
 // While something is ticked the answer stays in sight, under the page's bar, as a long table is scrolled: ticking
 // a row far down used to leave it above the window. The rows pass under it, so it has the box's own white and a
 // hairline under it. Only where the answer is two or three lines: in a narrow box it would cover the table.
-@container (min-width: 1000px) {
+// (From 940px: a window of 1,100px with its scroll bar leaves the box 989px.)
+@container (min-width: 940px) {
   // (The room inside it is there before anything is ticked too: added with the first tick, it moved the table 6px.)
   .tick-answer {
     padding: 4px 0 2px;
@@ -503,7 +598,7 @@ td.for-cash {
 // The room the answer takes is kept free before anything is ticked, so that a tick never moves the table: two
 // lines of figures where the box is wide, three where it is a little narrower. (In a narrow box, a phone, nothing
 // is kept: the answer then pushes the table down by its own height.)
-@container (min-width: 1000px) {
+@container (min-width: 940px) {
   .tick-answer {
     min-height: 90px;   // three lines of 28px and the 6px of room inside the strip
   }
@@ -624,6 +719,13 @@ td.for-cash {
 // in its heading, and never green or red. The mark's own two facts beside the stock are in full ink.
 td.context {
   color: var(--ink-2);
+}
+
+// What speaks against a stock is in the page's red: the owner's word (2026-11-26: "I want that in red so that we
+// know it's a "no no""), over the quiet grey of the context. A dash, which says there is nothing, stays grey. The
+// warning sign of "Swings", which was tested, is orange and stands in another column: the two never share a cell.
+td.context.against.speaks {
+  color: var(--loss);
 }
 
 // A heading that says what its column is when pointed at or reached with the keyboard: marked as in the lists and

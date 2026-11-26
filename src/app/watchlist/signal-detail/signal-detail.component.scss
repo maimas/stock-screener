@@ -187,25 +187,11 @@ p {
 // What the mark rests on: a row a fact. The name of the fact stands first, in bold, in a column of its own, so
 // the names read down and the figures read down; a tick stands before a fact that is enough for DIP BUY, a dash
 // before one that is not (never red: red is a loss on this page, and a WATCH is not one).
-// (Not the page's `dl.facts`, which sets figures one after the other on a line: these are a grid of names and
-// phrases, read down.)
-.mark-facts {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: 3px 14px;
-  margin: 2px 0 0;
-  max-width: 70ch;
-}
-
-.mark-facts > div {
-  display: contents;
-}
-
+// (The grid itself is the page's `dl.fact-rows`, in styles.scss: names and phrases, read down. Here is only what
+// the rows of a mark add to it: the room for a sign before the name.)
 .mark-facts dt {
   position: relative;
   padding-left: 18px;
-  font-weight: 600;
-  white-space: nowrap;
 }
 
 // Rows with nothing to judge (the risk's two figures): no room kept for a sign before the name.
@@ -234,10 +220,6 @@ p {
   border: solid var(--gain);
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
-}
-
-.mark-facts dd {
-  margin: 0;
 }
 
 .mark-facts .needs {

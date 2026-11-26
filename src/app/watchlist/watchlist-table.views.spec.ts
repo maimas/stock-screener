@@ -4,7 +4,7 @@ import {By} from "@angular/platform-browser";
 import {NoopAnimationsModule} from "@angular/platform-browser/animations";
 import {MatSnackBar} from "@angular/material/snack-bar";
 import {of, Subject} from "rxjs";
-import {WatchlistTableComponent} from "./watchlist-table.component";
+import {startsFolded, WatchlistTableComponent} from "./watchlist-table.component";
 import {PageView} from "./page-view";
 import {CouldAddComponent} from "./could-add/could-add.component";
 import {makeStock} from "./testing/fixtures";
@@ -150,10 +150,19 @@ describe('WatchlistTableComponent: the two views of the one page', () => {
   }));
 
   // Folded, "Dip candidates" is a narrow strip and the lists get the room; the page lays the lists out by it.
+  // Found by three reviews in a row: in a window where the box stands above the lists it filled the first screen
+  // and the lists began under it. Until the reader has chosen, it starts folded there and open beside the lists.
+  it('starts "Dip candidates" open beside the lists and folded above them, until the reader has chosen', () => {
+    expect([startsFolded(null, 2560), startsFolded(null, 1800)]).withContext('beside the lists: open').toEqual([false, false]);
+    expect([startsFolded(null, 1799), startsFolded(null, 1440), startsFolded(null, 1100)]).withContext('above the lists: folded').toEqual([true, true, true]);
+    expect([startsFolded('open', 1100), startsFolded('folded', 2560)]).withContext('the reader\'s own choice decides at any width').toEqual([false, true]);
+  });
+
   it('folds "Dip candidates" when its box asks for it, says so to the layout, and remembers it in this browser', () => {
+    spyOnProperty(window, 'innerWidth').and.returnValue(2560);
     const fixture = create(), page = fixture.componentInstance;
     const view = part(fixture, '.view-watchlist');
-    expect(page.paneFolded).withContext('open to start with').toBeFalse();
+    expect(page.paneFolded).withContext('open to start with, in a window where the box stands beside the lists').toBeFalse();
     expect([view.classList.contains('pane-folded'), view.classList.contains('key-columns')]).toEqual([false, true]);
 
     page.foldPane(true);
@@ -741,6 +750,20 @@ describe('WatchlistTableComponent: the two views of the one page', () => {
     expect(box.sizing).toBe(sizing);
     expect(box.additions).toBe(additions);
     expect(box.names).withContext('the names of its companies, for the symbols').toEqual({ACME: 'Acme Tools Inc'});
+  });
+
+  // The owner asked for a stock's risk to stand in "Could add". The page hands the box the case against each of its
+  // stocks (case-against.ts), by symbol, as it hands it what it knows of each stock.
+  it('hands "Could add" the case against each of its stocks', () => {
+    const fixture = create(), page = fixture.componentInstance;
+    const found = {
+      swings: '85%', beyondTests: false, swingsTip: 'Volatile.', volatility: 85, against: [], againstTip: '', facts: {},
+    };
+    page.couldAddCases = {ACME: found};
+    fixture.detectChanges();
+    const box = fixture.debugElement.query(By.directive(CouldAddComponent)).componentInstance as CouldAddComponent;
+    expect(box.cases).toEqual({ACME: found});
+    expect(Object.keys(create().componentInstance.couldAddCases)).withContext('none before the stocks are known').toEqual([]);
   });
 
   // How far the stocks of the shown portfolio are one bet: said from what each is worth today and from the year of

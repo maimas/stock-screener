@@ -4,7 +4,7 @@
   <!-- The holding as figures with their names, read down: what is held, what it is worth, how long, how much of the
        portfolio, and the three half-years of the tests side by side (the bad one first, never a gain without it).
        A review found five sentences and a paragraph here, 134 words; the sentences are behind "more" at the heading. -->
-  <dl class="own-facts">
+  <dl class="fact-rows own-facts">
     <div *ngFor="let fact of ownFacts; trackBy: trackByLabel" [class.over]="fact.over">
       <dt>{{ fact.label }}</dt>
       <dd><app-says [text]="fact.value"></app-says></dd>

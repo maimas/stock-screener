@@ -439,7 +439,8 @@ export class PositionsCardComponent {
     }
     const limit = this.limitText;
     if (limit) {
-      facts.push({label: 'Limit on one stock', value: money(this.view.budget) + (this.view.limitIsDefault ? ' (starting value)' : ''), tip: limit});
+      // Under the name of its field: "Limit on one stock" beside sizes that are larger read as a cap on what goes in.
+      facts.push({label: LIMIT_LABEL, value: money(this.view.budget) + (this.view.limitIsDefault ? ' (starting value)' : ''), tip: limit});
     }
     const reserve = this.view.reserve, kept = this.reserveText;
     if (reserve && kept) {

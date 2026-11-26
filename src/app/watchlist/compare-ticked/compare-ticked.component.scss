@@ -1,0 +1,139 @@
+// The ticked stocks side by side: small tables of figures, set like the table of "Could add" they stand under.
+
+:host {
+  display: block;
+
+  // The name of a row, and a stock's column: the same in every part, so that a stock stays in its column when the
+  // parts stand one under the other. The widest name is "Against its 200-day average"; the widest usual cell is
+  // "−31% · average falling". A longer cell (a stock beyond the tests in two ways) goes on in a second line.
+  --name-width: 196px;
+  --stock-width: 164px;
+}
+
+.compare-title {
+  margin: 0 0 6px;
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+// A part is as wide as its columns. With many stocks ticked that is more than the box: it scrolls in here.
+.compare-scroll {
+  position: relative;
+  overflow-x: auto;
+}
+
+// Beside each other where the box has the room for two or three, one under the other where it has not.
+.parts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px 48px;
+}
+
+table.part {
+  flex: none;
+  width: calc(var(--name-width) + var(--stocks, 2) * var(--stock-width));
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-family: var(--font-figures);
+  font-size: var(--text-data);
+}
+
+th,
+td {
+  padding: 4px 16px 4px 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  font-weight: 400;
+  vertical-align: baseline;
+  color: var(--ink);
+}
+
+thead th {
+  width: var(--stock-width);
+  padding-top: 0;
+  border-bottom-color: var(--line-strong);
+}
+
+// The part's name, in the table's corner: what the rows under it are. It stays in place while the columns scroll.
+thead th.part-title {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: var(--name-width);
+  background: var(--surface);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: help;
+}
+
+// The part with no more to say of itself than its name has nothing under the pointer.
+thead th.part-title.mat-mdc-tooltip-disabled {
+  cursor: default;
+}
+
+// The name of a row: quieter than its figures, and in place while the columns scroll under it.
+tbody th[scope="row"] {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface);
+  color: var(--ink-2);
+  white-space: nowrap;
+  cursor: help;
+}
+
+// Every stock says the same in this row: it steps back, so that what differs is what the eye meets. Still a
+// readable grey (4.5:1 on white), and the row's name says what it is as before.
+tr.same td {
+  color: var(--ink-3);
+}
+
+// A fact that speaks against the stock, one its "Against" tag names. The owner: "I want that in red so that we know
+// it's a "no no"". The page's red (5.6:1 on white), also in a row that is set back: what every ticked stock has
+// against it is against each of them all the same.
+tbody tr td.against,
+tbody tr.same td.against {
+  color: var(--loss, #c62828);
+}
+
+tbody tr:last-child th,
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+// For a screen reader only (a table's caption): each component of the page has this class for itself.
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+// A stock's symbol reads as a link, like a stock's name everywhere on the page.
+.symbol {
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 500;
+  color: var(--link);
+  text-align: left;
+  cursor: pointer;
+}
+
+.symbol:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.symbol:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}

@@ -118,12 +118,12 @@ describe('PositionsCardComponent, in everyday words', () => {
     const card = cardWith([row('NVDA', {shares: 60})], {cash: 500});
     const share = /the cash is ([\d.]+%) of it/.exec(card.cashText)![1];
     expect(card.settingFacts.map(it => [it.label, it.value])).toEqual([
-      ['Worth with cash', '$40,000'], ['In cash', share], ['Limit on one stock', '$800'],
+      ['Worth with cash', '$40,000'], ['In cash', share], ['Most I can lose on one stock', '$800'],
     ]);
     expect(card.settingFacts.map(it => it.tip)).toEqual([card.cashText, card.cashText, card.limitText]);
     expect(cardWith([row('NVDA', {shares: 60})], {cash: 500, starting: true}).settingFacts.map(it => it.value))
       .withContext('a limit the user did not set is named as the starting value').toContain('$800 (starting value)');
-    expect(cardWith([row('NVDA', {shares: 60})]).settingFacts.map(it => it.label)).withContext('no cash entered').toEqual(['Limit on one stock']);
+    expect(cardWith([row('NVDA', {shares: 60})]).settingFacts.map(it => it.label)).withContext('no cash entered').toEqual(['Most I can lose on one stock']);
     card.unvalued = true;
     expect(card.settingFacts).withContext('no price arrived: nothing is worked out').toEqual([]);
   });
@@ -783,7 +783,7 @@ describe('PositionsCardComponent, as shown: one box for a portfolio\'s plan and 
     expect(Array.from(today.children).map(part => part.className)).toEqual(['plan-lines', 'figures']);
     expect(today.querySelector('.plan-lines .lines')).withContext('the lines handed in by the page').not.toBeNull();
     expect(Array.from(today.querySelectorAll('.figures dl.facts dt')).map(text)).withContext('what the entries come to stays with the fields, as figures')
-      .toEqual(['Worth with cash', 'In cash', 'Limit on one stock']);
+      .toEqual(['Worth with cash', 'In cash', 'Most I can lose on one stock']);
     expect(today.querySelector('.figures p.budget')).withContext('and no sentence under the fields').toBeNull();
   });
 

@@ -6,6 +6,16 @@
     <ul>
       <li *ngFor="let line of lines">{{ line }}</li>
     </ul>
+    <!-- What the size in the portfolio being shown could lose or make, the bad case first: the three figures of
+         the stock's row in "Could add", here where the size is read (they stood on the other view only). -->
+    <div class="cases" *ngIf="cases as c">
+      <p class="at-size">At that size in {{ c.portfolio }}, after 6 months</p>
+      <dl class="facts">
+        <div><dt>Bad case</dt><dd>{{ c.bad }}</dd></div>
+        <div><dt>Typical</dt><dd>{{ c.typical }}</dd></div>
+        <div><dt>Good case</dt><dd>{{ c.good }}</dd></div>
+      </dl>
+    </div>
     <p class="hint" appMoreRest="details.words">{{ note }}</p>
   </ng-container>
   <ng-template #worthNothing>
