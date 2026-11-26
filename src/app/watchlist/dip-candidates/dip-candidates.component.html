@@ -33,7 +33,7 @@
              One table, or, where the box is as wide as a window, two halves side by side: read down the first, then
              down the second. -->
         <div class="tables" *ngIf="candidates.length > 0; else none">
-        <table *ngFor="let part of tables; let first = first">
+        <table *ngFor="let part of tables; let first = first; trackBy: trackByPlace">
           <caption class="visually-hidden">{{ first ? 'The stocks marked DIP BUY' : 'The stocks marked DIP BUY, continued' }}</caption>
           <thead>
           <tr>

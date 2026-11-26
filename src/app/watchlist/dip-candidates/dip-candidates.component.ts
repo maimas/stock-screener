@@ -177,11 +177,22 @@ export class DipCandidatesComponent implements AfterViewInit, OnDestroy {
    */
   get tables(): DipCandidate[][] {
     const rows = this.shownRows;
-    if (this.folded || !this.wide || rows.length < SPLIT_FROM) {
-      return [rows];
+    const split = !this.folded && this.wide && rows.length >= SPLIT_FROM;
+    // The same halves for as long as the rows and the layout are the same. They used to be cut anew on every check
+    // of the page, and the page then built both tables anew each time: a symbol that was pressed, or a heading
+    // that had the keyboard, was gone before the click or the next key arrived.
+    if (this.halves?.rows !== rows || this.halves.split !== split) {
+      const first = Math.ceil(rows.length / 2);
+      this.halves = {rows, split, tables: split ? [rows.slice(0, first), rows.slice(first)] : [rows]};
     }
-    const first = Math.ceil(rows.length / 2);
-    return [rows.slice(0, first), rows.slice(first)];
+    return this.halves.tables;
+  }
+
+  private halves?: { rows: DipCandidate[], split: boolean, tables: DipCandidate[][] };
+
+  /** A table keeps its place when its rows change (another order, a reload): the first stays the first. */
+  trackByPlace(index: number): number {
+    return index;
   }
 
   /**

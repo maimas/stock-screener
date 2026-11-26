@@ -45,6 +45,27 @@ describe('DipCandidatesComponent: the stocks marked DIP BUY, one to a row', () =
     expect(rows(el).map(row => row[0])).withContext('the row itself shows the symbol only').toEqual(['ACME', 'ZED', 'QRS']);
   });
 
+  // Found by a review at a 1440px window: with the two tables side by side a click on a symbol did nothing, what
+  // the pointer rests on never showed, and the Tab key did not get past the first heading. The two halves were new
+  // lists every time the page checked itself, so both tables were built anew each time: whatever was pressed, or
+  // had the keyboard, was gone before the click or the next key arrived.
+  it('keeps its two tables and what is in them while the page checks itself: a click and the Tab key land', () => {
+    const symbols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+    const {fixture, card, el} = shown({candidates: symbols.map(symbol => candidate(symbol))});
+    card.wide = true;
+    fixture.detectChanges();
+    const tables = Array.from(el.querySelectorAll('table'));
+    const heading = el.querySelector('thead th button') as HTMLButtonElement, symbol = el.querySelector('tbody button') as HTMLButtonElement;
+    expect(tables.length).toBe(2);
+    heading.focus();
+    fixture.detectChanges();
+    fixture.detectChanges();
+    expect(Array.from(el.querySelectorAll('table')).every((table, i) => table === tables[i])).withContext('the same two tables').toBeTrue();
+    expect(el.querySelector('tbody button')).withContext('the same row').toBe(symbol);
+    expect(document.activeElement).withContext('the keyboard is where it was').toBe(heading);
+    expect(card.tables).withContext('the same halves, not new lists').toBe(card.tables);
+  });
+
   // In a laptop window the box is as wide as the window and twenty stocks in one table ran off the first screen.
   it('sets the stocks in two tables side by side where the box is wide: half in each, read down then across', () => {
     const symbols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
