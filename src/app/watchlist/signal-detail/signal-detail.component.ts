@@ -1,4 +1,5 @@
 import {MoreComponent} from "../more/more.component";
+import {MoreService} from "../more/more.service";
 import {MoreRestDirective} from "../more/more-rest.directive";
 import {Component, EventEmitter, HostListener, Input, OnChanges, Output} from "@angular/core";
 import {NgForOf, NgIf} from "@angular/common";
@@ -70,6 +71,21 @@ export class SignalDetailComponent implements OnChanges {
   @HostListener("keydown.escape")
   onEscape(): void {
     this.closeDetails.emit();
+  }
+
+  /** What the one control at the head of the details opens, here and in the panels handed in: the sentences. */
+  static readonly WORDS = 'details.words';
+
+  constructor(private readonly more: MoreService) {
+  }
+
+  /** The sentences that say the figures in words are shown (asked for once, they stay open under every stock). */
+  get wordsOpen(): boolean {
+    return this.more.isOpen(SignalDetailComponent.WORDS);
+  }
+
+  toggleWords(): void {
+    this.more.toggle(SignalDetailComponent.WORDS);
   }
 
   title = '';

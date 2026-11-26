@@ -10,7 +10,6 @@ import {casesNote} from "../evidence";
 import {SaysComponent} from "../says/says.component";
 import {FocusWhenShownDirective} from "../focus-when-shown.directive";
 import {PriceDirective} from "../price.directive";
-import {MoreComponent} from "../more/more.component";
 import {MoreRestDirective} from "../more/more-rest.directive";
 import {money, shareCount, signedMoney, signedPercent, signedWholePercent} from "../format";
 import {CHECK_FIRST, coveredByCash, keptShareCaution, leftAsItIs, purchaseCaution, saleCaution} from "../purchase-words";
@@ -43,7 +42,7 @@ export type Trade = {
 @Component({
   selector: "app-position-panel",
   standalone: true,
-  imports: [NgIf, NgForOf, FormsModule, MatButtonModule, SaysComponent, FocusWhenShownDirective, PriceDirective, MoreComponent, MoreRestDirective],
+  imports: [NgIf, NgForOf, FormsModule, MatButtonModule, SaysComponent, FocusWhenShownDirective, PriceDirective, MoreRestDirective],
   templateUrl: "./position-panel.component.html",
   styleUrls: ["./position-panel.component.scss"]
 })
@@ -147,9 +146,8 @@ export class PositionPanelComponent implements OnChanges {
 
   /** The first entry of a stock that is not held was asked for ("Enter what you hold"). */
   entering = false;
-  /** Under a stock that is not held: the fact first; what entering a holding gives is behind "more". */
-  readonly notHeld = 'Not in this portfolio. Enter what you hold to see how it is doing, how it compares with the market, ' +
-    'and what a bad half-year could cost.';
+  /** Under a stock that is not held, after "Not in this portfolio.": what entering a holding gives. */
+  readonly whyEnter = 'Enter what you hold to see how it is doing, how it compares with the market, and what a bad half-year could cost.';
   /** What that form is, said as its first line, in the words of the purchase forms of "Could add". */
   readonly recordsOnly = 'This records a purchase you have made. Nothing is bought here.';
 

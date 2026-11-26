@@ -8,7 +8,8 @@ import {NgForOf, NgIf} from "@angular/common";
 import {MatCardModule} from "@angular/material/card";
 import {MatTooltipModule} from "@angular/material/tooltip";
 import {DIP_PERCENT, MarketFear} from "../signal";
-import {CARD_NOTE, EVIDENCE, FEAR_HIGH_SHORT, oneIn} from "../evidence";
+import {CARD_NOTE, FEAR_HIGH_SHORT} from "../evidence";
+import {testedStrip} from "../tested-strip";
 
 /** A stock marked DIP BUY, as this box shows it. */
 export type DipCandidate = {
@@ -52,11 +53,6 @@ export type MarkCounts = { dipBuy: number, watch: number, pass: number, none: nu
 export type DipColumn = 'symbol' | 'dropped' | 'growing' | 'group' | 'soon';
 /** The columns that read from the top on the first click (A first, group A first, the soonest first). */
 const FROM_THE_TOP = new Set<DipColumn>(['symbol', 'group', 'soon']);
-
-/** A gain in the tests as the sentences about them write it: a sign, one decimal, the true minus. */
-function gained(percent: number): string {
-  return `${percent > 0 ? '+' : percent < 0 ? '\u2212' : ''}${Math.abs(percent).toFixed(1)}%`;
-}
 
 @Component({
   selector: "app-dip-candidates",
@@ -251,22 +247,10 @@ export class DipCandidatesComponent implements AfterViewInit, OnDestroy {
   /** How stocks marked DIP BUY did in tests, in one paragraph. */
   readonly cardNote = CARD_NOTE;
   /**
-   * The tested result as numbers: what a stock with the mark gained, on average and typically (the typical one
-   * gained less than the average, and is shown beside it so that the average does not stand alone), then what any
-   * stock that dropped and the market gained. The same figures as the sentence (`cardNote`), which keeps the limits.
+   * The tested result as figures, the risk among them (`testedStrip`, shared with any other view that shows them).
+   * The same numbers as the sentence (`cardNote`), which keeps the full account behind "How to read this".
    */
-  readonly tested = {
-    title: `In tests on ${EVIDENCE.stocks} stocks, over 6 months`,
-    figures: [
-      {label: 'DIP BUY, on average', value: gained(EVIDENCE.dipBuy.mean)},
-      {label: 'DIP BUY, the typical one', value: gained(EVIDENCE.dipBuy.median)},
-      {label: 'Any stock that dropped', value: gained(EVIDENCE.everyDip.mean)},
-      {label: 'The market', value: gained(EVIDENCE.sp500.mean)},
-      // The risk stands with the gains: shown alone, the gains were the upside in sight and the downside a click away.
-      {label: 'DIP BUYs that fell a further 20% first', value: oneIn(EVIDENCE.dipBuy.fellPercent), risk: true},
-    ] as { label: string, value: string, risk?: boolean }[],
-    limits: `The typical one is the middle stock: half did better, half worse. Tested ${EVIDENCE.firstBuy.slice(0, 4)}–${EVIDENCE.lastBuy.slice(0, 4)} only.`,
-  };
+  readonly tested = testedStrip();
 
   /** Asked for by the link that skips the box: the keyboard goes on to the lists. */
   @Output() skipToLists = new EventEmitter<void>();

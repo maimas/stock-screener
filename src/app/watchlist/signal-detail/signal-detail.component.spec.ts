@@ -284,7 +284,17 @@ describe('SignalDetailComponent: what is about this stock, what is about you, an
     const lead = el.querySelector('.about-stock .lead') as HTMLElement;
     expect(lead.hidden).withContext('the sentence that says the same in words is one "more" away').toBeTrue();
     expect(clean(lead)).toMatch(/^A growing company, 20\.0% below its highest price of the past year/);
-    expect(el.querySelector('.about-stock h4 app-more button')).not.toBeNull();
+    // One control for all the sentences of the details, at their head (a review counted seven "more" in the panel).
+    const words = el.querySelector('.head button.words') as HTMLButtonElement;
+    expect(words.textContent?.trim()).toBe('Read these details in sentences');
+    expect(words.getAttribute('aria-expanded')).toBe('false');
+    expect(el.querySelectorAll('.about-stock h4 app-more').length).withContext('only the untested context keeps a "more" of its own').toBe(1);
+    words.click();
+    fixture.detectChanges();
+    expect([lead.hidden, words.textContent?.trim(), words.getAttribute('aria-expanded')]).toEqual([false, 'Hide the sentences', 'true']);
+    words.click();
+    fixture.detectChanges();
+    expect(lead.hidden).toBeTrue();
     // Found by a review: the tested figure about this stock's risk was behind "more", and the line in sight
     // repeated the row above it. The two figures are rows now; the sentence that says them is behind "more".
     const risk = Array.from(el.querySelectorAll('.about-stock section')).find(it => it.querySelector('h4')?.textContent?.trim() === 'Risk of this stock')!;

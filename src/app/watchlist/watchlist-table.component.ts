@@ -1580,6 +1580,7 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
       {
         columnName: 'price',
         columnDisplayName: 'Price',
+        columnTooltip: 'The price of one share in US dollars, as of the time the bar at the top of the page says.',
         template: this.priceCellTemplate,
         templateData: (it: Stock) => it.quote?.price,
         sortValue: (it: Stock) => it.quote?.price

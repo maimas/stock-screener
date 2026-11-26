@@ -1,4 +1,4 @@
-<h4>{{ heading }}<app-more *ngIf="row && !editing && !recording" key="details.own" what="these figures in sentences, and what the tests cover"></app-more></h4>
+<h4>{{ heading }}</h4>
 
 <ng-container *ngIf="row && !editing && !recording">
   <!-- The holding as figures with their names, read down: what is held, what it is worth, how long, how much of the
@@ -10,7 +10,7 @@
       <dd><app-says [text]="fact.value"></app-says></dd>
     </div>
   </dl>
-  <div class="in-words" appMoreRest="details.own">
+  <div class="in-words" appMoreRest="details.words">
     <p class="holding">{{ holdingText }}</p>
     <ul>
       <li><app-says [text]="resultText"></app-says></li>
@@ -90,8 +90,8 @@
 <!-- A stock that is not held: a sentence and one button. The form opens on the button, as "Bought more" does;
      standing open under every stock, with its filled button, it looked like an order ticket. -->
 <ng-container *ngIf="!row && !entering">
-  <!-- The first sentence is the fact; what entering a holding gives is one "more" away. -->
-  <p class="intro"><app-more key="details.enter" [text]="notHeld"></app-more></p>
+  <!-- The fact; what entering a holding gives opens with the other sentences of the details. -->
+  <p class="intro">Not in this portfolio.<span appMoreRest="details.words"> {{ whyEnter }}</span></p>
   <div class="actions">
     <button mat-stroked-button type="button" data-opens="first" (click)="startEntering()">Enter what you hold</button>
   </div>
@@ -129,4 +129,4 @@
 </form>
 
 <!-- How big a stock that is not held could be, in each portfolio, is said next to this panel ("Where it fits"). -->
-<p class="hint" *ngIf="row && casesText" appMoreRest="details.own">{{ casesText }}</p>
+<p class="hint" *ngIf="row && casesText" appMoreRest="details.words">{{ casesText }}</p>
