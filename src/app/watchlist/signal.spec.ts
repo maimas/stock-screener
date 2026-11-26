@@ -48,7 +48,7 @@ describe('the verdict in everyday words', () => {
 
   it('measures the drop from the highest price of the past year, and says so', () => {
     expect(computeSignal(growingDip(8, 250), NOW)?.headline)
-      .toMatch(/^A growing company, 20\.0% below its highest price of the past year\. In tests, /);
+      .toMatch(/^A growing company, 20\.0% below its highest price of the past year\. Over all \d+ test stocks, stocks like this gained /);
   });
 });
 

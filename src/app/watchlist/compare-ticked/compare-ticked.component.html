@@ -29,8 +29,10 @@
           <th scope="row" [matTooltip]="row.help" matTooltipClass="multiline-tooltip">{{ row.label }}</th>
           <!-- A fact that speaks against the stock (one its "Against" tag names) is in red, by the owner's word; the
                words after it say the same to a screen reader, so that it does not rest on the colour. -->
-          <td *ngFor="let cell of row.cells; trackBy: trackByColumn" [class.against]="cell.against"
-              [matTooltip]="cell.tip || ''" matTooltipClass="multiline-tooltip">{{ cell.value }}<span class="visually-hidden" *ngIf="cell.against"> (speaks against it)</span></td>
+          <!-- The best of the ticked stocks in its row is in green and heavier (the owner: "highlight the winers so
+               that it's easy to pick"); which rows have one, and why the others have none, is in case-against.ts. -->
+          <td *ngFor="let cell of row.cells; trackBy: trackByColumn" [class.against]="cell.against" [class.best]="cell.best"
+              [matTooltip]="cell.tip || ''" matTooltipClass="multiline-tooltip">{{ cell.value }}<span class="visually-hidden" *ngIf="cell.against"> (speaks against it)</span><span class="visually-hidden" *ngIf="cell.best"> (best of the ticked)</span></td>
         </tr>
         </tbody>
       </table>

@@ -10,7 +10,7 @@ import {MORE_STORAGE_KEY} from "../more/more.service";
 import {TestedCases} from "../sizing";
 import {FACTS_NOTE, StockFacts} from "../stock-facts";
 import {CASES_LIMIT} from "../evidence";
-import {CASE_HELP, StockCase} from "../case-against";
+import {CASE_HELP, COMPARE_NOTE, StockCase} from "../case-against";
 import {CompareTickedComponent} from "../compare-ticked/compare-ticked.component";
 import {Trade} from "../position-panel/position-panel.component";
 import {PurchaseFormComponent} from "../purchase-form/purchase-form.component";
@@ -477,6 +477,18 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
     it('explains the two columns among the explanations of the box, behind its one control', () => {
       const body = about(withCases()).body;
       expect(Array.from(body.querySelectorAll('p.note')).map(say)).toContain(`"Swings" and "Against": ${CASE_HELP.swings} ${CASE_HELP.against}`);
+    });
+
+    // The block of ticked stocks sets a row's best figure in green and what speaks against a stock in red (the
+    // owner's words, 2026-11-26). What the two colours are, and that the page counts neither, is said once: with
+    // the explanations of the box, right after the note on the two columns. Nothing of it while the page hands
+    // in no case: there is no block then.
+    it('says what green and red are in the block of ticked stocks, among the explanations of the box', () => {
+      const said = Array.from(about(withCases()).body.querySelectorAll('p.note')).map(say);
+      expect(said).toContain(COMPARE_NOTE);
+      expect(said.indexOf(COMPARE_NOTE)).toBe(said.indexOf(`"Swings" and "Against": ${CASE_HELP.swings} ${CASE_HELP.against}`) + 1);
+      expect(COMPARE_NOTE).toMatch(/names no pick\.$/);
+      expect(Array.from(about(create()).body.querySelectorAll('p.note')).map(say)).not.toContain(COMPARE_NOTE);
     });
   });
 

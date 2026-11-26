@@ -22,7 +22,7 @@ import {ariaSort, inOrder, numberIn, orderAfterClick, RowOrder} from "../row-ord
 import {AboutComponent} from "../more/about.component";
 import {FACT_COLUMNS, FACT_HELP, FACTS_NOTE, StockFacts} from "../stock-facts";
 import {CASES_LIMIT} from "../evidence";
-import {againstCell, CASE_COLUMNS, CASE_HELP, Comparison, sideBySide, StockCase} from "../case-against";
+import {againstCell, CASE_COLUMNS, CASE_HELP, COMPARE_NOTE, Comparison, sideBySide, StockCase} from "../case-against";
 import {CompareTickedComponent} from "../compare-ticked/compare-ticked.component";
 
 /** One row, as it is shown: every cell worked out once, when what the box is given changes. */
@@ -339,6 +339,8 @@ export class CouldAddComponent implements OnChanges {
   readonly caseColumns = CASE_COLUMNS;
   readonly caseHelp = CASE_HELP;
   readonly stockCasesNote = `"${CASE_COLUMNS.swings}" and "${CASE_COLUMNS.against}": ${CASE_HELP.swings} ${CASE_HELP.against}`;
+  /** What green and red are in the block of ticked stocks: said once, among the explanations (case-against.ts). */
+  readonly compareNote = COMPARE_NOTE;
   /** The page handed in the case of at least one row: the table then has those two columns. */
   hasStockCases = false;
   /** The ticked stocks side by side, in the order of the rows; none while nothing is ticked. Kept until the ticks, the order or the cases change. */

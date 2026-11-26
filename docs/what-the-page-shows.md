@@ -34,10 +34,10 @@ new to investing. Nothing in the box opens or expands.
 | YOUR LIMIT | Shown until you enter your own limit: the amounts assume the starting one (10% of the portfolio lost on one stock) |
 | START HERE | Only for a portfolio worth nothing yet: enter your cash, so there is something to work amounts out from |
 | SELL SOME | A holding that could lose more than the limit in a tested bad half-year, with the amount to keep |
-| YOUR CALL | A holding older than 6 months: after that the tests disagree, so the plan has no rule |
+| YOUR CALL | A holding older than 6 months. The line has both results of the two tests that went on for 6 months more (ahead of the market on one list, not clearly on the next), so the plan has no rule |
 | YOUR LEVEL | Only once you pick a level under "Take a profit at": a holding bought as a DIP BUY, in its first 6 months, that is up that much on what you paid. It reports, so it is not among what there is to do; selling is your decision. KEEP stays as it is, and the stock's row says "your level: up 18%" beside it |
 | HOLD BACK | Only once you set a share under "Keep outside stocks", and while your cash is more than a tenth short of it: what was set, what the cash is, and how much it is short. It names no stock to sell and does not say to sell. While it shows, BUY stays a line but is not among what there is to do |
-| GOOD TIME | Only while the market is fearful (VIX 25 or more): in tests the better time to buy |
+| GOOD TIME | Only while the market is fearful (VIX 25 or more). The line is the Watchlist's own of the same fact: "Market fear high (VIX 26.8)", what stocks bought then made against calm months, and that fear can get worse first |
 | BUY | How many stocks marked DIP BUY could be added, and where to look: the stocks themselves are in "Could add", each with its size, and what can be added to one you own is in its row ("add 8.4% ($840)"). The line lists no stock, and its sizes do not depend on the cash |
 | HOW MANY | Beside BUY while the plan covers fewer than three of the portfolio's stocks: three or more rather than one |
 | ORDER PRICE | With a level picked under "Take a profit at": the price of a sell order at that level for each such holding that is still under it. It is there every day, so it is not among what there is to do |
@@ -172,9 +172,11 @@ which will do best, so the app says how much, never which.
 | Column | What it says |
 |---|---|
 | Dropped, Growing | What the stock's mark rests on, as in "Dip candidates": how far the price is below its highest of the past year ("−42%"), and the growth figure ("profit +21%" or "sales +27%") |
+| Swings | How much the stock's price swings in a year, as a figure ("85%"): the one measure of a stock's risk the tests could use, so it stands with what the mark rests on. A warning sign marks a stock that dropped further or swings more than 19 in 20 of the tested ones; the sentences are where the pointer rests |
 | Size | The share of the portfolio the stock would take, to one decimal ("20.1%"), and the same in dollars |
 | Bad case, Typical, Good case | What a tested bad, typical or good half-year would mean at that size, in whole dollars: they are worked out from tests, not counted. "Typical" is where the middle stock of its kind ended (half did better, half worse); it stands between the two so that a bad and a good case side by side are not read as an upside twice the downside. In a ticked row that gets an amount, the three are worked out for that amount, not for the size |
 | Analyst target, Holders in profit | Context, set in grey and never in green or red: how far the middle one of analysts' price targets is from today's price ("+56%"), and how many of the stock's owners paid less than today's price ("38%"). The first cannot be tested yet and the second made no difference in tests; a line under the table says so |
+| Against | What speaks against the stock among the facts no test could use, or that made no difference: short tags ("no profit", "high debt", "results in 5d"), two at most and "+1" for more, a dash for none; in a narrow box their number. Set in red where there is something (the owner, 2026-11-26: "I want that in red so that we know it's a "no no""), a dash in grey. It is context all the same: not a tested reason to leave a stock out |
 | Sector (you own), Moves with yours | What the portfolio already holds that is like the stock, as two short cells that can be read down the table: its sector with, in brackets, how many of the portfolio's stocks are in it ("Technology (4)", "Utilities (none)"), and "closely" or "not closely" as its price has moved with theirs (blank only when there are no prices to compare). The two figures behind it (the past year, the last month) show where the pointer rests on that cell |
 
 The four columns about the stock itself (Dropped, Growing, Analyst target, Holders in profit) were asked for by the
@@ -203,7 +205,7 @@ How a size is worked out (`src/app/watchlist/recommendations.ts`):
 - **As if there were three.** The tested plan held three or more, so a portfolio with fewer is split as if it held
   three; the first stock of an empty portfolio gets about a third.
 - **Never more than fits the limit.** "Most I can lose on one stock" stays the ceiling; a size it made smaller says
-  "at your limit".
+  "at your limit" (in a box under 1,400px wide, "limit": the sentence is where the pointer rests).
 - **Not a tested rule.** This is arithmetic on the tested bad cases. No test compared it with equal amounts or any
   other split, and the box says so ("How to split money between stocks was not tested").
 - **No part for the cash**, beyond counting in what the portfolio is worth. A portfolio worth nothing yet gets the
@@ -368,8 +370,10 @@ The page is made for a browser window that fills a large monitor, and still work
   profit, both sides of that level in its test. Beside the headline of "What you own" the comparison with the
   market is two such figures ("Against the market  $383 ahead", "Money in for  18 weeks: too early to mean
   much"); while no stock has a purchase date the first says "needs a purchase date".
-- **A list shows what a mark rests on, a line a stock**: Stock, Mark, Price, Growth, Next results, Volatility,
-  Past year. Every list has those columns at the same places, so a column can be read down the page. "All columns"
+- **A list shows what a mark rests on, a line a stock**: Stock, Group, Mark · dropped, Price, Growing, Next
+  results, Swings, Past year. (One fact has one name on the page: "Dropped", "Growing" and "Swings" are the
+  headings of "Dip candidates" and "Could add" too, and the rows of a stock's details; a stock without a mark is
+  "NO MARK" in its row, in the legend and in its details, with the reason beside it.) Every list has those columns at the same places, so a column can be read down the page. "All columns"
   adds the rest (the analysts' target, the range of the past year, valuation and the other context) and, over each
   list, its typical price changes (the middle stock of the list for each period, which one stock with an extreme
   year does not pull). In the key columns colour is for the mark and what it rests on (the mark itself, growth
@@ -377,14 +381,14 @@ The page is made for a browser window that fills a large monitor, and still work
   colours of the trade back (2026-11-26), after they had been taken out as context no test used: a price change
   of a period (the day, 1W to Past year, and a list's typical changes) is green for a rise and red for a fall;
   "vs 200D" is green while the trend holds and red when it is broken, with its arrow green or red by the way the
-  average goes; "Holders in Profit" is teal for what was bought below today's price and orange for what was
-  bought above it; "Analyst Rating" runs from red (Sell) to green (Strong Buy), the word in the colour of its
+  average goes; "Holders in profit" is teal for what was bought below today's price and orange for what was
+  bought above it; "Analyst rating" runs from red (Sell) to green (Strong Buy), the word in the colour of its
   side. Each still carries its sign or its word, so no meaning rests on colour alone, and the tooltips still say
   which of them made no difference in tests. "EPS (TTM)", a result that beat or missed and high debt stay in
   plain ink (high debt in bold).
   With every column a row is still one line tall (36px; it was 79px): the cells that stood in two or three lines
-  ("Analyst target", "vs 200D", "Holders in Profit", "Analyst Rating") show their main figure, and the rest is in
-  the explanation under the pointer. "Inst. Ownership" stands right after "Analyst Rating". With every column a
+  ("Analyst target", "vs 200D", "Holders in profit", "Analyst rating") show their main figure, and the rest is in
+  the explanation under the pointer. "Inst. ownership" stands right after "Analyst rating". With every column a
   list is wider than any window and scrolls sideways under its pinned columns: each column then has the same least
   width in every list, so "Price" still starts at the same place all the way down the page, and the pinned column
   on a side casts a shadow only while columns are out of sight on that side. The two small charts of that view
@@ -442,6 +446,28 @@ The page is made for a browser window that fills a large monitor, and still work
   the weeks held ("DIP BUY today: counts from today") have their sentence where the pointer rests. The line
   YOUR LIMIT names its field and starts with what to do ("Set "Most I can lose on one stock": until then the plan
   assumes $4,000.").
+- **The case against a stock, where the reader chooses** (the owner, 2026-11-26: "I need the risk analysis to be
+  surfaced ... Also there should be some sort of way of comparing them against each other"). "Could add" has two
+  more columns, "Swings" and "Against" (the table above), which the rows can be ordered by like any other; and
+  once a row is ticked, a block under the table sets the ticked stocks side by side, a column a stock and a row a
+  fact, in three parts: what was tested, the context no test could use, and why the price dropped. A row in which
+  every stock says the same steps back. It stands under the table so that a tick moves no row, shows figures and
+  names with the sentences at the pointer, and marks no column as the better one: the page still ranks nothing and
+  names no pick. The table then has seventeen columns, and its figures grow with the portfolio, so one column
+  gives way before "Add" is cut off at the right: a sector may take a second line, at any width, when the table
+  would otherwise be wider than its box. In a window of about 1,100px the figures are a size smaller, "Against"
+  shows how many things there are, and the size may break between its parts.
+- **Four points of a second review, by the owner's "go"** (2026-11-26). The plan's GOOD TIME line is the
+  Watchlist's line of the same fact, with its reading, its two figures and its risk; it said "The market is
+  fearful now. In the past, that was the better time to buy.", with none of them. YOUR CALL has both results where
+  it said "After that the tests disagree.": it is the one decision left to the reader, and had the least to go
+  on. These two lines are longer than the 80 characters of the others. In "How the plan was tested", what shows of
+  a step is the first sentence of its reason: for every step that rests on a test, that sentence is now what the
+  test found, figures included (six began with a set-up, and the box cuts a long first sentence at its colon, which
+  hid the figures of two more). And the sentence under a mark's pointer names the test its figures are from
+  ("Over all 994 test stocks, ..."): it quotes every tested list together, while the strip of tested figures on
+  both views quotes the newest one, and "In tests, ..." beside it read as a second answer to one question. The BUY
+  line stays as it was: a line with amounts would put an untested split of the cash into the plan's own words.
 - **Six points the owner said yes to** (2026-11-26: "do all 6"). A "Typical" figure stands between "Bad case" and
   "Good case" in both tables, with a sum of its own in the row at the foot of "What you own". The plan's box shows
   the strip of tested figures in place of its sentence (above). While something is ticked in "Could add", the
@@ -465,6 +491,19 @@ The page is made for a browser window that fills a large monitor, and still work
   until asked for. The context is said in everyday words ("the price is 38 times the yearly profit per share
   (P/E)", "cannot be tested", "made no difference in tests"), and its "+" and "−" markers have no green or red:
   they are not points awarded by a test.
+- **"The business" is in a stock's details, as context.** Under "Why it dropped", in the column that is about
+  the company itself, a section says what the data source (MSN) already sends about it, a row a fact: "Keeps of
+  its sales  62% · its industry 48%" (gross margin: what is left of sales after the direct costs) and "Earns on
+  money invested  19% · its industry 9%" (return on capital), both averages of the last 5 years, and "Similar
+  companies  BOLT CHIP", the companies the data source lists beside this one, each with its name on the pointer:
+  eight at most, with "+3" after them when it lists three more. The names of the rows are short because the
+  column can be 380px wide: longer ones broke each figure over two lines. Beside its title stands
+  "context, not part of the mark", the page's words for what no test used, and no row has a tick, a sign or a
+  colour: nothing here was tested, so no figure is called good or bad. The sentences open with "Read these
+  details in sentences": what the company does, in the data source's words; the similar companies by name; how to
+  read the two figures; and that the data source gives no market share and does not say how it picks the similar
+  companies. Nothing is fetched for it: it all arrives with the request the page already makes. A fund, or a
+  company the data source says nothing about, has no such section.
 - **The layout is checked at six window widths** (2560, 1920, 1707, 1440, 1280 and 1100px), each view as opened
   and with a stock's details open or rows ticked: the page must not scroll sideways, no box may scroll sideways
   inside, and no sentence may be squeezed to a word a line. A sentence never stands in a block that is as wide as

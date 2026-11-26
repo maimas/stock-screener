@@ -188,8 +188,8 @@ describe('what the app says about taking a profit', () => {
   // first cut of this reason left the last to the tables, which stand behind THE PLAN's "more": a review put it back.
   it('gives a plan line its reason for a sell order: both sides, and what became of the stocks that reached the price', () => {
     expect(t.takeProfitWhy(15, 'order')).toBe(
-      'In the test of selling early, a sell order placed in advance at 15% above the purchase price made a loss rarer: ' +
-      '28% ended below what was paid, against 44% when kept, and the bad case was milder by 4.5 points. ' +
+      'In the test of selling early, a sell order placed in advance at 15% above the purchase price made a loss rarer ' +
+      '(28% ended below what was paid, against 44% when kept), and the bad case was milder by 4.5 points. ' +
       'It also gave less on average: +4.1% against +9.1%. ' +
       '66% of the stocks reached that price: kept, 24% of those still ended below what was paid, and they made +22.8% on ' +
       'average against +15.0% sold. ' +
@@ -198,8 +198,8 @@ describe('what the app says about taking a profit', () => {
 
   it('gives the reason for selling once the level is seen, and calls a bad case under the mark "about as bad"', () => {
     expect(t.takeProfitWhy(15, 'seen')).toBe(
-      'In the test of selling early, selling after a week closed 15% or more above the purchase price made a loss rarer: ' +
-      '34% ended below what was paid, against 44% when kept, and the bad case was about as bad. ' +
+      'In the test of selling early, selling after a week closed 15% or more above the purchase price made a loss rarer ' +
+      '(34% ended below what was paid, against 44% when kept), and the bad case was about as bad. ' +
       'It also gave less on average: +4.4% against +9.1%. ' +
       '56% of the stocks got that far: kept, 18% of those still ended below what was paid, and they made +29.0% on ' +
       'average against +20.1% sold. ' +

@@ -4,6 +4,7 @@ import {viewOf} from "./positions";
 import {riskOf, TestedCases} from "./sizing";
 import {Figures, TakeProfitWay, textsFor} from "./evidence";
 import {FIGURES_2026_11_21, FIGURES_WITH_TAKE_PROFIT, TAKE_PROFIT_MADE_UP} from "./testing/figures";
+import {firstSentence} from "./more/first-sentence";
 
 const TODAY = '2026-11-21';
 /** The take-profit test with made-up numbers: at +15% both ways passed, at +25% only the sell order. */
@@ -159,29 +160,33 @@ describe('planSteps with a level for taking a profit', () => {
   it('explains each line with both sides of the test, and says where the level is set and which stocks it counts for', () => {
     const list = steps({holdings: [up, under], takeProfit: {percent: 15}});
     const asSet = 'the level you set in the "Your plan today" box, under "Take a profit at". ' +
-      'It counts for a stock you bought as a DIP BUY, in its first 6 months. ';
+      'It counts for a stock you bought as a DIP BUY, in its first 6 months.';
     const stillKeep = ' The plan still says KEEP: the level is your own, and so is the decision.';
+    // What the test found comes first; then what the line is about and where the level was set.
     expect(step(list, 'level').why).toBe(
-      'This stock is up 15% or more on the average price you paid: ' + asSet + textsFor(F).takeProfitWhy(15, 'seen') + stillKeep);
+      textsFor(F).takeProfitWhy(15, 'seen') + ' This stock is up 15% or more on the average price you paid: ' + asSet + stillKeep);
     expect(step(list, 'order').why).toBe(
+      textsFor(F).takeProfitWhy(15, 'order') + ' In that test an order stood for the 6 months and no longer. ' +
       'The price given for each stock is 15% above the average price you paid for it, rounded up: ' + asSet +
-      'A sell order here is one you leave with your broker to sell at that price or better: it waits until the price is reached ' +
-      '(brokers call it a limit order). ' + textsFor(F).takeProfitWhy(15, 'order') +
-      ' In that test an order stood for the 6 months and no longer.' + stillKeep);
+      ' A sell order here is one you leave with your broker to sell at that price or better: it waits until the price is reached ' +
+      '(brokers call it a limit order).' + stillKeep);
     const two = steps({holdings: [up, kept('FAR', 163.4)], takeProfit: {percent: 15}});
     expect(step(two, 'level').why).toContain('These stocks are up 15% or more on the average price you paid: the level you set');
   });
 
-  // With "more" closed a reason shows its first sentence: each of the two begins with what is its own. They began
-  // with the same sentence ("You set a level for taking a profit ...").
-  it('begins each of the two reasons with what is its own', () => {
+  // With "more" closed a reason shows its first sentence. They began with the same sentence ("You set a level for
+  // taking a profit ..."), then each with what the line is about ("This stock is up 15% ..."), and a review found
+  // that the result took a second click. Each begins with what its own test found: the two ways were tested apart.
+  it('begins each of the two reasons with what its own test found', () => {
     const list = steps({holdings: [up, under], takeProfit: {percent: 15}});
-    const first = (why: string) => why.slice(0, why.indexOf('. ') + 1);
-    expect(first(step(list, 'level').why)).toBe(
-      'This stock is up 15% or more on the average price you paid: the level you set in the "Your plan today" box, under "Take a profit at".');
-    expect(first(step(list, 'order').why)).toBe(
-      'The price given for each stock is 15% above the average price you paid for it, rounded up: the level you set in the ' +
-      '"Your plan today" box, under "Take a profit at".');
+    // By the rule of the box's "more" (first-sentence.ts), which cuts a long first sentence at its colon: with the two
+    // figures after a colon, neither showed.
+    const first = (why: string) => firstSentence(why).first;
+    expect(first(step(list, 'level').why)).toMatch(
+      /^In the test of selling early, selling after a week closed 15% or more above the purchase price made a loss rarer \(\d+% ended below what was paid, against \d+% when kept\), and the bad case was [a-z0-9. ]+\.$/);
+    expect(first(step(list, 'order').why)).toMatch(
+      /^In the test of selling early, a sell order placed in advance at 15% above the purchase price made a loss rarer \(\d+% ended below what was paid, against \d+% when kept\), and the bad case was [a-z0-9. ]+\.$/);
+    expect(first(step(list, 'level').why)).not.toBe(first(step(list, 'order').why));
   });
 
   // A review found the same thing said up to four times in the box "How the plan was tested". Why the plan keeps,
