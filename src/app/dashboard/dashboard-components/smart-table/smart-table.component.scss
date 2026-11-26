@@ -25,7 +25,9 @@
 // A short choice of columns is read as a table of one line a row: its cells stand a little closer than Material's
 // 16px each side, which lets two such tables stand side by side on a wide window.
 // (The cell of the button that opens a row has its own spacing, further down.)
-.smart-table.short .mat-mdc-cell:not(.toggle-cell),
+// (Nor the cell that holds a row's details: its block is as wide as the table's box by itself, and a padding
+// on the cell made the table that much wider than its box while details were open.)
+.smart-table.short .mat-mdc-cell:not(.toggle-cell):not(.detail-cell),
 .smart-table.short .mat-mdc-header-cell:not(.toggle-cell) {
   padding-left: 12px;
   padding-right: 12px;
@@ -33,7 +35,7 @@
 
 // With every column shown the table is wider than any window and scrolls sideways under its two pinned columns:
 // there the cells stand closer still, so that less of the table is out of sight at a time.
-.smart-table:not(.short) .mat-mdc-cell:not(.toggle-cell),
+.smart-table:not(.short) .mat-mdc-cell:not(.toggle-cell):not(.detail-cell),
 .smart-table:not(.short) .mat-mdc-header-cell:not(.toggle-cell) {
   padding-left: 10px;
   padding-right: 10px;
@@ -127,13 +129,14 @@ th.mat-mdc-header-cell {
   border-bottom-width: 1px;
 }
 
-// Keep the details in view while the wide table scrolls sideways.
+// Keep the details in view while the wide table scrolls sideways. As wide as the table's box, their own padding
+// counted in: the text starts where it did while the cell around them had a padding too (12px and these 16px).
 .detail {
   position: sticky;
   left: 0;
   box-sizing: border-box;
   width: min(1320px, 100cqw);
-  padding: 0 16px 20px;
+  padding: 0 28px 20px;
 }
 
 .visually-hidden {
@@ -147,6 +150,6 @@ th.mat-mdc-header-cell {
 
 @media (max-width: 699px) {
   .detail {
-    padding: 4px 12px 16px;
+    padding: 4px 16px 16px;
   }
 }
