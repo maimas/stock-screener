@@ -121,6 +121,12 @@ describe('the texts built from the figures recorded on 2026-11-21', () => {
       'Tested in 2023–2026, when the market was rising; in a falling market it can be worse. Arithmetic on your numbers, not advice.');
   });
 
+  // The owner had it put in sight under the two tables that show the cases: a quiet line, not a paragraph.
+  it('says in one quiet line when the three cases were tested, and that a falling market can be worse', () => {
+    expect(t.casesLimit).toBe(
+      'Bad, typical and good case: tested in 2023–2026, when the market was rising. In a falling market they can be worse.');
+  });
+
   it('sums the evidence up in one line for the Dip candidates card, naming the mark it is about', () => {
     expect(t.cardNote).toBe(
       'In tests on 636 stocks (bought from mid-2023 to May 2026) stocks marked DIP BUY gained +12.1% on average over 6 months; ' +
@@ -128,9 +134,8 @@ describe('the texts built from the figures recorded on 2026-11-21', () => {
       'Not proven outside 2023–2026.');
   });
 
-  it('sums the plan’s record up in one short line', () => {
-    expect(t.planShort).toBe('In tests on new stocks: +9.3% in 6 months on average (the market: +10.2%). Not advice; no guarantee.');
-  });
+  // (The plan's record in one line, "In tests on new stocks: +9.3% ... (the market: +10.2%)", stood here: the plan's
+  // box now shows the strip of tested figures both views share, tested-strip.ts, which has the same two numbers.)
 
   it('says in plain words what the plan is and whether it made money, next to the market', () => {
     expect(t.planNote).toBe(

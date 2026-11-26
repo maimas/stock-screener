@@ -536,6 +536,12 @@ export function textsFor(f: Figures) {
         `Those tests cover ${window}, when the market was rising; in a falling market it can be worse.`;
     },
 
+    /**
+     * In sight under the two tables that show the cases (the owner's word): when they were tested, and that it can
+     * be worse. A quiet line, the one caveat those columns carry outside "How to read this".
+     */
+    casesLimit: `Bad, typical and good case: tested in ${years}, when the market was rising. In a falling market they can be worse.`,
+
     /** Under the positions table: what "bad case" and "good case" are. */
     casesCardNote:
       `"Bad case" and "good case": in tests, 1 in 10 stocks like these did that badly or worse after 6 months, and 1 in 10 that well or better. ` +
@@ -560,14 +566,6 @@ export function textsFor(f: Figures) {
         `gained ${pct(f.fear.low.mean)} on average over the next 6 months, against ${pct(f.fear.high.mean)} in fearful months. ` +
         `Nothing wrong with buying in a calm market; fearful months were just better. ` +
         `Tested on ${f.fear.stocks} stocks, ${f.fear.fromYear} to ${f.fear.toYear}.`,
-
-    /**
-     * Under the steps of "Your plan today", always in view: whether the plan made money, in one short line. The
-     * numbers are those of the pre-registered profit test on the newest list (#7, G1), with the market beside them.
-     */
-    planShort:
-      `In tests on new stocks: ${pct(newest.profit.mean)} in 6 months on average (the market: ${pct(newest.market.sp500)}). ` +
-      `Not advice; no guarantee.`,
 
     /** The words of that account in one run, without its tables: what the plan is and how it did when replayed. */
     planNote: planParts.join(' '),
@@ -615,13 +613,13 @@ export const VOLATILITY_GROUPS_NOTE = TEXTS.volatilityGroupsNote;
 export const VOLATILITY_COLUMN_NOTE = TEXTS.volatilityColumnNote;
 export const casesNote = TEXTS.casesNote;
 export const CASES_CARD_NOTE = TEXTS.casesCardNote;
+export const CASES_LIMIT = TEXTS.casesLimit;
 export const CARD_NOTE = TEXTS.cardNote;
 export const fearText = TEXTS.fearText;
 export const FEAR_HIGH_SHORT = TEXTS.fearHighShort;
 /** The account of the plan as the page shows it: paragraphs and small tables, in order. */
 export const PLAN_BLOCKS = TEXTS.planBlocks;
 export const severalCardNote = TEXTS.severalCardNote;
-export const PLAN_SHORT = TEXTS.planShort;
 /** Under the field "Take a profit at", for the level picked: built once, like the texts above. */
 export const takeProfitBrief = TEXTS.takeProfitBrief;
 export const takeProfitFigures = TEXTS.takeProfitFigures;

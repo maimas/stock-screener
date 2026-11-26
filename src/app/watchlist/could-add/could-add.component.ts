@@ -12,7 +12,7 @@ import {PurchaseLine, PurchasesFormComponent} from "../purchases-form/purchases-
 import {
   Addition, afterSelling, badCaseTip, badHalfYearLine, COLUMN_HELP, COLUMNS, COULD_ADD, couldAddHeadline, couldAddLead, COUNT_SOLD, Fact, FIT_NOTE, fitBrief,
   goodCaseTip, NO_SIZE_NOTE, nothingToAdd, ORDER_NOTE, ownedFit, OWNED_ROWS, readingTitleOf, Recommendation, RowReading, sellFact, sellNote, shareText,
-  SIZE_RULES, sizeTip, SizingInput, splitCell, splitFacts, splitLines, tickHint, tiedFact, toSell, ToSell, CENT
+  SIZE_RULES, sizeTip, SizingInput, splitCell, splitFacts, splitLines, tickHint, tiedFact, toSell, ToSell, typicalCaseTip, CENT
 } from "../recommendations";
 import {TestedCases} from "../sizing";
 import {SaysComponent} from "../says/says.component";
@@ -20,6 +20,7 @@ import {byGroup, GROUP_HELP, groupBySymbol, groupTip, NO_GROUPS, tickedTogether,
 import {ariaSort, inOrder, numberIn, orderAfterClick, RowOrder} from "../row-order";
 import {AboutComponent} from "../more/about.component";
 import {FACT_COLUMNS, FACT_HELP, FACTS_NOTE, StockFacts} from "../stock-facts";
+import {CASES_LIMIT} from "../evidence";
 
 /** One row, as it is shown: every cell worked out once, when what the box is given changes. */
 type Row = {
@@ -38,6 +39,9 @@ type Row = {
   sizeTip: string
   bad: string
   badTip: string
+  /** What the size would have made in the typical half-year: between the two cases. */
+  typical: string
+  typicalTip: string
   good: string
   goodTip: string
   /**
@@ -58,6 +62,12 @@ type Row = {
  * a stock that gets nothing, and what the amount is measured against where the pointer rests.
  */
 type CashCell = { amount: string, note: string, tip: string };
+
+/**
+ * The three cases a row shows, each with what it says at the pointer: for the row's size, or (`forCash`) in a ticked
+ * row that gets an amount, for that amount.
+ */
+type ShownCases = { bad: string, badTip: string, typical: string, typicalTip: string, good: string, goodTip: string, forCash: boolean };
 
 /**
  * "Could add", on the portfolio's view: the stocks the Watchlist marks DIP BUY that the portfolio being shown does
@@ -97,7 +107,7 @@ type CashCell = { amount: string, note: string, tip: string };
  * were thinking of buying, so they are the ones bought together.
  */
 /** The columns of the table that its rows can be ordered by. */
-export type AddColumn = 'symbol' | 'group' | 'dropped' | 'growing' | 'size' | 'bad' | 'good' | 'cash' | 'target' | 'holders' | 'sector' | 'moves';
+export type AddColumn = 'symbol' | 'group' | 'dropped' | 'growing' | 'size' | 'bad' | 'typical' | 'good' | 'cash' | 'target' | 'holders' | 'sector' | 'moves';
 /** The columns that read from the top on the first click (A first, group A first). */
 const FROM_THE_TOP = new Set<AddColumn>(['symbol', 'group', 'sector', 'moves']);
 
@@ -246,10 +256,13 @@ export class CouldAddComponent implements OnChanges {
         return numberIn(row.facts?.growing);
       case 'size':
         return numberIn(row.share);
+      // By what the cells show: in a ticked row the cases of the amount the money would buy.
       case 'bad':
-        return size(numberIn(row.bad));
+        return size(numberIn(this.casesOf(row).bad));
+      case 'typical':
+        return numberIn(this.casesOf(row).typical);
       case 'good':
-        return numberIn(row.good);
+        return numberIn(this.casesOf(row).good);
       case 'cash':
         return numberIn(this.cashOf(row.symbol)?.amount);
       case 'target':
@@ -296,6 +309,8 @@ export class CouldAddComponent implements OnChanges {
   readonly factColumns = FACT_COLUMNS;
   readonly factHelp = FACT_HELP;
   readonly factsNote = FACTS_NOTE;
+  /** Under the table, in sight: when the three cases were tested, and that it can be worse. */
+  readonly casesLimit = CASES_LIMIT;
   /** Under the lines about what is ticked: that ticks are not kept. */
   readonly ticksNote = 'Ticks are not saved: a reload of the page clears them.';
   /** Where the pointer rests on "Add": that it records a purchase and buys nothing. */
@@ -349,6 +364,27 @@ export class CouldAddComponent implements OnChanges {
   split?: CashSplit;
   /** What that gives each ticked row, by symbol, and what it means for the portfolio, a line a thought. */
   private cells = new Map<string, CashCell>();
+  /**
+   * The three cases of a ticked row that gets an amount, worked out for that amount: a row said "With your cash
+   * $1,000" beside a bad and a good case still worked out for its whole size (a review; the owner's word).
+   */
+  private cashCases = new Map<string, ShownCases>();
+
+  /** The three cases a row shows: for its size, or, once it is ticked and gets an amount, for that amount. */
+  casesOf(row: Row): ShownCases {
+    return this.cashCases.get(row.symbol) ?? this.sizeCases(row);
+  }
+
+  private sizeCasesKept = new WeakMap<Row, ShownCases>();
+
+  private sizeCases(row: Row): ShownCases {
+    let cases = this.sizeCasesKept.get(row);
+    if (!cases) {
+      cases = {bad: row.bad, badTip: row.badTip, typical: row.typical, typicalTip: row.typicalTip, good: row.good, goodTip: row.goodTip, forCash: false};
+      this.sizeCasesKept.set(row, cases);
+    }
+    return cases;
+  }
   splitSays: string[] = [];
   /**
    * The line about a bad half-year, of those lines, by itself. Empty while nothing is ticked or nothing would be
@@ -414,6 +450,7 @@ export class CouldAddComponent implements OnChanges {
       share: it.size ? shareText(it.size.sharePercent) : '', dollars: it.size ? money(it.size.dollars) : '', alone: it.size?.dollars,
       capped: !!it.size?.capped, sizeTip: it.size ? sizeTip(it.size) : '',
       bad: it.size ? signedWholeMoney(-it.size.loss) : '', badTip: it.size ? badCaseTip(it.cases) : '',
+      typical: it.size ? signedWholeMoney(it.size.dollars * it.cases.typicalPercent / 100) : '', typicalTip: it.size ? typicalCaseTip(it.cases) : '',
       good: it.size ? signedWholeMoney(it.size.gain) : '', goodTip: it.size ? goodCaseTip(it.cases) : '',
       sector: fitBrief(it.fit).sector, moves: fitBrief(it.fit).moves, movesTip: fitBrief(it.fit).tip, ownedNote: '',
     }));
@@ -425,6 +462,7 @@ export class CouldAddComponent implements OnChanges {
         symbol: it.symbol, isNew: this.fresh.has(it.symbol), owned: true, cases: held.cases, facts: this.facts[it.symbol],
         share: `add ${shareText(it.sharePercent)}`, dollars: money(it.dollars), alone: it.dollars, capped: it.capped, sizeTip: ADD_TEXT,
         bad: signedWholeMoney(-it.loss), badTip: badCaseTip(held.cases), good: signedWholeMoney(it.gain), goodTip: goodCaseTip(held.cases),
+        typical: signedWholeMoney(it.dollars * held.cases.typicalPercent / 100), typicalTip: typicalCaseTip(held.cases),
         sector: '', moves: '', movesTip: '', ownedNote: ownedFit(held.value),
       }];
     });
@@ -462,7 +500,8 @@ export class CouldAddComponent implements OnChanges {
 
   /** How many columns the table has now: the heading over the owned rows spans them all. */
   get columnCount(): number {
-    return 1 + (this.hasGroups ? 1 : 0) + (this.hasFacts ? 4 : 0) + (this.hasSizes ? 4 : 0) + (this.cashColumn ? 1 : 0) + (this.hasFit ? 2 : 0) + (this.canRecord ? 1 : 0);
+    // With sizes: the tick box, "Size", and the bad, the typical and the good case.
+    return 1 + (this.hasGroups ? 1 : 0) + (this.hasFacts ? 4 : 0) + (this.hasSizes ? 5 : 0) + (this.cashColumn ? 1 : 0) + (this.hasFit ? 2 : 0) + (this.canRecord ? 1 : 0);
   }
 
   /** The reader typed in the form for the ticked stocks since it was opened. */
@@ -668,6 +707,7 @@ export class CouldAddComponent implements OnChanges {
     if (!this.sizing || picked.length === 0) {
       this.split = undefined;
       this.cells = new Map();
+      this.cashCases = new Map();
       this.splitSays = [];
       this.badCaseSays = '';
       this.splitFigures = [];
@@ -689,6 +729,19 @@ export class CouldAddComponent implements OnChanges {
       stocksAfter: split.stocksAfter + this.unpriced,
     };
     this.cells = new Map(this.split.parts.map(part => [part.symbol, splitCell(part)] as const));
+    // A ticked row that gets an amount shows its three cases for that amount (under half a cent it gets nothing).
+    this.cashCases = new Map(this.split.parts.flatMap(part => {
+      const row = ticked.find(it => it.symbol === part.symbol);
+      if (!row || part.dollars < CENT) {
+        return [];
+      }
+      const bought = money(part.dollars);
+      return [[part.symbol, {
+        bad: signedWholeMoney(-part.loss), badTip: badCaseTip(row.cases, bought),
+        typical: signedWholeMoney(part.dollars * row.cases.typicalPercent / 100), typicalTip: typicalCaseTip(row.cases, bought),
+        good: signedWholeMoney(part.gain), goodTip: goodCaseTip(row.cases, bought), forCash: true,
+      }] as const];
+    }));
     this.batchLines = ticked.filter(row => this.prices[row.symbol] > 0).map(row => ({
       symbol: row.symbol, held: this.positions[row.symbol], price: this.prices[row.symbol], dollars: this.startDollars(row),
     }));

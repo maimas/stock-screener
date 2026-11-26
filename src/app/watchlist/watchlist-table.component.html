@@ -7,7 +7,7 @@
 <!-- The portfolio's view: what you own and what to do about it, what could be added, and how the plan was tested. -->
 <div class="view-portfolio" [hidden]="shows !== 'portfolio'">
 <!-- One box for the portfolio being shown: its cash and limit, today's plan for it as lines, and what it holds. -->
-<app-positions-card [book]="book" [portfolio]="portfolio" [view]="positions" [together]="positionsTogether"
+<app-positions-card [book]="book" [portfolio]="portfolio" [view]="positions" [together]="positionsTogether" [bet]="positionsBet"
                     [plan]="working || planTrouble ? noSteps : plan" [toDo]="working || planTrouble ? nothingYet : toDo"
                     [loading]="working && !noPrices" [unvalued]="noPrices" [savedIn]="savedIn" [notice]="notice"
                     [names]="companyNames" [tied]="tied" [allColumns]="view === 'all'" (allColumnsChange)="setView($event ? 'all' : 'decision')"

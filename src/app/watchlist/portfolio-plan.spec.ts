@@ -125,7 +125,7 @@ describe('planFor (the plan for one portfolio, from what the page knows today)',
     // The same portfolio: worth 5,800, and AMD would take 31 / 86 of it beside NVDA, as one of three.
     const plan = planFor(portfolio([{symbol: 'NVDA', shares: 10, price: 100}], {cash: 5000}), context());
     expect(plan.reading!.title).toBe('For example, the first row: AMD');
-    expect(plan.reading!.lines.map(it => it.label)).toEqual(['Size', 'Bad case', 'Good case']);
+    expect(plan.reading!.lines.map(it => it.label)).toEqual(['Size', 'Bad case', 'Typical', 'Good case']);
     expect(plan.reading!.lines[0].text).toBe(
       "$2,091 is 36.0% of what this portfolio is worth today ($5,800). With AMD it would hold 2 stocks, but the tests held 3 or " +
       "more: this is AMD's share as one of 3, if a bad half-year were to cost the same on each.");

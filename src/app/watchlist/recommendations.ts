@@ -76,7 +76,7 @@ export function couldAddHeadline(count: number, portfolio: string, owned = 0): s
  * have no cash at all: the fourth column, and the heading over its lines, are then named by `money`.
  */
 export const COLUMNS = {
-  size: 'Size', bad: 'Bad case', good: 'Good case', cash: 'With your cash', money: 'With the money',
+  size: 'Size', bad: 'Bad case', typical: 'Typical', good: 'Good case', cash: 'With your cash', money: 'With the money',
   // A stock's fit, as two short cells that can be read down the table (they were one sentence a row).
   sector: 'Sector (you own)', moves: 'Moves with yours',
 } as const;
@@ -158,10 +158,13 @@ export function tickHint(cash: number | undefined, freed = 0, offered = false, k
  * What the columns of a row's numbers are, said when a heading is pointed at or reached with the Tab key. The
  * worked example under the table says the same with the first row's own amounts.
  */
-export const COLUMN_HELP: Record<'size' | 'bad' | 'good' | 'cash' | 'sector' | 'moves', string> = {
+export const COLUMN_HELP: Record<'size' | 'bad' | 'typical' | 'good' | 'cash' | 'sector' | 'moves', string> = {
   size: 'What the stock would get if it were the only one you add: a share of what this portfolio is worth, and that share in dollars.',
   bad: 'What that size would lose in a bad half-year: in tests, 1 in 10 stocks like it lost that much or more after 6 months.',
   good: 'What that size would gain in a good half-year: in tests, 1 in 10 stocks like it gained that much or more after 6 months.',
+  // Between the two: without it "−$825 · +$1,711" reads as an upside twice the downside (a review; the owner's word).
+  typical: 'What that size would have made in the typical half-year: in tests, the middle stock like it ended there after 6 months. ' +
+    'Half did better, half worse.',
   cash: 'What the money to split would buy of each stock you ticked. A stock you did not tick shows nothing here.',
   // The two columns about what the portfolio holds that is like the stock (FIT_NOTE says the same in one paragraph).
   sector: 'The stock\'s sector and, in brackets, how many of your stocks are in it. A fact, not a tested reason to pick one.',
@@ -573,10 +576,14 @@ export function readingOf(first: Recommendation | undefined, input: SizingInput 
           `On ${dollars} that is ${signedWholeMoney(-size.loss)}, ${againstLimit}.`,
       },
       {
-        label: COLUMNS.good,
+        label: COLUMNS.typical,
         // Whole dollars, as in the row these lines explain: the amounts are worked out from tests, not counted.
-        text: `In the same tests, 1 in 10 gained ${cases.gainPercent}% or more: ${signedWholeMoney(size.gain)}. ` +
-          `The typical one ended at ${signedPercent(cases.typicalPercent)}: ${signedWholeMoney(size.dollars * cases.typicalPercent / 100)}.`,
+        text: `In the same tests the typical one ended at ${signedPercent(cases.typicalPercent)}: ` +
+          `${signedWholeMoney(size.dollars * cases.typicalPercent / 100)}. Half did better, half worse.`,
+      },
+      {
+        label: COLUMNS.good,
+        text: `In the same tests, 1 in 10 gained ${cases.gainPercent}% or more: ${signedWholeMoney(size.gain)}.`,
       },
     ],
   };
@@ -618,13 +625,26 @@ export function sizeTip(size: Sized): string {
     : 'An equal share of the risk in this portfolio.';
 }
 
-export function badCaseTip(cases: TestedCases): string {
-  return `In tests, 1 in 10 stocks like this lost ${cases.lossPercent}% or more after 6 months. At this size that would be the amount shown.`;
+/**
+ * What the amount of a case is worked out for: the row's size, or, in a ticked row, the amount the money would buy
+ * of the stock (`bought`, as printed).
+ */
+function shownFor(bought?: string): string {
+  return bought ? `On the ${bought} the money would buy, that would be the amount shown.` : 'At this size that would be the amount shown.';
 }
 
-export function goodCaseTip(cases: TestedCases): string {
-  return `In tests, 1 in 10 stocks like this gained ${cases.gainPercent}% or more after 6 months. ` +
-    `The typical one ended at ${signedPercent(cases.typicalPercent)}.`;
+export function badCaseTip(cases: TestedCases, bought?: string): string {
+  return `In tests, 1 in 10 stocks like this lost ${cases.lossPercent}% or more after 6 months. ${shownFor(bought)}`;
+}
+
+export function goodCaseTip(cases: TestedCases, bought?: string): string {
+  return `In tests, 1 in 10 stocks like this gained ${cases.gainPercent}% or more after 6 months. ${shownFor(bought)}`;
+}
+
+/** Between the two: where the middle stock of its kind ended. */
+export function typicalCaseTip(cases: TestedCases, bought?: string): string {
+  return `In tests, the typical stock like this ended at ${signedPercent(cases.typicalPercent)} after 6 months: half did better, half worse. ` +
+    shownFor(bought);
 }
 
 /** In a stock's details on the Watchlist: the heading over its size in each portfolio, and the sentences under it. */

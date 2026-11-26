@@ -7,7 +7,7 @@ import {SortColumn} from "../position-sort";
 import {PortfolioBook} from "../portfolio-book";
 import {PositionRow, Reserve} from "../portfolio-view";
 import {Portfolio, viewOf} from "../positions";
-import {EVIDENCE, textsFor} from "../evidence";
+import {CASES_LIMIT, EVIDENCE, textsFor} from "../evidence";
 import {PositionRisk, riskOf, summarize, TestedCases} from "../sizing";
 import {PlanStep} from "../plan";
 
@@ -85,6 +85,15 @@ describe('PositionsCardComponent, in everyday words', () => {
     expect(cardWith([]).ownFacts).toEqual([]);
   });
 
+  // The owner had it put in sight: how far the stocks are one bet stands with the comparison, as figures the page
+  // hands in (worked out from the year of prices it loads).
+  it('sets how far the stocks are one bet beside the headline too, after the comparison with the market', () => {
+    const card = cardWith([dated('NVDA'), dated('AMD')]);
+    card.bet = [{label: 'Most money in', value: 'Technology, both stocks', tip: 'Both of your stocks are in Technology.'}, {label: 'Moved like', value: 'one bet'}];
+    expect(card.ownFacts.map(it => it.label)).toEqual(['Against the market', 'Money in for', 'Most money in', 'Moved like']);
+    expect(cardWith([nvda, amd]).ownFacts.map(it => it.label)).withContext('none handed in').toEqual(['Against the market']);
+  });
+
   it('says in that place what the comparison needs, while no stock has a purchase date', () => {
     const card = cardWith([nvda, amd]);
     expect(card.ownFacts).toEqual([{label: 'Against the market', value: 'needs a purchase date', tip: card.undatedText}]);
@@ -95,8 +104,10 @@ describe('PositionsCardComponent, in everyday words', () => {
   // of its columns, so they are a row at its foot.
   it('adds the two cases of the marked stocks up for a row at the foot of the table, from two of them', () => {
     const card = cardWith([nvda, amd]);
+    // NVDA and AMD are worth 5,400 and 900: the typical one of their kind ended at +2.4%, which is 151.20 together.
     expect(card.totals).toEqual({
-      label: 'Both marked DIP BUY at once', bad: '−$2,583', share: '6.5% of this portfolio', good: '+$5,355', tip: card.togetherLines.join(' '),
+      label: 'Both marked DIP BUY at once', bad: '−$2,583', share: '6.5% of this portfolio', typical: '+$151', good: '+$5,355',
+      tip: card.togetherLines.join(' '),
     });
     expect(cardWith([nvda, amd, row('ARM')]).totals!.label).toBe('All 3 marked DIP BUY at once');
     expect(cardWith([amd]).totals).withContext('one marked stock: its own row has the two figures').toBeUndefined();
@@ -229,7 +240,8 @@ describe('PositionsCardComponent, in everyday words', () => {
     expect(card.stockTip(nvda)).toBe('Nvidia Corp');
     card.onStockFocus(nvda, keyboard);
     expect(card.stockTip(nvda)).toBe([
-      'Nvidia Corp', card.planTooltip(nvda), `Bad case: ${card.badCaseTooltip(nvda)}`, `Good case: ${card.goodCaseTooltip(nvda)}`,
+      'Nvidia Corp', card.planTooltip(nvda), `Bad case: ${card.badCaseTooltip(nvda)}`, `Typical: ${card.typicalCaseTooltip(nvda)}`,
+      `Good case: ${card.goodCaseTooltip(nvda)}`,
     ].join('\n'));
     expect(card.stockTip(amd)).withContext('another row').toBe('');
     card.onStockBlur();
@@ -251,7 +263,7 @@ describe('PositionsCardComponent, in everyday words', () => {
     // AMD: 10 shares at 90, so 900: a bad case of 41% is 369 and a good one of 85% is 765. A small holding has
     // cases under 100 dollars: whole dollars there too, so the column is one precision from top to bottom.
     const small = row('AMD', {shares: 1});
-    expect([card.badCase(small), card.goodCase(small)]).toEqual(['−$37', '+$77']);
+    expect([card.badCase(small), card.typicalCase(small), card.goodCase(small)]).toEqual(['−$37', '+$2', '+$77']);
     expect(card.badCaseTooltip(nvda)).toBe(
       'In tests, 1 in 10 stocks like this lost 41% or more after 6 months. Here that would be the amount shown ' +
       '(5.5% of this portfolio), which is over your limit of $800.');
@@ -277,9 +289,18 @@ describe('PositionsCardComponent, in everyday words', () => {
     expect(cardWith([row('SPCX', {marked: false})]).togetherLines).toEqual([]);
   });
 
-  it('explains a good case the same way, with the typical result beside it', () => {
+  // The typical result has a column of its own between the two cases, as in "Could add" (the owner's word, after a
+  // review found that a bad and a good case side by side read as an upside twice the downside).
+  it('explains a good case the same way, and the typical result between the two in its own column', () => {
     expect(cardWith([nvda]).goodCaseTooltip(nvda)).toBe(
-      'In tests, 1 in 10 stocks like this gained 85% or more after 6 months. The typical one ended at +2.4%, which would be +$130 here.');
+      'In tests, 1 in 10 stocks like this gained 85% or more after 6 months. Here that would be the amount shown.');
+    // NVDA: 60 shares at 90, so 5,400: the typical one of its kind ended at +2.4%, which is 129.60.
+    expect(cardWith([nvda]).typicalCase(nvda)).toBe('+$130');
+    expect(cardWith([nvda]).typicalCaseTooltip(nvda)).toBe(
+      'In tests, the typical stock like this ended at +2.4% after 6 months: half did better, half worse. Here that would be the amount shown.');
+    const fund = row('SPCX', {marked: false});
+    expect([cardWith([fund]).typicalCase(fund), cardWith([fund]).typicalCaseTooltip(fund)])
+      .toEqual(['—', 'Only stocks marked DIP BUY were measured in the tests; this one is not marked now.']);
   });
 
   it('says why a stock that is not marked DIP BUY has no bad or good case', () => {
@@ -786,7 +807,12 @@ describe('PositionsCardComponent, as shown: one box for a portfolio\'s plan and 
     // (The plan's own lines are handed in by the page, and where the portfolios are saved is said at the foot.)
     const inSight = Array.from(el.querySelectorAll('mat-card p'))
       .filter(p => !p.closest('[hidden]') && !p.classList.contains('saved') && !p.classList.contains('lines')).map(text);
-    expect(inSight).toEqual(['Bought or sold? Click the stock\'s symbol, here or in "Could add", to record it.']);
+    // And, by the owner's word, one quiet line about the three cases under the table that shows them.
+    expect(inSight).toEqual([CASES_LIMIT, 'Bought or sold? Click the stock\'s symbol, here or in "Could add", to record it.']);
+    const caveat = el.querySelector('p.caveat')!;
+    expect(caveat.previousElementSibling?.classList.contains('table-scroll')).withContext('right under the table').toBeTrue();
+    expect(shown(page => page.card = cardWith([row('SPCX', {marked: false})])).querySelector('p.caveat'))
+      .withContext('no stock with a tested case: nothing to say of the cases').toBeNull();
     const control = el.querySelector<HTMLButtonElement>('button.about-toggle')!;
     expect(text(control)).toBe('How to read this box');
     expect(el.querySelectorAll('button.about-toggle').length).toBe(1);
@@ -805,7 +831,7 @@ describe('PositionsCardComponent, as shown: one box for a portfolio\'s plan and 
     const foot = el.querySelector('table tfoot tr.together')!;
     // The share of the portfolio stands with the row's name: in the cell it made the column, and the table, wider.
     expect(text(foot.querySelector('th'))).toBe('Both marked DIP BUY at once · bad case 6.5% of this portfolio');
-    expect(Array.from(foot.querySelectorAll('td')).map(text)).toEqual(['−$2,583', '+$5,355']);
+    expect(Array.from(foot.querySelectorAll('td')).map(text)).toEqual(['−$2,583', '+$151', '+$5,355']);
     const columns = el.querySelectorAll('table thead th').length;
     const spanned = Array.from(foot.children).reduce((sum, cell) => sum + Number(cell.getAttribute('colspan') ?? 1), 0);
     expect(spanned).withContext('the row is as wide as the table').toBe(columns);
@@ -967,7 +993,7 @@ describe('PositionsCardComponent, as shown: the order of the rows in "What you o
     });
     const headings: [string, SortColumn][] = [
       ['Stock', 'symbol'], ['Plan', 'plan'], ['Value', 'value'], ['Result', 'result'], ['Market since', 'market'], ['Bad case', 'bad'],
-      ['Good case', 'good'], ['Held', 'held'], ['Shares', 'shares'], ['Price paid', 'paid'], ['Price now', 'now'], ['Bought', 'bought'],
+      ['Typical', 'typical'], ['Good case', 'good'], ['Held', 'held'], ['Shares', 'shares'], ['Price paid', 'paid'], ['Price now', 'now'], ['Bought', 'bought'],
       ['% of total', 'weight'],
     ];
     headings.forEach(([label, column]) => {
@@ -1001,7 +1027,7 @@ describe('PositionsCardComponent, as shown: the order of the rows in "What you o
 
 describe('PositionsCardComponent, as shown: which columns "What you own" has', () => {
   const text = (el?: Element | null) => el?.textContent?.replace(/\s+/g, ' ').trim();
-  const KEY = ['Stock', 'Plan', 'Held', 'Value', '% of total', 'Result', 'Market since', 'Bad case', 'Good case'];
+  const KEY = ['Stock', 'Plan', 'Held', 'Value', '% of total', 'Result', 'Market since', 'Bad case', 'Typical', 'Good case'];
 
   function table(change: (page: PageWithTheBox) => void = () => undefined) {
     const fixture = TestBed.createComponent(PageWithTheBox);

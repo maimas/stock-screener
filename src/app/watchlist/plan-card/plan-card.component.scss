@@ -167,6 +167,27 @@
   color: var(--ink-2);
 }
 
+// Of what the figures are: a quiet line over them, at the size of a label.
+.tested-title {
+  margin: 0;
+  font-size: var(--text-meta);
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+// The one figure that is a loss is told from the gains beside it.
+.record .facts .risk dd {
+  color: var(--loss);
+}
+
+// Their limits, that this is no advice, and the way to the tests: one quiet line.
+.tested-limits {
+  margin: 2px 0 0;
+  font-size: var(--text-meta);
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
 @media (max-width: 699px) {
   .step {
     grid-template-columns: minmax(0, 1fr);

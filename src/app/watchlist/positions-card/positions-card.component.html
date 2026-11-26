@@ -162,6 +162,8 @@
             <button type="button" class="sort" (click)="sortBy('market')">Market since</button></th>
           <th scope="col" appTipOnFocus class="num group" [attr.aria-sort]="sortedAs('bad')" matTooltip="What a bad half-year could cost. Where an amount comes from shows when you point at it, and in the details of its stock.">
             <button type="button" class="sort" (click)="sortBy('bad')">Bad case</button></th>
+          <th scope="col" appTipOnFocus class="num" [attr.aria-sort]="sortedAs('typical')" [matTooltip]="typicalHelp">
+            <button type="button" class="sort" (click)="sortBy('typical')">Typical</button></th>
           <th scope="col" appTipOnFocus class="num" [attr.aria-sort]="sortedAs('good')" matTooltip="What a good half-year could add. Where an amount comes from shows when you point at it, and in the details of its stock.">
             <button type="button" class="sort" (click)="sortBy('good')">Good case</button></th>
           <th scope="col" class="num group" *ngIf="allColumns" [attr.aria-sort]="sortedAs('shares')">
@@ -222,6 +224,7 @@
           <td class="num group" [class.over]="row.risk?.overBudget" [matTooltip]="badCaseTooltip(row)" matTooltipClass="multiline-tooltip">
             {{ badCase(row) }}<span class="sub" *ngIf="row.risk?.overBudget"> over your limit</span>
           </td>
+          <td class="num typical" [matTooltip]="typicalCaseTooltip(row)" matTooltipClass="multiline-tooltip">{{ typicalCase(row) }}</td>
           <td class="num" [matTooltip]="goodCaseTooltip(row)" matTooltipClass="multiline-tooltip">{{ goodCase(row) }}</td>
           <td class="num group" *ngIf="allColumns">{{ shareCount(row.view.position.shares) }}</td>
           <td class="num" *ngIf="allColumns">{{ row.view.position.price.toFixed(2) }}</td>
@@ -242,12 +245,15 @@
         <tr class="together">
           <th scope="row" [attr.colspan]="totalsSpan" [matTooltip]="sum.tip" matTooltipClass="multiline-tooltip">{{ sum.label }}<span class="sub" *ngIf="sum.share"> · bad case {{ sum.share }}</span></th>
           <td class="num group">{{ sum.bad }}</td>
+          <td class="num">{{ sum.typical }}</td>
           <td class="num">{{ sum.good }}</td>
           <td *ngIf="allColumns" [attr.colspan]="totalsRest"></td>
         </tr>
         </tfoot>
       </table>
     </div>
+      <!-- In sight, by the owner's word: when the three cases were tested, and that it can be worse. -->
+      <p class="caveat" *ngIf="hasCases">{{ casesLimit }}</p>
       <!-- What a word of the "Plan" column means shows when it is pointed at, and in the heading's explanation: the
            owner had it removed from under the table, where it repeated what the pointer shows. -->
       <!-- What to do after acting on the plan, under the table: the one sentence the box keeps in sight. -->

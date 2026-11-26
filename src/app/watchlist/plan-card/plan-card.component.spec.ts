@@ -1,6 +1,7 @@
 import {TestBed} from "@angular/core/testing";
 import {PlanCardComponent} from "./plan-card.component";
 import {PlanStep, StepKind} from "../plan";
+import {testedStrip} from "../tested-strip";
 
 const step = (kind: StepKind): PlanStep => ({kind, verb: kind, text: 'What to do.', why: 'Why.', items: []});
 const cardWith = (...kinds: StepKind[]) => Object.assign(new PlanCardComponent(), {steps: kinds.map(step)});
@@ -49,14 +50,45 @@ describe('PlanCardComponent', () => {
     expect(card.empty).withContext('not known while prices are arriving').toBe(false);
   });
 
-  it('keeps the evidence off the card: one short line, and a way to the rest', () => {
+  it('keeps the evidence off the card: the tested figures, one quiet line, and a way to the rest', () => {
     const card = cardWith('buy');
-    expect(card.record.length).toBeLessThanOrEqual(110);
-    expect(card.record).toMatch(/Not advice/);
+    expect(card.tested).toEqual(testedStrip());
+    expect(card.disclaimer).toBe('Not advice; no guarantee.');
     let asked = 0;
     card.tests.subscribe(() => asked++);
     card.showTests();
     expect(asked).toBe(1);
+  });
+});
+
+// The owner's word, after a review: the plan's box said "In tests on new stocks: +9.3% ... (the market: +10.2%)" in
+// a sentence, a gain without its loss, while the Watchlist gave another test's +13.1% for the same mark. Both pages
+// now show one strip of figures, from the newest test (the owner's choice between it and all lists pooled).
+describe('PlanCardComponent: what the plan did in its test, as figures', () => {
+  function shown(): HTMLElement {
+    const fixture = TestBed.createComponent(PlanCardComponent);
+    Object.assign(fixture.componentInstance, {steps: [step('buy')]});
+    fixture.detectChanges();
+    return fixture.nativeElement;
+  }
+  const said = (el?: Element | null) => (el?.textContent ?? '').replace(/\s+/g, ' ').trim();
+
+  it('shows the same strip as the Watchlist: of what, then four figures with their names, the risk among them', () => {
+    const el = shown(), strip = testedStrip();
+    expect(said(el.querySelector('.record .tested-title'))).toBe(strip.title);
+    expect(strip.title).toMatch(/^In tests on \d+ new stocks, over 6 months$/);
+    const figures = Array.from(el.querySelectorAll('.record dl.facts > div'));
+    expect(figures.map(it => [said(it.querySelector('dt')), said(it.querySelector('dd'))])).toEqual(strip.figures.map(it => [it.label, it.value]));
+    expect(figures.map(it => said(it.querySelector('dt')))).toEqual(['DIP BUY, on average', 'DIP BUY, the typical one', 'The market', '1 in 10 DIP BUYs lost']);
+    expect(figures.map(it => it.classList.contains('risk'))).withContext('the loss is one of the figures, and marked as the risk').toEqual([false, false, false, true]);
+  });
+
+  it('says under the figures what they are limited to and that this is no advice, and leads to the tests', () => {
+    const el = shown();
+    expect(said(el.querySelector('.record .tested-limits .words'))).toBe(`${testedStrip().limits} Not advice; no guarantee.`);
+    const way = el.querySelector<HTMLButtonElement>('.record button.more')!;
+    expect(said(way)).toBe('How it was tested');
+    expect(el.textContent).withContext('the sentence the strip replaced is gone from the box').not.toContain('In tests on new stocks:');
   });
 });
 

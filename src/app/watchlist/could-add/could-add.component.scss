@@ -467,18 +467,51 @@ tbody tr:hover .symbol,
   color: var(--ink);
 }
 
+// Under the table, in sight: when the three cases were tested. A caption's size and ink, on one line.
+.caveat {
+  margin: 8px 0 0;
+  font-size: var(--text-meta);
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+// In a ticked row that gets an amount the three cases are for that amount: in the full ink of the amount they
+// belong to, where the cases of the other rows keep the table's own.
+td.for-cash {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+// While something is ticked the answer stays in sight, under the page's bar, as a long table is scrolled: ticking
+// a row far down used to leave it above the window. The rows pass under it, so it has the box's own white and a
+// hairline under it. Only where the answer is two or three lines: in a narrow box it would cover the table.
+@container (min-width: 1000px) {
+  // (The room inside it is there before anything is ticked too: added with the first tick, it moved the table 6px.)
+  .tick-answer {
+    padding: 4px 0 2px;
+  }
+
+  .tick-answer.answering {
+    position: sticky;
+    top: var(--bar-height, 48px);
+    z-index: 2;
+    background: var(--surface, #fff);
+    box-shadow: 0 1px 0 var(--line);
+  }
+}
+
 // The room the answer takes is kept free before anything is ticked, so that a tick never moves the table: two
 // lines of figures where the box is wide, three where it is a little narrower. (In a narrow box, a phone, nothing
 // is kept: the answer then pushes the table down by its own height.)
 @container (min-width: 1000px) {
   .tick-answer {
-    min-height: 84px;
+    min-height: 90px;   // three lines of 28px and the 6px of room inside the strip
   }
 }
 
 @container (min-width: 1200px) {
   .tick-answer {
-    min-height: 56px;
+    min-height: 62px;   // two lines, and that room
   }
 }
 

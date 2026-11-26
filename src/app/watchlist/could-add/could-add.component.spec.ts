@@ -9,6 +9,7 @@ import {
 import {MORE_STORAGE_KEY} from "../more/more.service";
 import {TestedCases} from "../sizing";
 import {FACTS_NOTE, StockFacts} from "../stock-facts";
+import {CASES_LIMIT} from "../evidence";
 import {Trade} from "../position-panel/position-panel.component";
 import {PurchaseFormComponent} from "../purchase-form/purchase-form.component";
 import {PurchasesFormComponent} from "../purchases-form/purchases-form.component";
@@ -122,18 +123,30 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
     expect([button.getAttribute('aria-expanded'), body.hidden]).toEqual(['true', false]);
   });
 
-  it('shows no sentence outside that control but the instruction, with nothing ticked', () => {
+  it('shows no sentence outside that control but the instruction and one quiet line about the cases, with nothing ticked', () => {
     const fixture = create();
     const inSight = Array.from(page(fixture).querySelectorAll('p')).filter(p => !p.closest('[hidden]')).map(say);
-    expect(inSight).toEqual([tickHint(1000)]);
+    expect(inSight).toEqual([tickHint(1000), CASES_LIMIT]);
+  });
+
+  // The owner had it put back in sight: the three cases are from tests in a rising market. One quiet line under the
+  // table whose columns it is about, and none while the table has no such columns.
+  it('says under the table, in one quiet line, when the three cases were tested', () => {
+    const fixture = create();
+    const line = page(fixture).querySelector('.body p.caveat')!;
+    expect(say(line)).toBe(CASES_LIMIT);
+    expect(say(line)).toMatch(/^Bad, typical and good case: tested in \d{4}–\d{4}, when the market was rising\. In a falling market they can be worse\.$/);
+    expect(line.previousElementSibling?.classList.contains('table-scroll')).withContext('right under the table').toBeTrue();
+    const noSizes = create({recommendations: [{symbol: 'ACME', cases: VOLATILE}], reading: undefined, sizing: undefined, cash: undefined});
+    expect(page(noSizes).querySelector('p.caveat')).withContext('no cases in the table: nothing to say of them').toBeNull();
   });
 
   it('gives each stock a row: its size as a share first and dollars second, a bad and a good half-year at that size, and its fit', () => {
     const fixture = create();
-    expect(headings(fixture)).toEqual(['Stock', 'Size', 'Bad case', 'Good case', 'With your cash', 'Sector (you own)', 'Moves with yours']);
+    expect(headings(fixture)).toEqual(['Stock', 'Size', 'Bad case', 'Typical', 'Good case', 'With your cash', 'Sector (you own)', 'Moves with yours']);
     expect(rows(fixture)).toEqual([
-      ['ACME', '20.1% $2,013', '−$825', '+$1,711', '', 'Technology (2)', 'closely'],
-      ['ZED', '12.2% $1,220 at your limit', '−$378', '+$683', '', 'Energy (none)', 'not closely'],
+      ['ACME', '20.1% $2,013', '−$825', '+$48', '+$1,711', '', 'Technology (2)', 'closely'],
+      ['ZED', '12.2% $1,220 at your limit', '−$378', '−$1', '+$683', '', 'Energy (none)', 'not closely'],
     ]);
   });
 
@@ -155,18 +168,18 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
     it('adds four columns: how far it dropped and how it grows beside the stock, the two pieces of context after the numbers', () => {
       const fixture = create({facts: FACTS});
       expect(headings(fixture)).toEqual([
-        'Stock', 'Dropped', 'Growing', 'Size', 'Bad case', 'Good case', 'With your cash', 'Analyst target', 'Holders in profit', 'Sector (you own)', 'Moves with yours',
+        'Stock', 'Dropped', 'Growing', 'Size', 'Bad case', 'Typical', 'Good case', 'With your cash', 'Analyst target', 'Holders in profit', 'Sector (you own)', 'Moves with yours',
       ]);
       expect(rows(fixture)).toEqual([
-        ['ACME', '−42%', 'profit +21%', '20.1% $2,013', '−$825', '+$1,711', '', '+56%', '38%', 'Technology (2)', 'closely'],
-        ['ZED', '−17%', 'sales +27%', '12.2% $1,220 at your limit', '−$378', '+$683', '', '—', '—', 'Energy (none)', 'not closely'],
+        ['ACME', '−42%', 'profit +21%', '20.1% $2,013', '−$825', '+$48', '+$1,711', '', '+56%', '38%', 'Technology (2)', 'closely'],
+        ['ZED', '−17%', 'sales +27%', '12.2% $1,220 at your limit', '−$378', '−$1', '+$683', '', '—', '—', 'Energy (none)', 'not closely'],
       ]);
     });
 
     it('keeps the amount of a ticked stock with the plan\'s numbers, before the context', () => {
       const fixture = create({facts: FACTS});
       tick(fixture, 'ACME');
-      expect(headings(fixture).slice(3, 8)).toEqual(['Size', 'Bad case', 'Good case', 'With your cash', 'Analyst target']);
+      expect(headings(fixture).slice(3, 9)).toEqual(['Size', 'Bad case', 'Typical', 'Good case', 'With your cash', 'Analyst target']);
     });
 
     it('says them with the keyboard on the stock too, each under the name of its column, in the order of the columns', () => {
@@ -212,12 +225,12 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
       const fixture = create({facts: FACTS});
       const helped = fixture.debugElement.queryAll(By.css('thead th .has-help'));
       expect(helped.map(it => say(it.nativeElement))).toEqual(
-        ['Dropped', 'Growing', 'Size', 'Bad case', 'Good case', 'With your cash', 'Analyst target', 'Holders in profit', 'Sector (you own)', 'Moves with yours']);
-      expect(helped.slice(8).map(it => it.injector.get(MatTooltip).message)).withContext('what the two columns about fit are').toEqual(
+        ['Dropped', 'Growing', 'Size', 'Bad case', 'Typical', 'Good case', 'With your cash', 'Analyst target', 'Holders in profit', 'Sector (you own)', 'Moves with yours']);
+      expect(helped.slice(9).map(it => it.injector.get(MatTooltip).message)).withContext('what the two columns about fit are').toEqual(
         [COLUMN_HELP.sector, COLUMN_HELP.moves]);
       expect(helped.every(it => it.nativeElement.tagName === 'BUTTON')).withContext('each heading is a button that orders the rows').toBeTrue();
-      expect(helped.slice(2, 6).map(it => it.injector.get(MatTooltip).message)).toEqual(
-        [COLUMN_HELP.size, COLUMN_HELP.bad, COLUMN_HELP.good, COLUMN_HELP.cash]);
+      expect(helped.slice(2, 7).map(it => it.injector.get(MatTooltip).message)).toEqual(
+        [COLUMN_HELP.size, COLUMN_HELP.bad, COLUMN_HELP.typical, COLUMN_HELP.good, COLUMN_HELP.cash]);
       expect(helped.every(it => it.nativeElement.tabIndex === 0)).withContext('each can take the keyboard').toBeTrue();
       expect(helped.map(it => it.injector.get(MatTooltip).message).every(text => text.length > 40)).toBeTrue();
     });
@@ -228,21 +241,33 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
 
     it('shows them for a stock that is owned too, and lets the heading over those rows span every column', () => {
       const fixture = create({facts: {...FACTS, CCC: {...FACTS['ZED'], dropped: '−30%'}}, additions: [MORE_CCC]});
-      expect(rows(fixture)[2]).toEqual(['CCC held', '−30%', 'sales +27%', 'add 4.0% $400', '−$124', '+$224', '', '—', '—', 'You own $3,000 of it today.']);
-      expect(page(fixture).querySelector('tr.group th')!.getAttribute('colspan')).toBe('12');
+      expect(rows(fixture)[2]).toEqual(['CCC held', '−30%', 'sales +27%', 'add 4.0% $400', '−$124', '$0', '+$224', '', '—', '—', 'You own $3,000 of it today.']);
+      expect(page(fixture).querySelector('tr.group th')!.getAttribute('colspan')).toBe('13');
     });
 
     it('has none of the four columns until the page knows the stocks', () => {
-      expect(headings(create({facts: {}}))).toEqual(['Stock', 'Size', 'Bad case', 'Good case', 'With your cash', 'Sector (you own)', 'Moves with yours']);
+      expect(headings(create({facts: {}}))).toEqual(['Stock', 'Size', 'Bad case', 'Typical', 'Good case', 'With your cash', 'Sector (you own)', 'Moves with yours']);
     });
   });
 
   // A bad or a good case is worked out from tests, not counted: cents would claim a precision it does not have, and
   // "−$41.03" under "−$825" made one column of two kinds of number. The same holds in "What you own".
-  it('says a bad and a good case in whole dollars, also under $100', () => {
+  it('says a bad, a typical and a good case in whole dollars, also under $100', () => {
     const small: Recommendation = {...ACME, size: {sharePercent: 1, dollars: 100.07, loss: 41.03, gain: 85.06, capped: false}};
     const fixture = create({recommendations: [small], additions: [{...MORE_CCC, dollars: 60, loss: 18.6, gain: 33.6}]});
-    expect(rows(fixture).map(row => row.slice(2, 4))).toEqual([['−$41', '+$85'], ['−$19', '+$34']]);
+    // The typical one of the volatile stocks ended at +2.4%, of the ones in between at −0.1%: $2 and nothing.
+    expect(rows(fixture).map(row => row.slice(2, 5))).toEqual([['−$41', '+$2', '+$85'], ['−$19', '$0', '+$34']]);
+  });
+
+  // Found by a review of the page: "−$825 · +$1,711" read as an upside twice the downside, with the typical result
+  // one click away. The owner had it put between the two.
+  it('gives the typical result a column of its own between the two cases, with what it is at the pointer', () => {
+    const fixture = create();
+    expect(headings(fixture).slice(1, 5)).toEqual(['Size', 'Bad case', 'Typical', 'Good case']);
+    const cell = fixture.debugElement.query(By.css('tbody tr td.typical'));
+    expect(say(cell.nativeElement)).toBe('+$48');
+    expect(cell.injector.get(MatTooltip).message).toBe(
+      'In tests, the typical stock like this ended at +2.4% after 6 months: half did better, half worse. At this size that would be the amount shown.');
   });
 
   // The page is to be compact: a row is one line. "Fit" was a sentence a row, and before that two. Now it is two
@@ -265,13 +290,14 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
   it('works its first row out in words under the table: a line for each of the three numbers, named as its column is', () => {
     const fixture = create();
     expect(say(page(fixture).querySelector('.reading h3'))).toBe('For example, the first row: ACME');
-    expect(example(fixture).map(line => line[0])).withContext('the labels are the column headings').toEqual(headings(fixture).slice(1, 4));
+    expect(example(fixture).map(line => line[0])).withContext('the labels are the column headings').toEqual(headings(fixture).slice(1, 5));
     expect(example(fixture)).toEqual([
       ['Size', "$2,013 is 20.1% of what this portfolio is worth today ($10,000). With ACME it would hold 4 stocks; " +
         "this is ACME's share if a bad half-year were to cost the same on each of them."],
       ['Bad case', 'In tests, 1 in 10 stocks marked DIP BUY that swing as much as ACME lost 41% or more after 6 months. ' +
         'On $2,013 that is −$825, within the $2,000 you accept to lose on one stock.'],
-      ['Good case', 'In the same tests, 1 in 10 gained 85% or more: +$1,711. The typical one ended at +2.4%: +$48.'],
+      ['Typical', 'In the same tests the typical one ended at +2.4%: +$48. Half did better, half worse.'],
+      ['Good case', 'In the same tests, 1 in 10 gained 85% or more: +$1,711.'],
     ]);
   });
 
@@ -284,7 +310,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
   // A box as wide as the window has room for both: the table, and beside it what is said about the table.
   it('keeps the table and what is said about it in one block, so that a wide box can set them side by side', () => {
     const body = page(create()).querySelector('.body')!;
-    expect(Array.from(body.children).map(part => part.className)).toEqual(['table-scroll', 'about']);
+    expect(Array.from(body.children).map(part => part.className)).toEqual(['table-scroll', 'caveat', 'about']);
     expect(body.querySelector('.about .reading')).withContext('the example').not.toBeNull();
     expect(body.querySelectorAll('.about p.note').length).withContext('the sentences that hold for every row').toBe(2);
     expect(page(create()).querySelector('.about p.lead')).withContext('the lead is the first of the explanations').not.toBeNull();
@@ -327,7 +353,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
 
   it('has no columns about fit for a portfolio that holds nothing: there is nothing to be like', () => {
     const fixture = create({recommendations: [{...ACME, fit: undefined}, {...ZED, fit: undefined}]});
-    expect(headings(fixture)).toEqual(['Stock', 'Size', 'Bad case', 'Good case', 'With your cash']);
+    expect(headings(fixture)).toEqual(['Stock', 'Size', 'Bad case', 'Typical', 'Good case', 'With your cash']);
     expect(notes(fixture)).toEqual([SIZE_RULES]);
   });
 
@@ -380,7 +406,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
     it('lists a stock that is owned and can be added to after the new ones, as a row of the same table', () => {
       const fixture = create({additions: [MORE_CCC]});
       expect(say(page(fixture).querySelector('p.lead'))).toBe(couldAddLead(2, 'Brokerage', 1));
-      expect(rows(fixture)[2]).toEqual(['CCC held', 'add 4.0% $400', '−$124', '+$224', '', 'You own $3,000 of it today.']);
+      expect(rows(fixture)[2]).toEqual(['CCC held', 'add 4.0% $400', '−$124', '$0', '+$224', '', 'You own $3,000 of it today.']);
       expect(rows(fixture).map(row => row[0])).toEqual(['ACME', 'ZED', 'CCC held']);
     });
 
@@ -421,7 +447,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
       expect(page(fixture).querySelector('p.empty')).toBeNull();
       // Its last column says what is held of each. The note about sectors and how prices move together would
       // describe something this table does not show.
-      expect(headings(fixture)).toEqual(['Stock', 'Size', 'Bad case', 'Good case', 'With your cash', 'Sector (you own)', 'Moves with yours']);
+      expect(headings(fixture)).toEqual(['Stock', 'Size', 'Bad case', 'Typical', 'Good case', 'With your cash', 'Sector (you own)', 'Moves with yours']);
       expect(notes(fixture)).toEqual([SIZE_RULES]);
     });
 
@@ -432,7 +458,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
       ]);
       expect(boxes(fixture).map(box => box.checked)).toEqual([false, false, false]);
       expect(say(page(fixture).querySelector('p.hint'))).toBe(tickHint(1000));
-      expect(headings(fixture)).withContext('the column of the second amount is there from the start, empty: a column that arrives with the first tick moves the others').toEqual(['Stock', 'Size', 'Bad case', 'Good case', 'With your cash', 'Sector (you own)', 'Moves with yours']);
+      expect(headings(fixture)).withContext('the column of the second amount is there from the start, empty: a column that arrives with the first tick moves the others').toEqual(['Stock', 'Size', 'Bad case', 'Typical', 'Good case', 'With your cash', 'Sector (you own)', 'Moves with yours']);
       expect(splitSays(fixture)).toEqual([]);
     });
 
@@ -443,8 +469,8 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
     it('shows in the row of a ticked stock what the cash gives it, and under the table what the purchase would do', () => {
       const fixture = create();
       tick(fixture, 'ACME');
-      expect(headings(fixture)).toEqual(['Stock', 'Size', 'Bad case', 'Good case', 'With your cash', 'Sector (you own)', 'Moves with yours']);
-      expect(rows(fixture).map(row => row[4])).withContext('the ticked row, and the one that is not').toEqual(['$1,000', '']);
+      expect(headings(fixture)).toEqual(['Stock', 'Size', 'Bad case', 'Typical', 'Good case', 'With your cash', 'Sector (you own)', 'Moves with yours']);
+      expect(rows(fixture).map(row => row[5])).withContext('the ticked row, and the one that is not').toEqual(['$1,000', '']);
       expect(say(page(fixture).querySelector('.split h3'))).toBe('With your cash');
       expect(splitSays(fixture)).toEqual([ONE_SHORT, 'You would hold 4 stocks instead of 3.', BAD_CASE, CASH_SOURCE]);
     });
@@ -471,7 +497,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
       const fixture = create();
       tick(fixture, 'ACME');
       tick(fixture, 'ACME');
-      expect(headings(fixture)).toEqual(['Stock', 'Size', 'Bad case', 'Good case', 'With your cash', 'Sector (you own)', 'Moves with yours']);
+      expect(headings(fixture)).toEqual(['Stock', 'Size', 'Bad case', 'Typical', 'Good case', 'With your cash', 'Sector (you own)', 'Moves with yours']);
       expect(splitSays(fixture)).toEqual([]);
     });
 
@@ -480,7 +506,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
       const fixture = create({additions: [MORE_CCC]});
       tick(fixture, 'ACME');
       tick(fixture, 'CCC');
-      expect(rows(fixture).map(row => row[4])).toEqual(['$1,000', '', '— at its share']);
+      expect(rows(fixture).map(row => row[5])).toEqual(['$1,000', '', '— at its share']);
       // The cash covers a part of what ACME is short of: that is why its amount is less than its "Size", the first
       // line says so, and the line about a share that is smaller with others in the portfolio is not there.
       expect(splitSays(fixture).slice(0, 2)).toEqual([
@@ -496,7 +522,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
       const fixture = create({recommendations: [ACME, BETA]});
       tick(fixture, 'ACME');
       tick(fixture, 'BETA');
-      expect(rows(fixture).map(row => row[4])).withContext('$1,000 of cash: the same part of what each is short of').toEqual(['$431', '$569']);
+      expect(rows(fixture).map(row => row[5])).withContext('$1,000 of cash: the same part of what each is short of').toEqual(['$431', '$569']);
       expect(splitSays(fixture)[1]).withContext('the cash covers a part: the first line says why the amounts are less')
         .toBe('You would hold 5 stocks instead of 3.');
       // With the three held at $2,000 each there is $4,000 of cash, which covers both: each gets its whole share,
@@ -504,7 +530,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
       fixture.componentRef.setInput('sizing', {...BROKERAGE, holdings: BROKERAGE.holdings.map(it => ({...it, value: 2000}))});
       fixture.componentRef.setInput('cash', 4000);
       fixture.detectChanges();
-      expect(rows(fixture).map(row => row[4])).toEqual(['$1,590', '$2,103']);
+      expect(rows(fixture).map(row => row[5])).toEqual(['$1,590', '$2,103']);
       expect(splitSays(fixture)[0]).toContain('covers all of it');
       expect(splitSays(fixture)[1]).toBe(
         `With the others you ticked in the portfolio a stock's share is smaller than alone: that is why an amount can be less ` +
@@ -635,7 +661,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
     // "too much text and not much signal". It is figures with their names now, each with its sentence at the pointer.
     it('answers a tick beside the instruction with figures, each named, and no sentence', () => {
       const fixture = create();
-      const beside = () => page(fixture).querySelector('.top > .tick-answer')!;
+      const beside = () => page(fixture).querySelector('.tick-answer')!;
       expect(say(beside())).withContext('nothing ticked').toBe('');
       tick(fixture, 'ACME');
       expect(say(beside().querySelector('h3'))).toBe('With your cash');
@@ -650,6 +676,50 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
       // And all of them, whole, are with the explanations of the box.
       expect(splitSays(fixture)).toEqual([ONE_SHORT, 'You would hold 4 stocks instead of 3.', BAD_CASE, CASH_SOURCE]);
       expect(page(fixture).querySelector('.about .about-body .split')).not.toBeNull();
+    });
+
+    // Found by a review, and the owner's word: ticking a row far down a long table left the answer above the window.
+    // While something is ticked it stays under the page's bar as the table is scrolled. For that it is a child of
+    // the box itself, not of the short block above the table, which would take it away with it.
+    it('keeps the answer to a tick in sight while the table is scrolled, and lets it go when nothing is ticked', () => {
+      const fixture = create();
+      (fixture.nativeElement as HTMLElement).style.width = '1300px';
+      const answer = page(fixture).querySelector<HTMLElement>('.tick-answer')!;
+      expect(answer.parentElement!.querySelector(':scope > .body table')).withContext('beside the block of the table, in the box itself').not.toBeNull();
+      expect(answer.closest('.top')).toBeNull();
+      expect(getComputedStyle(answer).position).withContext('nothing ticked').not.toBe('sticky');
+      tick(fixture, 'ACME');
+      expect(getComputedStyle(answer).position).toBe('sticky');
+      expect(getComputedStyle(answer).top).withContext('under the bar across the top of the page').not.toBe('auto');
+      expect(getComputedStyle(answer).backgroundColor).withContext('the rows pass under it: it is not see-through').not.toBe('rgba(0, 0, 0, 0)');
+      tick(fixture, 'ACME');
+      expect(getComputedStyle(answer).position).withContext('unticked again').not.toBe('sticky');
+    });
+
+    // The owner's word, after a review: a ticked row said "With your cash $1,000" beside a bad and a good case still
+    // worked out for its whole size of $2,013. In a ticked row that gets an amount, the three cases are for that amount.
+    it('works the three cases of a ticked row out for the amount the cash would buy, and says so at the pointer', () => {
+      const fixture = create();
+      const cases = () => rows(fixture).map(row => row.slice(2, 5));
+      expect(cases()).toEqual([['−$825', '+$48', '+$1,711'], ['−$378', '−$1', '+$683']]);
+      tick(fixture, 'ACME');
+      // $1,000 of a volatile stock: 41% lost, +2.4% typical, 85% gained.
+      expect(cases()).withContext('the ticked row, and the one that is not').toEqual([['−$410', '+$24', '+$850'], ['−$378', '−$1', '+$683']]);
+      const ticked = fixture.debugElement.query(By.css('tbody tr[data-row="ACME"]'));
+      expect(ticked.queryAll(By.css('td.for-cash')).length).withContext('the three cells are marked as being for the cash').toBe(3);
+      expect(ticked.query(By.css('td.typical')).injector.get(MatTooltip).message).toBe(
+        'In tests, the typical stock like this ended at +2.4% after 6 months: half did better, half worse. ' +
+        'On the $1,000 the money would buy, that would be the amount shown.');
+      expect(fixture.debugElement.queryAll(By.css('tbody tr[data-row="ZED"] td.for-cash')).length).toBe(0);
+      tick(fixture, 'ACME');
+      expect(cases()).withContext('unticked again: for its size').toEqual([['−$825', '+$48', '+$1,711'], ['−$378', '−$1', '+$683']]);
+    });
+
+    it('leaves the cases of a ticked row that gets nothing as they are: for its size', () => {
+      const fixture = create({cash: undefined});
+      tick(fixture, 'ACME');
+      expect(rows(fixture)[0].slice(2, 5)).toEqual(['−$825', '+$48', '+$1,711']);
+      expect(page(fixture).querySelectorAll('td.for-cash').length).toBe(0);
     });
 
     it('answers with the one sentence that says why, where nothing is split', () => {
@@ -669,7 +739,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
       fixture.componentRef.setInput('cash', 3000);
       fixture.detectChanges();
       expect(boxes(fixture)[0].checked).withContext('still ticked').toBeTrue();
-      expect(rows(fixture)[0][4]).toBe('$2,416');
+      expect(rows(fixture)[0][5]).toBe('$2,416');
       expect(splitSays(fixture)[0]).toBe('The one you ticked is $2,416 short of its share. Your $3,000 covers all of it, and $584 stays cash.');
     });
 
@@ -745,7 +815,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
         fixture.detectChanges();
         expect(say(page(fixture).querySelector('p.hint'))).withContext('the hint says what is split').toBe(tickHint(4000, 1780.49));
         // The money is no longer the cash alone: the column and the heading over the lines say "the money".
-        expect(headings(fixture)).toEqual(['Stock', 'Size', 'Bad case', 'Good case', 'With the money', 'Sector (you own)', 'Moves with yours']);
+        expect(headings(fixture)).toEqual(['Stock', 'Size', 'Bad case', 'Typical', 'Good case', 'With the money', 'Sector (you own)', 'Moves with yours']);
         expect(say(page(fixture).querySelector('.split h3'))).toBe('With the money');
         expect(splitSays(fixture)).toEqual([
           'The one you ticked is $1,220 short of its share. Your $5,780 (your cash and what selling would free) covers all of it, ' +
@@ -807,10 +877,10 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
       it('gives a ticked row more once the freed money is counted, when the cash alone was short', () => {
         const fixture = create({sizing: LITTLE_CASH, cash: 300});
         tick(fixture, 'ACME');
-        expect(rows(fixture)[0][4]).withContext('the cash alone').toBe('$300');
+        expect(rows(fixture)[0][5]).withContext('the cash alone').toBe('$300');
         countSold(fixture)!.click();
         fixture.detectChanges();
-        expect(rows(fixture)[0][4]).withContext('with what selling AAA down would free, $2,224').toBe('$776');
+        expect(rows(fixture)[0][5]).withContext('with what selling AAA down would free, $2,224').toBe('$776');
       });
 
       it('splits what selling would free alone in a portfolio without cash, and says so from the hint to the last line', () => {
@@ -826,7 +896,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
         countSold(fixture)!.click();
         fixture.detectChanges();
         expect(say(page(fixture).querySelector('p.hint'))).toBe(tickHint(0, 2268.29));
-        expect(headings(fixture)[4]).toBe('With the money');
+        expect(headings(fixture)[5]).toBe('With the money');
         const said = splitSays(fixture);
         expect(said[0]).toBe(
           'The one you ticked is $732 short of its share. The $2,268 that selling would free covers all of it, and $1,537 would be left as cash.');
@@ -963,7 +1033,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
       // A paragraph above the table said it a third time and pushed the table three lines down.
       expect(page(fixture).querySelector('p.hint.record')).toBeNull();
       expect(rows(fixture)[0]).withContext('the cells of a row are as they were').toEqual(
-        ['ACME', '20.1% $2,013', '−$825', '+$1,711', '', 'Technology (2)', 'closely']);
+        ['ACME', '20.1% $2,013', '−$825', '+$48', '+$1,711', '', 'Technology (2)', 'closely']);
     });
 
     it('has no "Add" until the page knows today\'s prices, and none for a stock without one', () => {
@@ -985,7 +1055,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
       expect(form.dollars).toBe(2012.99);
       expect(form.shares).toBe(40.2598);
       expect(addButtons(fixture)[0].getAttribute('aria-expanded')).toBe('true');
-      expect(page(fixture).querySelector('tr.form-row td')!.getAttribute('colspan')).withContext('across the whole table').toBe('9');
+      expect(page(fixture).querySelector('tr.form-row td')!.getAttribute('colspan')).withContext('across the whole table').toBe('10');
     });
 
     // Found by a review of the page: "Add" on a second row closed the first row's form and dropped what was typed
@@ -1060,7 +1130,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
         const fixture = withPrices();
         const order = () => Array.from(page(fixture).querySelectorAll('tbody tr[data-row]')).map(row => row.getAttribute('data-row'));
         const heading = (name: string) => Array.from(page(fixture).querySelectorAll<HTMLButtonElement>('thead th button')).find(it => say(it) === name)!;
-        expect(Array.from(page(fixture).querySelectorAll('thead th button')).map(say).slice(0, 4)).toEqual(['Stock', 'Size', 'Bad case', 'Good case']);
+        expect(Array.from(page(fixture).querySelectorAll('thead th button')).map(say).slice(0, 5)).toEqual(['Stock', 'Size', 'Bad case', 'Typical', 'Good case']);
         heading('Size').click();
         fixture.detectChanges();
         expect(order()).withContext('ACME is sized 20.1%, ZED 12.2%').toEqual(['ACME', 'ZED']);
@@ -1252,7 +1322,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
         expect(page(fixture).querySelector('tfoot')).withContext('the foot of the table is there for the form only').toBeNull();
         batchButton(fixture)!.click();
         fixture.detectChanges();
-        expect(page(fixture).querySelector('tfoot td')!.getAttribute('colspan')).withContext('the form: across the whole table').toBe('9');
+        expect(page(fixture).querySelector('tfoot td')!.getAttribute('colspan')).withContext('the form: across the whole table').toBe('10');
         expect(page(fixture).querySelectorAll('button.batch').length).toBe(1);
       });
 

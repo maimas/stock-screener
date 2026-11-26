@@ -58,8 +58,12 @@ average was the same, and three together still typically lost when the market fe
 which.
 
 Does it make money? Asked directly on 202 stocks never used before (pre-registered #7): yes, +9.3% over 6 months
-on average, and no more than the market, which made +10.2% over the same weeks. The line under the plan's lines says
-exactly that, from the numbers the test recorded.
+on average, and no more than the market, which made +10.2% over the same weeks. Under the plan's lines a strip of
+figures says exactly that, from the numbers the test recorded, with the typical result and the loss beside the
+average: "In tests on 202 new stocks, over 6 months", then "DIP BUY, on average +9.3%", "DIP BUY, the typical one
++3.6%", "The market +10.2%" and "1 in 10 DIP BUYs lost 31% or more". It is the same strip as "Dip candidates"
+shows on the Watchlist: both views quote the newest test, by the owner's choice (2026-11-26) between it and all
+the tested lists pooled; the pooled figures are behind "How to read this" on the Watchlist.
 
 Amounts show from the first visit. Until you enter "Most I can lose on one stock" at the top of the box, the
 plan starts from 10% of the portfolio (the starting value chosen on 2026-11-22; `DEFAULT_LIMIT_PERCENT` in
@@ -169,7 +173,7 @@ which will do best, so the app says how much, never which.
 |---|---|
 | Dropped, Growing | What the stock's mark rests on, as in "Dip candidates": how far the price is below its highest of the past year ("−42%"), and the growth figure ("profit +21%" or "sales +27%") |
 | Size | The share of the portfolio the stock would take, to one decimal ("20.1%"), and the same in dollars |
-| Bad case, Good case | What a tested bad or good half-year would mean at that size, in whole dollars: they are worked out from tests, not counted |
+| Bad case, Typical, Good case | What a tested bad, typical or good half-year would mean at that size, in whole dollars: they are worked out from tests, not counted. "Typical" is where the middle stock of its kind ended (half did better, half worse); it stands between the two so that a bad and a good case side by side are not read as an upside twice the downside. In a ticked row that gets an amount, the three are worked out for that amount, not for the size |
 | Analyst target, Holders in profit | Context, set in grey and never in green or red: how far the middle one of analysts' price targets is from today's price ("+56%"), and how many of the stock's owners paid less than today's price ("38%"). The first cannot be tested yet and the second made no difference in tests; a line under the table says so |
 | Sector (you own), Moves with yours | What the portfolio already holds that is like the stock, as two short cells that can be read down the table: its sector with, in brackets, how many of the portfolio's stocks are in it ("Technology (4)", "Utilities (none)"), and "closely" or "not closely" as its price has moved with theirs (blank only when there are no prices to compare). The two figures behind it (the past year, the last month) show where the pointer rests on that cell |
 
@@ -352,7 +356,7 @@ The page is made for a browser window that fills a large monitor, and still work
   lists and in "What you own" with its sector and industry, in "Dip candidates" in front of why the stock is marked),
   and a stock's details start with the company's name, its sector and its industry. The rows stay one line.
 - **"What you own" shows the columns a decision rests on**: Stock, Plan, Held, Value, % of total, Result, Market
-  since, Bad case, Good case. "All columns" adds how each stock was bought (shares, price paid, price now, the day),
+  since, Bad case, Typical, Good case. "All columns" adds how each stock was bought (shares, price paid, price now, the day),
   its mark, and the button that removes it; the choice is the same one as above the lists and is remembered with it.
   What the two cases of the marked stocks add up to if they all come true is a row at the foot of the table
   ("Both marked DIP BUY at once · bad case 7.4% of this portfolio", then the two sums under their columns), from
@@ -437,8 +441,18 @@ The page is made for a browser window that fills a large monitor, and still work
   say what they are where the pointer rests or the Tab key lands, as the other headings do; the few words under
   the weeks held ("DIP BUY today: counts from today") have their sentence where the pointer rests. The line
   YOUR LIMIT names its field and starts with what to do ("Set "Most I can lose on one stock": until then the plan
-  assumes $4,000."). Not done without the owner's word: a "Typical" figure between the two cases, and an answer
-  to a tick that stays in sight while a long table is scrolled.
+  assumes $4,000.").
+- **Six points the owner said yes to** (2026-11-26: "do all 6"). A "Typical" figure stands between "Bad case" and
+  "Good case" in both tables, with a sum of its own in the row at the foot of "What you own". The plan's box shows
+  the strip of tested figures in place of its sentence (above). While something is ticked in "Could add", the
+  answer to the tick stays under the page's bar as the table is scrolled (in a box 1000px wide or more; in a
+  narrower one it would cover the table). The three cases of a ticked row that gets an amount are worked out for
+  that amount, set a little firmer, and say so where the pointer rests ("On the $750 the money would buy, that
+  would be the amount shown."). How far the stocks are one bet stands beside the headline of "What you own" as
+  figures ("Most money in  Technology, 85%", "Moved like  about 2 separate bets", "Swung  about 1.9 times as
+  much as the market"), the sentences where the pointer rests and behind "How to read this box". And one quiet
+  line under each of the two tables says when the cases were tested: "Bad, typical and good case: tested in
+  2022–2026, when the market was rising. In a falling market they can be worse.".
 - **A stock's details are three columns, a column a subject**, where the list is 1280px wide or more (two in a
   narrower list, with the reader's stake on the right): what the mark rests on and what is risky about this one
   stock; why it dropped; your stake in it ("Where it fits", then "What you own of it", which names the portfolio

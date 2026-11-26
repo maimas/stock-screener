@@ -13,7 +13,8 @@ import {PositionRow} from "./portfolio-view";
  */
 
 /** The columns of the table that the rows can be ordered by, in the order they stand in. */
-export type SortColumn = 'symbol' | 'plan' | 'value' | 'weight' | 'result' | 'market' | 'bad' | 'good' | 'held' | 'shares' | 'paid' | 'now' | 'bought';
+export type SortColumn = 'symbol' | 'plan' | 'value' | 'weight' | 'result' | 'market' | 'bad' | 'typical' | 'good' | 'held' | 'shares' | 'paid' | 'now'
+  | 'bought';
 export type RowSort = { column: SortColumn, direction: 'asc' | 'desc' };
 
 /** Until a column is clicked: the biggest share of the portfolio first. */
@@ -84,6 +85,8 @@ function keyOf(row: PositionRow, column: SortColumn, plans?: Plans): number | st
     // The size of the loss, so that "biggest first" is the stock that could lose most.
     case 'bad':
       return row.cases ? dollars(row.risk?.loss) : undefined;
+    case 'typical':
+      return row.cases ? dollars(row.risk?.typical) : undefined;
     case 'good':
       return row.cases ? dollars(row.risk?.gain) : undefined;
     // The cell counts weeks.

@@ -1,4 +1,5 @@
 import {ChartSeries, Stock} from "../api/microsoft-money.service";
+import type {Fact} from "./recommendations";
 
 /**
  * How much a group of stocks is really one bet: the sector most of them share, and how closely their daily
@@ -270,18 +271,42 @@ export function oneBetOf(holdings: Weighted[], market?: ChartSeries): OneBet {
  * about 1.9 times as much as the market." Nothing for fewer than two stocks: there is nothing to set side by side.
  */
 export function oneBetText(holdings: Weighted[], market?: ChartSeries): string {
-  const {count, compared, days, topSector, bets, swing} = oneBetOf(holdings, market);
+  return oneBetSaid(oneBetOf(holdings, market)).sentences.join(' ');
+}
+
+/**
+ * The same as figures with their names, for the place beside the headline of "What you own" (the owner had it put
+ * in sight): the sector most of the money is in, how many separate bets the stocks moved like, and how much they
+ * swung against the market. Each carries the sentences (`oneBetText`) as its tip. Nothing for fewer than two stocks.
+ */
+export function oneBetFacts(holdings: Weighted[], market?: ChartSeries): Fact[] {
+  const said = oneBetSaid(oneBetOf(holdings, market)), tip = said.sentences.join(' ');
+  return [
+    ...(said.sector ? [{label: 'Most money in', value: said.sector, tip}] : []),
+    ...(said.like ? [{label: 'Moved like', value: said.like, tip}] : []),
+    ...(said.swung ? [{label: 'Swung', value: said.swung, tip}] : []),
+  ];
+}
+
+/**
+ * What is said of how far the stocks are one bet, once: as sentences, and as the few words of each figure (the
+ * sector with its share, the bets, the swing against the market). Nothing for fewer than two stocks.
+ */
+function oneBetSaid({count, compared, days, topSector, bets, swing}: OneBet): { sentences: string[], sector?: string, like?: string, swung?: string } {
   if (count < 2) {
-    return '';
+    return {sentences: []};
   }
   const sentences: string[] = [];
+  let sector: string | undefined, likeSaid: string | undefined, swung: string | undefined;
   // The sector is said from half of the money up: below that no sector is where the money is.
   if (topSector && topSector.share >= 0.5) {
     // With a stock outside the sector the share is never printed as 100%, however little that stock is worth.
     const percent = Math.round(topSector.share * 100);
-    sentences.push(topSector.count === count
+    const all = topSector.count === count;
+    sentences.push(all
       ? `${count === 2 ? 'Both' : `All ${count}`} of your stocks are in ${topSector.name}.`
       : `${percent >= 100 ? 'Nearly all' : `${percent}%`} of your stock money is in ${topSector.name}: ${topSector.count} of your ${count} stocks.`);
+    sector = `${topSector.name}, ${all ? (count === 2 ? 'both stocks' : `all ${count} stocks`) : percent >= 100 ? 'nearly all' : `${percent}%`}`;
   }
   if (bets !== undefined) {
     // "About", unless the figure is the whole number itself. It is never under one, and it is not said above the
@@ -291,17 +316,19 @@ export function oneBetText(holdings: Weighted[], market?: ChartSeries): string {
       : whole >= compared ? `${bets > compared || close(compared) ? '' : 'about '}${compared} separate bets`
       : `about ${whole} separate bets`;
     // Within a twentieth of the market's own swing it is "as much as the market".
-    const against = swing === undefined ? ''
-      : Math.abs(swing - 1) < 0.05 ? ', and about as much as the market' : `, and about ${swing.toFixed(1)} times as much as the market`;
+    const times = swing === undefined ? '' : Math.abs(swing - 1) < 0.05 ? 'about as much as the market' : `about ${swing.toFixed(1)} times as much as the market`;
+    const against = times ? `, and ${times}` : '';
     // The page loads a year of prices; a stock listed since then cuts the days all of them share, and the sentence
     // then says how many months it is about.
     const span = days === undefined || days >= YEAR_OF_DAYS ? 'year' : `${Math.max(1, Math.round(days / MONTH_OF_DAYS))} months`;
     sentences.push(`Over the past ${span} your stocks moved like ${like}${against}.`);
+    likeSaid = span === 'year' ? like : `${like}, over ${span}`;
+    swung = times || undefined;
     if (compared < count) {
       sentences.push(`Counted for ${compared} of your ${count} stocks: the ${count - compared === 1 ? 'other has' : 'others have'} too little price history.`);
     }
   }
-  return sentences.join(' ');
+  return {sentences, sector, like: likeSaid, swung};
 }
 
 /** The days every one of the series has a return for, oldest first. */

@@ -36,14 +36,18 @@
         </div>
 
         </div>
+        </div>
         <!-- The answer to a tick: its title with the buttons for all the ticked rows (at the foot of the table that
-             button can be below the window), then figures with their names: what the ticked stocks are short of,
+             button can be below the window), then figures with their names: what the ticked stocks have room for,
              the money there is to split, the stocks held and what a bad half-year could cost, today and after, and
              which of the ticked stocks moved together. Each figure has its sentence where the pointer rests, and
              the sentences stand whole with the explanations. The block that is read out is in the page before
              anything is ticked, empty: a screen reader reads what appears in a block it already knows. (Its class
-             is not "ticked": a ticked row may carry that one.) -->
-        <div class="tick-answer">
+             is not "ticked": a ticked row may carry that one.)
+             It is a child of the box itself, not of the short block above the table: while something is ticked it
+             stays in sight under the page's bar as a long table is scrolled, and a block that ends above the
+             table would take it away with it. -->
+        <div class="tick-answer" [class.answering]="!!split">
           <div class="tick-head" *ngIf="split">
             <h3 class="split-title">{{ cashTitle }}</h3>
             <button type="button" class="add batch" *ngIf="canRecord && (batchLines.length > 1 || (batching && batchLines.length > 0))" (click)="startBatch()" [matTooltip]="addTip"
@@ -63,7 +67,6 @@
               <p class="instead" *ngIf="splitInstead"><app-says [text]="splitInstead"></app-says></p>
             </ng-container>
           </div>
-        </div>
         </div>
 
         <!-- The table, then what is said about it. One under the other in a narrow box (beside the plan on a very
@@ -100,6 +103,7 @@
               </ng-container>
               <th scope="col" class="num starts" *ngIf="hasSizes" [attr.aria-sort]="sortedAs('size')"><button type="button" class="sort-head has-help" (click)="sortBy('size')" [matTooltip]="columnHelp.size" matTooltipClass="multiline-tooltip">{{ columns.size }}</button></th>
               <th scope="col" class="num" *ngIf="hasSizes" [attr.aria-sort]="sortedAs('bad')"><button type="button" class="sort-head has-help" (click)="sortBy('bad')" [matTooltip]="columnHelp.bad" matTooltipClass="multiline-tooltip">{{ columns.bad }}</button></th>
+              <th scope="col" class="num" *ngIf="hasSizes" [attr.aria-sort]="sortedAs('typical')"><button type="button" class="sort-head has-help" (click)="sortBy('typical')" [matTooltip]="columnHelp.typical" matTooltipClass="multiline-tooltip">{{ columns.typical }}</button></th>
               <th scope="col" class="num" *ngIf="hasSizes" [attr.aria-sort]="sortedAs('good')"><button type="button" class="sort-head has-help" (click)="sortBy('good')" [matTooltip]="columnHelp.good" matTooltipClass="multiline-tooltip">{{ columns.good }}</button></th>
               <th scope="col" class="num two-lines" *ngIf="cashColumn" [attr.aria-sort]="sortedAs('cash')"><button type="button" class="sort-head has-help" (click)="sortBy('cash')" [matTooltip]="columnHelp.cash" matTooltipClass="multiline-tooltip">{{ cashTitle }}</button></th>
               <ng-container *ngIf="hasFacts">
@@ -190,8 +194,14 @@
                 <span class="sub" *ngIf="row.dollars"> {{ row.dollars }}</span>
                 <span class="sub capped" *ngIf="row.capped"> at your limit</span>
               </td>
-              <td class="num" *ngIf="hasSizes" [matTooltip]="row.badTip" matTooltipClass="multiline-tooltip">{{ row.bad }}</td>
-              <td class="num" *ngIf="hasSizes" [matTooltip]="row.goodTip" matTooltipClass="multiline-tooltip">{{ row.good }}</td>
+              <!-- The three cases: for the row's size, or, in a ticked row that gets an amount, for that amount. -->
+              <ng-container *ngIf="hasSizes">
+                <ng-container *ngIf="casesOf(row) as shown">
+                  <td class="num" [class.for-cash]="shown.forCash" [matTooltip]="shown.badTip" matTooltipClass="multiline-tooltip">{{ shown.bad }}</td>
+                  <td class="num typical" [class.for-cash]="shown.forCash" [matTooltip]="shown.typicalTip" matTooltipClass="multiline-tooltip">{{ shown.typical }}</td>
+                  <td class="num" [class.for-cash]="shown.forCash" [matTooltip]="shown.goodTip" matTooltipClass="multiline-tooltip">{{ shown.good }}</td>
+                </ng-container>
+              </ng-container>
               <!-- A ticked row's one figure to act on: what the money would buy of the stock. Nothing stands beside
                    it but the two words of a stock that gets nothing. -->
               <td class="num cash" *ngIf="cashColumn" [matTooltip]="cashOf(row.symbol)?.tip || ''" matTooltipClass="multiline-tooltip">
@@ -223,6 +233,8 @@
             </ng-template>
           </table>
         </div>
+        <!-- In sight, by the owner's word: when the three cases were tested, and that it can be worse. -->
+        <p class="caveat" *ngIf="hasSizes">{{ casesLimit }}</p>
 
         <!-- Everything that explains the box, behind one control and closed until it is asked for (what the reader
              opened is remembered): which stocks these are and that each size stands alone; what the plan says to

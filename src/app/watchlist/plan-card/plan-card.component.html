@@ -30,7 +30,16 @@
   Nothing to do today: this portfolio is empty, and no stock on the page has dropped while its business keeps growing.
 </p>
 
-<p class="record">
-  {{ record }}
-  <button type="button" class="more" (click)="showTests()">How it was tested</button>
-</p>
+<!-- What the plan did in its test: of what, then figures with their names (the loss among them, marked), then one
+     quiet line with their limits, that this is no advice, and the way to the tests. The same strip as the
+     Watchlist shows; it took the place of a sentence. -->
+<div class="record">
+  <p class="tested-title">{{ tested.title }}</p>
+  <dl class="facts">
+    <div *ngFor="let figure of tested.figures; trackBy: trackByLabel" [class.risk]="figure.risk">
+      <dt>{{ figure.label }}</dt>
+      <dd>{{ figure.value }}</dd>
+    </div>
+  </dl>
+  <p class="tested-limits"><span class="words">{{ tested.limits }} {{ disclaimer }}</span><button type="button" class="more" (click)="showTests()">How it was tested</button></p>
+</div>

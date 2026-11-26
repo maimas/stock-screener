@@ -1,4 +1,4 @@
-import {concentrationOf, movingTogetherText, oneBetOf, oneBetText, tiedTo} from "./concentration";
+import {concentrationOf, movingTogetherText, oneBetFacts, oneBetOf, oneBetText, tiedTo} from "./concentration";
 import {chartOf, makeStock} from "./testing/fixtures";
 
 /** 80 daily closes built from a repeating cycle of daily returns, optionally mirrored (every return negated). */
@@ -213,6 +213,35 @@ describe('oneBetOf and oneBetText (how far the stocks of a portfolio are one bet
       'Both of your stocks are in Technology. Over the past year your stocks moved like one bet, and about 2.0 times as much as the market.');
     expect(oneBetText([held('AAA', A, 6000), held('BBB', B, 2500), held('CCC', C, 1500, 'Utilities')])).toBe(
       '85% of your stock money is in Technology: 2 of your 3 stocks. Over the past year your stocks moved like about 2 separate bets.');
+  });
+
+  // The owner had it put in sight beside the headline of "What you own": the same as figures with their names. The
+  // sentences are what the pointer shows on each, and stay with the explanations of the box.
+  it('gives the same as figures with their names: where the money is, how many bets, how much against the market', () => {
+    const half = A.map(r => r / 2);
+    const four = [held('AAA', A), held('BBB', A), held('CCC', B), held('DDD', C)];
+    const said = oneBetText(four, market(half));
+    expect(oneBetFacts(four, market(half))).toEqual([
+      {label: 'Most money in', value: 'Technology, all 4 stocks', tip: said},
+      {label: 'Moved like', value: 'about 3 separate bets', tip: said},
+      {label: 'Swung', value: 'about 1.2 times as much as the market', tip: said},
+    ]);
+    expect(oneBetFacts([held('AAA', A), held('BBB', A)], market(A)).map(it => it.value))
+      .toEqual(['Technology, both stocks', 'one bet', 'about as much as the market']);
+    expect(oneBetFacts([held('AAA', A, 6000), held('BBB', B, 2500), held('CCC', C, 1500, 'Utilities')]).map(it => [it.label, it.value]))
+      .withContext('no market prices: no figure against the market').toEqual([['Most money in', 'Technology, 85%'], ['Moved like', 'about 2 separate bets']]);
+  });
+
+  it('gives no figure for a sector that holds less than half of the money, and none at all for a single stock', () => {
+    const spread = [held('AAA', A, 1000, 'Technology'), held('BBB', B, 1000, 'Energy'), held('CCC', C, 1000, 'Utilities')];
+    expect(oneBetFacts(spread).map(it => [it.label, it.value])).toEqual([['Moved like', '3 separate bets']]);
+    expect(oneBetFacts([held('AAA', A)])).toEqual([]);
+    expect(oneBetFacts([])).toEqual([]);
+  });
+
+  it('says in the figure over how many months, when the stocks share less than a year of prices', () => {
+    const short = (symbol: string, cycle: number[]) => ({stock: makeStock({symbol, closes: path(cycle, 100, 84)}), value: 1000});
+    expect(oneBetFacts([held('AAA', A), short('BBB', B)]).map(it => it.value)).toEqual(['Technology, both stocks', '2 separate bets, over 4 months']);
   });
 
   it('says "separate bets" without "about" when the stocks moved as separately as they can', () => {

@@ -1,7 +1,7 @@
 import {Component, EventEmitter, Input, Output} from "@angular/core";
 import {NgForOf, NgIf} from "@angular/common";
 import {asks, PlanItem, PlanStep, saidInRows, StepKind, toDoVerbs} from "../plan";
-import {PLAN_SHORT} from "../evidence";
+import {testedStrip} from "../tested-strip";
 import {COULD_ADD} from "../recommendations";
 
 /** How the line about what changed starts on a day nothing did (whats-new.ts writes it). */
@@ -48,8 +48,18 @@ export class PlanCardComponent {
   /** Show the "Could add" box, which the BUY line points to: on a laptop it is two screens down. */
   @Output() couldAdd = new EventEmitter<void>();
 
-  /** The plan's record, in one short line. */
-  readonly record = PLAN_SHORT;
+  /**
+   * What the plan did in its test, as figures with their names: the same strip as the Watchlist shows (the newest
+   * test, by the owner's choice), with the loss among the figures. It took the place of one sentence, which gave
+   * the average and the market's and no loss.
+   */
+  readonly tested = testedStrip();
+  /** With the limits of those figures, on the same quiet line. */
+  readonly disclaimer = 'Not advice; no guarantee.';
+
+  trackByLabel(_: number, figure: { label: string }): string {
+    return figure.label;
+  }
 
   /** The lines to show: none while prices are still arriving, and never the steps the table says row by row. */
   get shownSteps(): PlanStep[] {

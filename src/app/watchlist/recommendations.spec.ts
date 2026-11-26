@@ -1,7 +1,7 @@
 import {
   additions, addLabel, afterSelling, badCaseTip, COLUMNS, COUNT_SOLD, couldAddHeadline, couldAddLead, equalRiskShare, FIT_NOTE, fitOf, goodCaseTip, NO_SIZE_NOTE,
   nothingToAdd, sellFact, sellNote, splitFacts, tiedFact, toSell,
-  badHalfYearLine, COLUMN_HELP, fitBrief, ORDER_NOTE, ownedFit, readingOf, recommend, shareText, sizeLabel, sizeOfNew, sizeRules, sizeTip, SizingInput, splitCell, splitLines, tickHint,
+  badHalfYearLine, COLUMN_HELP, fitBrief, ORDER_NOTE, typicalCaseTip, ownedFit, readingOf, recommend, shareText, sizeLabel, sizeOfNew, sizeRules, sizeTip, SizingInput, splitCell, splitLines, tickHint,
   whereItFits
 } from "./recommendations";
 import {CashSplit, SplitPart} from "./cash-split";
@@ -400,8 +400,23 @@ describe('the sentences of the "Could add" box', () => {
     expect(sizeTip({...size, capped: true})).toBe('Made smaller so that it fits your limit: an equal share of the risk would be more.');
     expect(badCaseTip(VOLATILE)).toBe(
       'In tests, 1 in 10 stocks like this lost 41% or more after 6 months. At this size that would be the amount shown.');
+    // The typical result has a column of its own between the two cases (the owner's word, after a review found that
+    // "−$811 · +$1,681" reads as an upside twice the downside): each of the three says its own figure.
+    expect(typicalCaseTip(MIDDLE)).toBe(
+      'In tests, the typical stock like this ended at −0.1% after 6 months: half did better, half worse. At this size that would be the amount shown.');
     expect(goodCaseTip(MIDDLE)).toBe(
-      'In tests, 1 in 10 stocks like this gained 56% or more after 6 months. The typical one ended at −0.1%.');
+      'In tests, 1 in 10 stocks like this gained 56% or more after 6 months. At this size that would be the amount shown.');
+  });
+
+  // In a ticked row the three cases are for the amount the money would buy, and each says so.
+  it('says of a case in a ticked row that it is worked out for the amount the money would buy', () => {
+    expect(badCaseTip(VOLATILE, '$1,000')).toBe(
+      'In tests, 1 in 10 stocks like this lost 41% or more after 6 months. On the $1,000 the money would buy, that would be the amount shown.');
+    expect(typicalCaseTip(MIDDLE, '$1,000')).toBe(
+      'In tests, the typical stock like this ended at −0.1% after 6 months: half did better, half worse. ' +
+      'On the $1,000 the money would buy, that would be the amount shown.');
+    expect(goodCaseTip(MIDDLE, '$1,000')).toBe(
+      'In tests, 1 in 10 stocks like this gained 56% or more after 6 months. On the $1,000 the money would buy, that would be the amount shown.');
   });
 });
 
@@ -423,7 +438,7 @@ describe('readingOf (the first row of "Could add" worked out in words, a line fo
   });
 
   it('has a line for each number of the row, under the name of its column', () => {
-    expect(readingOf(first(VOLATILE, threeInBetween), threeInBetween, F)!.lines.map(it => it.label)).toEqual(['Size', 'Bad case', 'Good case']);
+    expect(readingOf(first(VOLATILE, threeInBetween), threeInBetween, F)!.lines.map(it => it.label)).toEqual(['Size', 'Bad case', 'Typical', 'Good case']);
   });
 
   it('says what the size is a share of, in an order that can be checked, and why it is that share', () => {
@@ -434,20 +449,21 @@ describe('readingOf (the first row of "Could add" worked out in words, a line fo
   });
 
   // What was measured is stocks marked DIP BUY that swing that much, not every stock that does: the sentence says so.
-  it('says what the two cases are and what they come to at that size, with the typical result beside the good one', () => {
-    const [, bad, good] = lines(VOLATILE, threeInBetween);
+  it('says what the two cases are and what they come to at that size, with the typical result between them', () => {
+    const [, bad, typical, good] = lines(VOLATILE, threeInBetween);
     // The limit is the most to lose on one stock ($2,000 here), not the most to hold of it: the size, $2,013, is more
     // than the limit and fits it all the same. Read side by side without that, the two looked like a contradiction.
     expect(bad).toBe('In tests, 1 in 10 stocks marked DIP BUY that swing as much as ACME lost 41% or more after 6 months. ' +
       'On $2,013 that is −$825, within the $2,000 you accept to lose on one stock.');
     // Whole dollars, as in the row: these are worked out from tests, not counted.
-    expect(good).toBe('In the same tests, 1 in 10 gained 85% or more: +$1,711. The typical one ended at +2.4%: +$48.');
+    expect(typical).toBe('In the same tests the typical one ended at +2.4%: +$48. Half did better, half worse.');
+    expect(good).toBe('In the same tests, 1 in 10 gained 85% or more: +$1,711.');
   });
 
   it('says a typical result that is a small loss as a loss', () => {
     // A third of $10,000: $3,333. The typical stock in between ended at −0.1%.
     expect(lines(MIDDLE, worth10000([]), 'ZED')[2]).toBe(
-      'In the same tests, 1 in 10 gained 56% or more: +$1,867. The typical one ended at −0.1%: −$3.');
+      'In the same tests the typical one ended at −0.1%: −$3. Half did better, half worse.');
   });
 
   it('says so when the portfolio would hold fewer than three stocks: the size then counts three', () => {
@@ -499,6 +515,7 @@ describe('the sentences of the cash split in "Could add"', () => {
   // With what selling would free counted, the money is no longer the cash alone, and a portfolio may have no cash
   // at all: the column and the heading over the lines then have another name.
   it('names the column of the second amount: by the cash, or by the money once what selling would free is counted', () => {
+    expect(COLUMNS.typical).withContext('between the two cases').toBe('Typical');
     expect(COLUMNS.cash).toBe('With your cash');
     expect(COLUMNS.money).toBe('With the money');
   });
@@ -565,6 +582,8 @@ describe('the sentences of the cash split in "Could add"', () => {
       size: 'What the stock would get if it were the only one you add: a share of what this portfolio is worth, and that share in dollars.',
       bad: 'What that size would lose in a bad half-year: in tests, 1 in 10 stocks like it lost that much or more after 6 months.',
       good: 'What that size would gain in a good half-year: in tests, 1 in 10 stocks like it gained that much or more after 6 months.',
+      typical: 'What that size would have made in the typical half-year: in tests, the middle stock like it ended there after 6 months. ' +
+        'Half did better, half worse.',
       cash: 'What the money to split would buy of each stock you ticked. A stock you did not tick shows nothing here.',
       // Found by a review: these two headings said nothing where the pointer rests. What they say is the note's.
       sector: 'The stock\'s sector and, in brackets, how many of your stocks are in it. A fact, not a tested reason to pick one.',

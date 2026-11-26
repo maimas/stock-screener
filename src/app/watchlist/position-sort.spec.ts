@@ -55,6 +55,8 @@ describe('The order of the rows in "What you own"', () => {
     ['market', 'CCC BBB AAA DDD', 'AAA BBB CCC DDD'],
     ['bad', 'AAA BBB CCC DDD', 'CCC BBB AAA DDD'],
     ['good', 'BBB AAA CCC DDD', 'CCC AAA BBB DDD'],
+    // The typical result follows what each is worth and how its kind ended: the same order as the good case here.
+    ['typical', 'BBB AAA CCC DDD', 'CCC AAA BBB DDD'],
     ['held', 'AAA CCC BBB DDD', 'BBB CCC AAA DDD'],
     ['shares', 'BBB AAA DDD CCC', 'CCC DDD AAA BBB'],
     ['paid', 'DDD CCC AAA BBB', 'BBB AAA CCC DDD'],
@@ -130,7 +132,7 @@ describe('Clicking a column heading in "What you own"', () => {
   const BIGGEST_HOLDING_FIRST: RowSort = {column: 'weight', direction: 'desc'};
 
   it('puts the biggest (or the latest) at the top for a column of numbers or dates', () => {
-    const numbers: SortColumn[] = ['value', 'result', 'market', 'bad', 'good', 'held', 'shares', 'paid', 'now', 'bought'];
+    const numbers: SortColumn[] = ['value', 'result', 'market', 'bad', 'typical', 'good', 'held', 'shares', 'paid', 'now', 'bought'];
     numbers.forEach(column =>
       expect(nextSort(BIGGEST_HOLDING_FIRST, column)).withContext(column).toEqual({column, direction: 'desc'}));
     expect(nextSort({column: 'symbol', direction: 'asc'}, 'weight')).toEqual({column: 'weight', direction: 'desc'});

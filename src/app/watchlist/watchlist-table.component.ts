@@ -72,7 +72,7 @@ import {TrendCellComponent} from "./cells/trend/trend-cell.component";
 import {EarningsDateCellComponent} from "./cells/earnings-date/earnings-date-cell.component";
 import {DebtEquityCellComponent} from "./cells/debt-equity/debt-equity-cell.component";
 import {addDays, biggestDropSinceHigh, DROP_WORDS, DropNews, isoDay, newsQuery, parseHeadlines} from "./drop-news";
-import {movingTogetherText, oneBetText} from "./concentration";
+import {movingTogetherText, oneBetFacts, oneBetText} from "./concentration";
 import {GROUP_HELP, groupBySymbol, groupsAmong, groupTip, NO_GROUPS, TiedGroup, TiedGroups, tiedGroups} from "./tied-groups";
 import {heldIn, heldText} from "./held-in";
 import {CARD_NOTE, VOLATILITY_COLUMN_NOTE} from "./evidence";
@@ -337,6 +337,8 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
   positions: PortfolioView = portfolioView(this.portfolio, new Map(), {today: this.today});
   /** How far the holdings are one bet (where the money is, how they moved over the year), as sentences. */
   positionsTogether = '';
+  /** The same as figures with their names, for the place beside the headline of "What you own". */
+  positionsBet: { label: string, value: string, tip?: string }[] = [];
   /**
    * Who each stock held is, by symbol: the company's name, its sector and its industry. "What you own" shows it
    * when a symbol is pointed at or reached with the keyboard, as the lists do.
@@ -1293,11 +1295,13 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
     // How far the stocks of this portfolio are one bet: by what each is worth today, over the year of prices loaded.
     // Not said while a holding has no price (also while the prices are still arriving): it would be about fewer
     // stocks than the headline counts, and NO PRICE says what to do about the one that is missing.
-    this.positionsTogether = this.positions.rows.some(row => row.view.value === undefined) ? ''
-      : oneBetText(this.positions.rows.flatMap(row => {
+    const valued = this.positions.rows.some(row => row.view.value === undefined) ? undefined
+      : this.positions.rows.flatMap(row => {
         const stock = this.stocksBySymbol.get(row.symbol);
         return stock && row.view.value !== undefined ? [{stock, value: row.view.value}] : [];
-      }), this.indexHistory);
+      });
+    this.positionsTogether = valued ? oneBetText(valued, this.indexHistory) : '';
+    this.positionsBet = valued ? oneBetFacts(valued, this.indexHistory) : [];
     this.companyNames = Object.fromEntries(this.positions.rows.map(row => {
       const stock = this.stocksBySymbol.get(row.symbol);
       // The company's name with its sector and industry, as the lists say it for the same symbol.

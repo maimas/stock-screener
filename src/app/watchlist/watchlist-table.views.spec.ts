@@ -757,11 +757,14 @@ describe('WatchlistTableComponent: the two views of the one page', () => {
     page.savePosition({symbol: 'ACME', shares: 10, price: 100});
     page.savePosition({symbol: 'ZED', shares: 10, price: 100});
     expect(page.positionsTogether).toBe('Both of your stocks are in Technology. Over the past year your stocks moved like one bet.');
+    // The same as figures, for the place beside the headline of "What you own".
+    expect(page.positionsBet.map(it => [it.label, it.value])).toEqual([['Most money in', 'Technology, both stocks'], ['Moved like', 'one bet']]);
 
     // A third holding whose quote did not load: the sentence would be about two stocks under a headline of three.
     // NO PRICE says what to do; until then the sentence is not shown.
     page.savePosition({symbol: 'GONE', shares: 5, price: 20});
     expect(page.positionsTogether).withContext('a holding has no price').toBe('');
+    expect(page.positionsBet).withContext('nor the figures').toEqual([]);
   });
 
   it('saves the level for taking a profit with the portfolio, and takes a save without one as "no level"', () => {

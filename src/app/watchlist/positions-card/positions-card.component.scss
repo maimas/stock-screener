@@ -472,6 +472,14 @@ tfoot .together th .sub {
   font-size: inherit;
 }
 
+// Under the table, in sight: when the three cases were tested. A caption's size and ink, on one line.
+.caveat {
+  margin: 8px 0 0;
+  font-size: var(--text-meta);
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
 // In the row of a stock without a purchase date, where the weeks would stand: the way to add the date.
 .add-date {
   font-size: var(--text-data);

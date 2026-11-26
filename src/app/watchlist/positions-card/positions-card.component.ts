@@ -10,7 +10,7 @@ import {Portfolio} from "../positions";
 import {NamedPortfolio, PortfolioBook} from "../portfolio-book";
 import {PortfolioView, PositionRow} from "../portfolio-view";
 import {asks, HoldingPlan, holdingPlans, PlanStep, saidInRows, StepKind} from "../plan";
-import {CASES_CARD_NOTE, EVIDENCE, severalCardNote, takeProfitBrief, takeProfitFigures, takeProfitOffer} from "../evidence";
+import {CASES_CARD_NOTE, CASES_LIMIT, EVIDENCE, severalCardNote, takeProfitBrief, takeProfitFigures, takeProfitOffer} from "../evidence";
 import {CASH_LABEL, DEFAULT_LIMIT_PERCENT, KEEP_OUT_LABEL, LIMIT_LABEL, NO_GAP_UNDER, OWN_TABLE, PLAN_BOX, TAKE_PROFIT_LABEL} from "../sizing";
 import {COULD_ADD, Fact} from "../recommendations";
 import {money, shareCount, shareText, signedMoney, signedPercent, signedWholeMoney} from "../format";
@@ -67,6 +67,8 @@ export class PositionsCardComponent {
   @Input() view!: PortfolioView;
   /** How much the holdings move together (sector and correlation), as a sentence. */
   @Input() together = '';
+  /** The same as figures with their names, for the place beside the headline (the owner had it put in sight). */
+  @Input() bet: Fact[] = [];
   /**
    * Today's plan for the portfolio being shown, the same steps as in the lines above the table: each stock's row
    * says which step it is under. Empty while prices are still arriving, as a plan worked out from half of them
@@ -310,7 +312,8 @@ export class PositionsCardComponent {
     if (this.keyboardOn !== row.symbol) {
       return name;
     }
-    const cases = row.risk && row.cases ? [`Bad case: ${this.badCaseTooltip(row)}`, `Good case: ${this.goodCaseTooltip(row)}`] : [];
+    const cases = row.risk && row.cases
+      ? [`Bad case: ${this.badCaseTooltip(row)}`, `Typical: ${this.typicalCaseTooltip(row)}`, `Good case: ${this.goodCaseTooltip(row)}`] : [];
     return [name, this.planTooltip(row), ...cases].filter(Boolean).join('\n');
   }
 
@@ -373,24 +376,29 @@ export class PositionsCardComponent {
    * have no purchase date, one figure says what the comparison needs.
    */
   get ownFacts(): Fact[] {
-    const facts = againstMarketFacts(againstMarket(this.view.rows.map(row => row.view)));
+    const market = againstMarketFacts(againstMarket(this.view.rows.map(row => row.view)));
     const undated = this.undatedText;
-    return facts.length > 0 || !undated ? facts : [{label: 'Against the market', value: 'needs a purchase date', tip: undated}];
+    const compared = market.length > 0 || !undated ? market : [{label: 'Against the market', value: 'needs a purchase date', tip: undated}];
+    // Then how far the stocks are one bet, as the page hands it in.
+    return this.bet.length === 0 ? compared : [...compared, ...this.bet];
   }
 
   /**
    * The two cases of the marked stocks at once, for a row at the foot of the table: the sums of its two "case"
    * columns, with the bad one as a share of the portfolio. From two marked stocks; one has both figures in its row.
    */
-  get totals(): { label: string, bad: string, share: string, good: string, tip: string } | undefined {
+  get totals(): { label: string, bad: string, share: string, typical: string, good: string, tip: string } | undefined {
     const s = this.view.summary;
     if (s.togetherLoss === undefined || s.togetherCount < 2) {
       return undefined;
     }
+    // The typical results of the same stocks, added up like the two cases beside them.
+    const typical = this.view.rows.reduce((sum, row) => sum + (row.risk && row.cases ? row.risk.typical : 0), 0);
     return {
       label: `${s.togetherCount === 2 ? 'Both' : `All ${s.togetherCount}`} marked DIP BUY at once`,
       bad: signedMoney(-s.togetherLoss),
       share: s.togetherPercent === undefined ? '' : `${s.togetherPercent.toFixed(1)}% of this portfolio`,
+      typical: signedWholeMoney(typical),
       good: s.togetherGain === undefined ? '' : signedMoney(s.togetherGain),
       tip: this.togetherLines.join(' '),
     };
@@ -404,6 +412,18 @@ export class PositionsCardComponent {
   get totalsRest(): number {
     return 4 + (this.hasDates ? 1 : 0);
   }
+
+  /** Under the table, in sight: when the three cases were tested, and that it can be worse. */
+  readonly casesLimit = CASES_LIMIT;
+
+  /** A stock of the table has tested cases (it is marked DIP BUY): the line about the cases has something to be about. */
+  get hasCases(): boolean {
+    return this.view.rows.some(row => !!row.risk && !!row.cases);
+  }
+
+  /** What the heading "Typical" is, where the pointer rests or the Tab key lands. */
+  readonly typicalHelp = 'What the typical half-year would have added: in tests, the middle stock like it ended there after 6 months. ' +
+    'Half did better, half worse.';
 
   /**
    * What the entries in the fields come to, as figures with their names under the fields: what the portfolio is
@@ -694,8 +714,20 @@ export class PositionsCardComponent {
     if (!row.risk || !row.cases) {
       return NOT_MEASURED;
     }
-    return `In tests, 1 in 10 stocks like this gained ${row.cases.gainPercent}% or more after 6 months. ` +
-      `The typical one ended at ${signedPercent(row.cases.typicalPercent)}, which would be ${signedMoney(row.risk.typical)} here.`;
+    return `In tests, 1 in 10 stocks like this gained ${row.cases.gainPercent}% or more after 6 months. Here that would be the amount shown.`;
+  }
+
+  /** Between the two cases: where the middle stock of its kind ended, at what this holding is worth. */
+  typicalCase(row: PositionRow): string {
+    return row.risk && row.cases ? signedWholeMoney(row.risk.typical) : '—';
+  }
+
+  typicalCaseTooltip(row: PositionRow): string {
+    if (!row.risk || !row.cases) {
+      return NOT_MEASURED;
+    }
+    return `In tests, the typical stock like this ended at ${signedPercent(row.cases.typicalPercent)} after 6 months: half did better, half worse. ` +
+      'Here that would be the amount shown.';
   }
 
   /** What the plan says about this stock; undefined until the plan is worked out. */
