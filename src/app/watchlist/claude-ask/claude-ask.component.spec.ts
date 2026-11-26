@@ -178,3 +178,95 @@ describe('ClaudeAskComponent (the button that asks Claude about a list)', () => 
     expect(views.asked[0].map(it => it.symbol)).toEqual(['DDDD', 'EEEE', 'FFFF', 'GGGG', 'HHHH', 'IIII', 'JJJJ', 'KKKK', 'LLLL', 'BBBB']);
   });
 });
+
+// The owner of the page: "claude needs to factor also the same group stocks so compare". With the list, the button
+// sends the groups its stocks are in, so that Claude can compare the stocks that move together after it.
+describe('ClaudeAskComponent: the groups that go with a list', () => {
+  let views: FakeClaudeViews;
+  let fixture: ComponentFixture<ClaudeAskComponent>;
+
+  const stock = (symbol: string) => makeStock({symbol, price: 80, high52: 100, quarters: reportedQuarters(8, {baseRevenue: 100, latestRevenue: 120})});
+  const tiedGroup = (letter: string, index: number, symbols: string[]) => ({letter, index, symbols, level: 0.7, sector: ''});
+  const tied = (groups: ReturnType<typeof tiedGroup>[]) => ({groups, alone: [], unknown: []});
+
+  function create(stocks: ReturnType<typeof stock>[], groups: ReturnType<typeof tiedGroup>[]): void {
+    fixture = TestBed.createComponent(ClaudeAskComponent);
+    fixture.componentRef.setInput('stocks', stocks);
+    fixture.componentRef.setInput('tied', tied(groups));
+    fixture.detectChanges();
+  }
+
+  beforeEach(() => {
+    views = new FakeClaudeViews();
+    TestBed.configureTestingModule({
+      imports: [ClaudeAskComponent, NoopAnimationsModule],
+      providers: [{provide: ClaudeViewService, useValue: views}, {provide: ReadingService, useValue: new FakeReadings()}],
+    });
+  });
+
+  const button = (): HTMLButtonElement => fixture.nativeElement.querySelector('button')!;
+  const sent = () => views.groups[views.groups.length - 1].map(group => [group.letter, group.members.map(it => it.symbol)]);
+
+  it('says which stocks its list has for as long as it is on the page', () => {
+    create([stock('ABCD'), stock('EFGH')], []);
+    expect(views.registered).toBe(1);
+    expect(views.listed().map(it => it.quote!.symbol)).toEqual(['ABCD', 'EFGH']);
+    fixture.destroy();
+    expect(views.registered).toBe(0);
+  });
+
+  it('sends each group a stock of the list is in, with the stocks of that group in any of the reader\'s lists: its own first', () => {
+    views.elsewhere = [stock('MNOP'), stock('QRST'), stock('UVWX')];
+    create([stock('ABCD'), stock('EFGH'), stock('IJKL')], [
+      tiedGroup('A', 0, ['ABCD', 'HELD', 'MNOP', 'QRST']),      // HELD is in no list: held outside every list, or not on the page's lists
+      tiedGroup('B', 1, ['EFGH', 'IJKL']),
+      tiedGroup('C', 2, ['UVWX', 'ZZZZ']),                      // no stock of this list
+    ]);
+    button().click();
+    expect(views.asked[0].map(it => it.symbol)).toEqual(['ABCD', 'EFGH', 'IJKL']);
+    expect(sent()).toEqual([['A', ['ABCD', 'MNOP', 'QRST']], ['B', ['EFGH', 'IJKL']]]);
+    const first = views.groups[0][0].members[0], other = views.groups[0][0].members[1];
+    expect(first).withContext('a stock of the list is sent as it is asked about').toBe(views.asked[0][0]);
+    expect(Object.keys(other)).toEqual(['symbol', 'name', 'facts']);
+    expect(other.facts.belowHigh).toBe(20);
+  });
+
+  it('sends no group of which one stock only is in the reader\'s lists: there is nothing to compare it with', () => {
+    create([stock('ABCD'), stock('EFGH')], [tiedGroup('A', 0, ['ABCD', 'HELD', 'GONE'])]);
+    button().click();
+    expect(sent()).toEqual([]);
+  });
+
+  it('sends no group when the page has none', () => {
+    create([stock('ABCD'), stock('EFGH')], []);
+    button().click();
+    expect(views.groups).toEqual([[]]);
+  });
+
+  it('sends at most ten stocks of a group, the list\'s own first', () => {
+    const others = Array.from({length: 12}, (_, i) => `OT${String.fromCharCode(65 + i)}`);
+    views.elsewhere = others.map(stock);
+    create([stock('ABCD'), stock('EFGH')], [tiedGroup('A', 0, [...others.slice(0, 6), 'ABCD', ...others.slice(6), 'EFGH'])]);
+    button().click();
+    const members = views.groups[0][0].members.map(it => it.symbol);
+    expect(members.length).toBe(10);
+    expect(members.slice(0, 2)).toEqual(['ABCD', 'EFGH']);
+  });
+
+  it('says which group Claude is comparing once the stocks of its list are through', () => {
+    create([stock('ABCD'), stock('EFGH')], [tiedGroup('A', 0, ['ABCD', 'EFGH'])]);
+    views.knows({views: {}, queue: {symbols: ['ABCD', 'EFGH'], done: ['ABCD'], failed: {}, comparing: ['A', 'B']}});
+    fixture.detectChanges();
+    expect(button().textContent!.trim()).withContext('a stock is still to come').toBe('Asking Claude… 1 of 2');
+    views.knows({views: {}, queue: {symbols: ['ABCD', 'EFGH'], done: ['ABCD'], failed: {EFGH: 'timeout'}, comparing: ['A', 'B']}});
+    fixture.detectChanges();
+    expect(button().textContent!.trim()).toBe('Comparing group A…');
+    expect(button().disabled).toBeTrue();
+    views.knows({views: {}, queue: {symbols: ['ABCD', 'EFGH'], done: ['ABCD'], failed: {EFGH: 'timeout'}, comparing: ['B']}});
+    fixture.detectChanges();
+    expect(button().textContent!.trim()).toBe('Comparing group B…');
+    views.knows({views: {}, failed: {EFGH: 'timeout'}});
+    fixture.detectChanges();
+    expect(button().textContent!.trim()).toBe('Ask Claude about these 2');
+  });
+});

@@ -277,3 +277,51 @@ describe('ClaudeViewService: what the page knows, kept for all its parts', () =>
     expect(service.state$.value.queue).toBeUndefined();
   }));
 });
+
+// The owner of the page: "claude needs to factor also the same group stocks so compare". The groups go to the server
+// with the list; which stocks are in the reader's own lists is said by the lists' buttons, and by nobody else.
+describe('ClaudeViewService: the groups that go with a list, and the stocks of the reader\'s lists', () => {
+  let service: ClaudeViewService;
+  let http: HttpTestingController;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({imports: [HttpClientTestingModule]});
+    service = TestBed.inject(ClaudeViewService);
+    http = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => http.verify());
+
+  const refuse = () => http.expectOne('/claude/views').flush(server({state: 'busy'}), {status: 429, statusText: 'Too Many Requests'});
+
+  it('sends the groups with the list, each with its letter and its stocks', () => {
+    const groups = [{letter: 'A', members: [list[0], {symbol: 'MNOP', name: 'Third Corp', facts: {mark: 'WATCH' as const}}]}];
+    service.askAbout(list, groups).subscribe();
+    const call = http.expectOne(request => request.url === '/claude/views' && request.method === 'POST');
+    expect(call.request.body).toEqual({list, groups});
+    call.flush(server({state: 'busy'}), {status: 429, statusText: 'Too Many Requests'});
+    http.expectOne('/claude/views').flush(server({views: {}, failed: {}}));
+  });
+
+  it('sends a list without groups as before: no word of groups in the request', () => {
+    service.askAbout(list).subscribe();
+    const call = http.expectOne(request => request.url === '/claude/views' && request.method === 'POST');
+    expect(call.request.body).toEqual({list});
+    call.flush(server({state: 'busy'}), {status: 429, statusText: 'Too Many Requests'});
+    http.expectOne('/claude/views').flush(server({views: {}, failed: {}}));
+  });
+
+  it('knows the stocks of the reader\'s lists from the lists\' buttons, each stock once, and forgets a list that is gone', () => {
+    const stock = (symbol: string) => ({quote: {symbol}}) as never;
+    const first = {}, second = {};
+    let ofFirst = [stock('ABCD'), stock('EFGH')];
+    service.register(first, () => ofFirst);
+    service.register(second, () => [stock('EFGH'), stock('MNOP'), {quote: {}} as never]);
+    expect(service.listed().map(it => it.quote!.symbol)).toEqual(['ABCD', 'EFGH', 'MNOP']);
+    ofFirst = [stock('ABCD'), stock('QRST')];
+    expect(service.listed().map(it => it.quote!.symbol)).withContext('as the list is now, not as it was').toEqual(['ABCD', 'QRST', 'EFGH', 'MNOP']);
+    service.unregister(second);
+    expect(service.listed().map(it => it.quote!.symbol)).toEqual(['ABCD', 'QRST']);
+    expect(refuse).toBeDefined();
+  });
+});

@@ -1,7 +1,8 @@
 import {Injectable} from "@angular/core";
 import {HttpClient, HttpErrorResponse} from "@angular/common/http";
 import {BehaviorSubject, catchError, concat, concatMap, filter, map, Observable, of, scan, Subscription, switchMap, take, takeWhile, tap, timer} from "rxjs";
-import {parseViews, ViewRequest, ViewsState} from "./claude-view";
+import {Stock} from "../api/microsoft-money.service";
+import {GroupRequest, parseViews, ViewRequest, ViewsState} from "./claude-view";
 import {POLL_MS, ReadingService} from "./reading.service";
 
 /** A list of ten stocks takes about five minutes; the page asks how it is going for at most twenty. */
@@ -41,6 +42,8 @@ export class ClaudeViewService {
   readonly state$ = new BehaviorSubject<ViewsState>({...NOTHING});
   private started = false;
   private following?: Subscription;
+  /** The stocks of each of the reader's own lists, as the list's button names them: never the stocks held outside every list. */
+  private readonly lists = new Map<object, () => Stock[]>();
 
   constructor(private http: HttpClient, private readings: ReadingService) {
   }
@@ -62,8 +65,8 @@ export class ClaudeViewService {
    * Asks about a list. The one who asked is told once: that the list was taken, or why not (theirs to say; it
    * changes nothing that is known). From then on the rows are told through `state$`.
    */
-  askAbout(list: ViewRequest[]): Observable<ViewStep> {
-    return this.post(list).pipe(
+  askAbout(list: ViewRequest[], groups: GroupRequest[] = []): Observable<ViewStep> {
+    return this.post(list, groups).pipe(
       tap(step => {
         if (!isRefusal(step)) {
           // The answer that the list was taken carries no views: the ones already known stay in their rows.
@@ -76,6 +79,30 @@ export class ClaudeViewService {
         }
       }),
     );
+  }
+
+  /**
+   * A list's button says which stocks its list has, for as long as it is on the page. Only stocks named this way are
+   * ever sent to be compared with others: the stocks held outside every list have no button, so they are not among them.
+   */
+  register(owner: object, stocks: () => Stock[]): void {
+    this.lists.set(owner, stocks);
+  }
+
+  unregister(owner: object): void {
+    this.lists.delete(owner);
+  }
+
+  /** Every stock of the reader's own lists, each once. */
+  listed(): Stock[] {
+    const bySymbol = new Map<string, Stock>();
+    this.lists.forEach(stocks => stocks().forEach(stock => {
+      const symbol = stock.quote?.symbol;
+      if (symbol && !bySymbol.has(symbol)) {
+        bySymbol.set(symbol, stock);
+      }
+    }));
+    return [...bySymbol.values()];
   }
 
   /** Whether Claude Code can be asked here: the same look-up, made once, as for the readings. */
@@ -93,7 +120,7 @@ export class ClaudeViewService {
    * seconds until the last stock is through; or, once, why the list was not taken.
    */
   ask(list: ViewRequest[]): Observable<ViewStep> {
-    return this.post(list).pipe(
+    return this.post(list, []).pipe(
       switchMap(first => isRefusal(first) ? of(first) : concat(of(first), this.follow())),
     );
   }
@@ -152,8 +179,8 @@ export class ClaudeViewService {
     });
   }
 
-  private post(list: ViewRequest[]): Observable<ViewStep> {
-    return this.http.post<unknown>('/claude/views', {list}).pipe(
+  private post(list: ViewRequest[], groups: GroupRequest[]): Observable<ViewStep> {
+    return this.http.post<unknown>('/claude/views', groups.length ? {list, groups} : {list}).pipe(
       map((body): ViewStep => {
         const it = body as any;
         const taken = !!it && typeof it === 'object' && it.store === STORE && it.state === 'asking' ? parseViews(it) : undefined;

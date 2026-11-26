@@ -107,6 +107,9 @@ export type ViewFacts = {
 
 export type ViewRequest = { symbol: string, name: string, facts: ViewFacts };
 
+/** A group of stocks that move together, as it is sent to be compared: its letter and its stocks, each as a list's stock is. */
+export type GroupRequest = { letter: string, members: ViewRequest[] };
+
 /**
  * The least and the most each number may be, and how many decimals it is sent with. The server refuses a request
  * with a figure outside these (tools/claude/claude-view.js, FACT_FIELDS), so a figure that does not fit is left out
