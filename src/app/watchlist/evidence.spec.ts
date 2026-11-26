@@ -43,7 +43,7 @@ describe('the texts built from the figures recorded on 2026-11-21', () => {
 
   it('gives a DIP BUY its headline', () => {
     expect(t.dipBuyHeadline('20% below its high')).toBe(
-      'A growing company, 20% below its high. In tests, stocks like this gained +12.1% on average over 6 months ' +
+      'A growing company, 20% below its high. Over all 636 test stocks, stocks like this gained +12.1% on average over 6 months ' +
       '(any stock that dropped: +10.0%; the market: +10.8%). ' +
       'The typical one gained only +4.8%, and 1 in 3 fell a further 20% first.');
   });
@@ -51,7 +51,7 @@ describe('the texts built from the figures recorded on 2026-11-21', () => {
   it('gives a PASS its headline', () => {
     expect(t.passHeadline(10, 15)).toBe(
       'The business is not growing enough: the app looks for profit per share on course to grow 10%, or sales up 15% on a year ago. ' +
-      'In tests, stocks like this that dropped gained +9.2% on average over 6 months, against +12.1% for growing ones; ' +
+      'Over all 636 test stocks, stocks like this that dropped gained +9.2% on average over 6 months, against +12.1% for growing ones; ' +
       'the typical result was about the same (+4.5% and +4.8%).');
   });
 

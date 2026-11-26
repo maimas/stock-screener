@@ -287,8 +287,10 @@ function takeProfitTexts(f: Figures): {
       }
       const selling = way === 'order' ? `a sell order placed in advance at ${level}% above the purchase price`
         : `selling after a week closed ${level}% or more above the purchase price`;
-      return `In the test of selling early, ${selling} made a loss rarer: ` +
-        `${t.lossPercent}% ended below what was paid, against ${k.lossPercent}% when kept, and the bad case was ` +
+      // The two figures in brackets, not after a colon: a line of the plan shows this sentence alone in "How the plan
+      // was tested", whose "more" cuts a long first sentence at its colon.
+      return `In the test of selling early, ${selling} made a loss rarer ` +
+        `(${t.lossPercent}% ended below what was paid, against ${k.lossPercent}% when kept), and the bad case was ` +
         `${t.milder ? `milder by ${t.milderPoints.toFixed(1)} points` : 'about as bad'}. ` +
         `It also gave less on average: ${pct(t.mean)} against ${pct(k.mean)}. ` +
         // What a reader faces when the rule applies: written down before the test as something to quote wherever a
@@ -387,6 +389,15 @@ export function textsFor(f: Figures) {
   const {volatileFrom, calmBelow} = f.groups;
   const fellVolatile = inTen(f.fresh.fellPercent.volatile), fellCalm = inTen(f.fresh.fellPercent.calm);
   const vix = f.fear.vixHigh;
+  /** A fearful market in three parts: what the VIX is, what the test found (its risk included), what that rests on. */
+  const fearHigh = {
+    measure: `The VIX measures how nervous investors are; ${vix} or more counts as fearful.`,
+    found: `In tests, stocks bought after a drop in fearful months ` +
+      `gained ${pct(f.fear.high.mean)} on average over the next 6 months, against ${pct(f.fear.low.mean)} in calm months, ` +
+      `and about ${inTen(f.fear.high.upPercent)} were up. Fear can still get worse first: about ${f.fear.high.fellPercent}% fell a further 20%.`,
+    basis: `This rests on only about ${f.fear.episodes} fearful periods between ${f.fear.fromYear} and ${f.fear.toYear}, ` +
+      `and a one-day spike may fade before the month ends.`,
+  };
   const {takeProfit, afterHolding} = f.sixth;
   const newest = f.seventh;
 
@@ -468,13 +479,16 @@ export function textsFor(f: Figures) {
     years,
 
     dipBuyHeadline: (dipText: string): string =>
-      `A growing company, ${dipText}. In tests, stocks like this gained ${pct(f.dipBuy.mean)} on average over 6 months ` +
+      // "Over all 994 test stocks", as the account under THE PLAN names these figures: the strip of tested figures
+      // on both views quotes the newest list, and "In tests, ... +13.1%" beside it read as a second answer to one
+      // question.
+      `A growing company, ${dipText}. Over all ${f.stocks} test stocks, stocks like this gained ${pct(f.dipBuy.mean)} on average over 6 months ` +
       `(any stock that dropped: ${pct(f.everyDip.mean)}; the market: ${pct(f.sp500.mean)}). ` +
       `The typical one gained only ${pct(f.dipBuy.median)}, and ${fellFirst}.`,
 
     passHeadline: (epsPercent: number, revenuePercent: number): string =>
       `The business is not growing enough: the app looks for profit per share on course to grow ${epsPercent}%, or sales up ` +
-      `${revenuePercent}% on a year ago. In tests, stocks like this that dropped gained ${pct(f.notGrowing.mean)} on average over 6 months, ` +
+      `${revenuePercent}% on a year ago. Over all ${f.stocks} test stocks, stocks like this that dropped gained ${pct(f.notGrowing.mean)} on average over 6 months, ` +
       `against ${pct(f.dipBuy.mean)} for growing ones; the typical result was about the same ` +
       `(${pct(f.notGrowing.median)} and ${pct(f.dipBuy.median)}).`,
 
@@ -557,11 +571,7 @@ export function textsFor(f: Figures) {
 
     /** What market fear (the VIX) has meant for stocks that dropped, when it is high now and when it is not. */
     fearText: (high: boolean): string => high
-      ? `The VIX measures how nervous investors are; ${vix} or more counts as fearful. In tests, stocks bought after a drop in fearful months ` +
-        `gained ${pct(f.fear.high.mean)} on average over the next 6 months, against ${pct(f.fear.low.mean)} in calm months, ` +
-        `and about ${inTen(f.fear.high.upPercent)} were up. Fear can still get worse first: about ${f.fear.high.fellPercent}% fell a further 20%. ` +
-        `This rests on only about ${f.fear.episodes} fearful periods between ${f.fear.fromYear} and ${f.fear.toYear}, ` +
-        `and a one-day spike may fade before the month ends.`
+      ? `${fearHigh.measure} ${fearHigh.found} ${fearHigh.basis}`
       : `The VIX measures how nervous investors are; under ${vix} counts as calm. In tests, stocks bought after a drop in calm months ` +
         `gained ${pct(f.fear.low.mean)} on average over the next 6 months, against ${pct(f.fear.high.mean)} in fearful months. ` +
         `Nothing wrong with buying in a calm market; fearful months were just better. ` +
@@ -595,7 +605,15 @@ export function textsFor(f: Figures) {
     /** The same as two figures, for the line of figures under the fields. */
     takeProfitFigures: profitTexts.figures,
 
-    /** After "Market fear high (VIX 31.2): " in the Dip candidates card. */
+    /**
+     * The same account as the reason of the plan's GOOD TIME line, which begins with what the test found: "How the
+     * plan was tested" shows a reason's first sentence. Then what the VIX is and where it stands today, then what
+     * the finding rests on.
+     */
+    fearHighReason: (vixToday: number): string =>
+      `${fearHigh.found} ${fearHigh.measure} Today the VIX is at ${vixToday.toFixed(1)}. ${fearHigh.basis}`,
+
+    /** After "Market fear high (VIX 31.2): " in the Dip candidates card, and in the plan's GOOD TIME line. */
     fearHighShort:
       `in the past a better time to buy stocks that dropped (${wholePct(f.fear.high.mean)} against ${wholePct(f.fear.low.mean)} ` +
       `on average over 6 months), but fear can get worse first`,

@@ -3,6 +3,7 @@ import {CASH_LABEL, KEEP_OUT_LABEL, KEEP_OUT_SLACK, LIMIT_LABEL, PLAN_BOX, share
 import {EVIDENCE, Figures, numberWord, takeProfitOffer, textsFor} from "./evidence";
 import {money, orderPriceText, shareText, signedPercent as pct} from "./format";
 import {Addition, additions, addLabel, COULD_ADD} from "./recommendations";
+import {marketFear} from "./signal";
 
 /**
  * "Your plan today": the tested plan applied to one portfolio as a short list of steps, in everyday words.
@@ -212,10 +213,16 @@ export function planSteps(input: PlanInput, f: Figures = EVIDENCE): PlanStep[] {
     const first = f.sixth.afterHolding, second = f.seventh.secondHalf;
     steps.push({
       kind: 'review', verb: 'YOUR CALL', items: plain(past),
-      text: 'Held for over 6 months. After that the tests disagree.',
-      why: 'The tests followed each stock for 6 months. Two of them went on for 6 months more: on one list the kept stocks then ' +
-        `beat the market (${pct(first.stay)} against ${pct(first.sp500)}), on the other not clearly (${pct(second.stay)} against ` +
-        `${pct(second.sp500)}). So the plan has no rule for it. ${one ? 'This one is' : 'These are'} not marked DIP BUY now.` +
+      // Both results are in the line (the owner's yes, 2026-11-26): "After that the tests disagree." left the one
+      // decision that is the reader's with the least to go on. In the words of the note about keeping a stock.
+      text: 'Held for over 6 months. In tests, stocks kept 6 months more beat the market on one list ' +
+        `(${pct(first.stay)} against ${pct(first.sp500)}) and not clearly on the next (${pct(second.stay)} against ${pct(second.sp500)}).`,
+      // A reason begins with what its test found: "How the plan was tested" shows its first sentence.
+      // (No colon before the figures: the box cuts a long first sentence at its colon, and showed none of them.)
+      why: `Kept for 6 months more, the stocks beat the market on one test list (${pct(first.stay)} against ${pct(first.sp500)}) ` +
+        `and not clearly on the next (${pct(second.stay)} against ${pct(second.sp500)}). ` +
+        'Only these two tests went on after the 6 months, so the plan has no rule for it. ' +
+        `${one ? 'This one is' : 'These are'} not marked DIP BUY now.` +
         // The line with the order's price went when the 6 months were over: an order placed earlier may still stand.
         (profit?.order ? ' If you placed a sell order for it at your level, it may still be open: in the test such an order stood ' +
           'for the 6 months only.' : ''),
@@ -229,10 +236,10 @@ export function planSteps(input: PlanInput, f: Figures = EVIDENCE): PlanStep[] {
   const reached = (it: Holding) => it.row.view.price! >= levelPrice(it) - LAST_BITS;
   // Named on a line of its own: only where selling once the level is seen passed its test.
   const atLevel = profit?.seen ? followed.filter(reached) : [];
-  // Where the level was set and which stocks it counts for: the end of each line's first sentence, so that the two
-  // reasons begin with what is their own (with "more" closed, a reason shows its first sentence).
+  // Where the level was set and which stocks it counts for. Each of the two reasons begins with what its own test
+  // found (with "more" closed, a reason shows its first sentence), and says this after it.
   const asSet = `the level you set in the "${PLAN_BOX}" box, under "${TAKE_PROFIT_LABEL}". ` +
-    'It counts for a stock you bought as a DIP BUY, in its first 6 months. ';
+    'It counts for a stock you bought as a DIP BUY, in its first 6 months.';
   // Why the plan keeps is said once, under THE PLAN. Here only that it does.
   const stillKeep = ' The plan still says KEEP: the level is your own, and so is the decision.';
   if (profit && atLevel.length > 0) {
@@ -241,8 +248,8 @@ export function planSteps(input: PlanInput, f: Figures = EVIDENCE): PlanStep[] {
       // By how much it is up, in whole percent and never more than it is.
       items: atLevel.map(it => ({symbol: it.row.symbol, label: `up ${Math.floor((it.row.view.gainPercent ?? profit.level) + LAST_BITS)}%`})),
       text: `Up ${profit.level}% or more on what you paid: the level you set. Selling is your call.`,
-      why: `${atLevel.length === 1 ? 'This stock is' : 'These stocks are'} up ${profit.level}% or more on the average price you paid: ` +
-        asSet + textsFor(f).takeProfitWhy(profit.level, 'seen') + stillKeep,
+      why: `${textsFor(f).takeProfitWhy(profit.level, 'seen')} ${atLevel.length === 1 ? 'This stock is' : 'These stocks are'} ` +
+        `up ${profit.level}% or more on the average price you paid: ${asSet}${stillKeep}`,
     });
   }
 
@@ -279,8 +286,11 @@ export function planSteps(input: PlanInput, f: Figures = EVIDENCE): PlanStep[] {
   if (fear?.high) {
     steps.push({
       kind: 'timing', verb: 'GOOD TIME', items: [],
-      text: 'The market is fearful now. In the past, that was the better time to buy.',
-      why: `${textsFor(f).fearText(true)} Today the VIX is at ${fear.vix.toFixed(1)}.`,
+      // The Watchlist's own line of the same fact, under the same name (the owner's yes, 2026-11-26): the reading,
+      // the two figures and the risk. "The market is fearful now. In the past, that was the better time to buy."
+      // had none of them.
+      text: `${marketFear(fear.vix)?.label ?? 'Market fear high'}: ${textsFor(f).fearHighShort}.`,
+      why: textsFor(f).fearHighReason(fear.vix),
     });
   }
 
@@ -299,11 +309,12 @@ export function planSteps(input: PlanInput, f: Figures = EVIDENCE): PlanStep[] {
       : more.length === 1 ? 'This is a stock you own that is' : 'These are stocks you own that are';
     // These sentences are read at the bottom of the page, so they name places rather than say "below".
     // What is under THE PLAN in the same box (how such stocks did, the figures of how many) is not said again here.
-    const tested = `${which} marked DIP BUY on the Watchlist: the price dropped while the business keeps growing. ` +
-      'How such stocks did in the tests is under THE PLAN. ' +
-      'The tests found no dependable way to tell which will do best: the one ordering that looked promising, the fastest fallers ' +
-      `first, beat the others in the same week ${tried.aheadPercent < 50 ? 'only ' : ''}${tried.aheadPercent}% of the time. ` +
-      'So the plan gives them no order, and how many matters more than which. ';
+    // What the tests found comes first: "How the plan was tested" shows a reason's first sentence.
+    const tested = 'In tests, the one way of picking among such stocks that looked promising, the fastest fallers first, beat the others in ' +
+      `the same week ${tried.aheadPercent < 50 ? 'only ' : ''}${tried.aheadPercent}% of the time. ` +
+      'So the tests found no dependable way to tell which will do best: the plan gives them no order, and how many matters more than which. ' +
+      `${which} marked DIP BUY on the Watchlist: the price dropped while the business keeps growing. ` +
+      'How such stocks did in the tests is under THE PLAN. ';
     steps.push({
       kind: 'buy', verb: 'BUY', items: [],
       inRows: more.map(it => ({symbol: it.symbol, label: addLabel(it)})),
@@ -322,8 +333,9 @@ export function planSteps(input: PlanInput, f: Figures = EVIDENCE): PlanStep[] {
       steps.push({
         kind: 'spread', verb: 'HOW MANY', items: [],
         text: `${several[0].toUpperCase()}${several.slice(1)} or more rather than one. In tests, a bad half-year then hurt less.`,
-        why: (count === 0 ? 'You hold no stock the plan covers yet. ' : `The plan covers ${count} of your stocks today. `) +
-          `With fewer than ${several}, one stock decides most of the result. What the test found is under THE PLAN, above.`,
+        why: `In tests, ${severalBrief}. ` +
+          (count === 0 ? 'You hold no stock the plan covers yet' : `The plan covers ${count} of your stocks today`) +
+          `: with fewer than ${several}, one stock decides most of the result. The whole test is under THE PLAN, above.`,
       });
     }
   }
@@ -337,10 +349,10 @@ export function planSteps(input: PlanInput, f: Figures = EVIDENCE): PlanStep[] {
       kind: 'order', verb: 'ORDER PRICE',
       items: toOrder.map(it => ({symbol: it.row.symbol, label: `at ${orderPriceText(levelPrice(it))}${reached(it) ? ', under its price now' : ''}`})),
       text: `A sell order at +${profit.level}% on what you paid, as you set. Placing it is your call.`,
-      why: `The price given for each stock is ${profit.level}% above the average price you paid for it, rounded up: ${asSet}` +
+      why: `${textsFor(f).takeProfitWhy(profit.level, 'order')} In that test an order stood for the 6 months and no longer. ` +
+        `The price given for each stock is ${profit.level}% above the average price you paid for it, rounded up: ${asSet} ` +
         'A sell order here is one you leave with your broker to sell at that price or better: it waits until the price is reached ' +
-        '(brokers call it a limit order). ' + textsFor(f).takeProfitWhy(profit.level, 'order') +
-        ' In that test an order stood for the 6 months and no longer.' + stillKeep,
+        '(brokers call it a limit order).' + stillKeep,
     });
   }
 
@@ -353,9 +365,12 @@ export function planSteps(input: PlanInput, f: Figures = EVIDENCE): PlanStep[] {
       items: keeping.map(it => it.row.view.week !== undefined && !it.row.view.beyondTested
         ? {symbol: it.row.symbol, label: `week ${it.row.view.week}`} : {symbol: it.row.symbol}),
       text: `Keep ${keeping.length === 1 ? 'this one' : 'these'} for 6 months. In tests, selling early, up or down, paid less.`,
-      why: `On two lists of stocks never used before (${f.sixth.stocks} and ${f.seventh.stocks}), selling as soon as a stock was up ` +
-        `${t.percent}% gave less on average than keeping it for 6 months: ${pct(t.withTakeProfit)} against ${pct(t.holding)}, and ` +
-        `${pct(s.withTakeProfit)} against ${pct(s.holding)}; ${s.soldEarlyPercent}% of the stocks reached it at some point. ` +
+      // The figures stand in the first sentence, with no colon before them: the box "How the plan was tested" shows
+      // a reason's first sentence and cuts a long one at its colon.
+      why: `In tests, selling as soon as a stock was up ${t.percent}% gave ${pct(t.withTakeProfit)} on average against ` +
+        `${pct(t.holding)} for keeping it 6 months, and ${pct(s.withTakeProfit)} against ${pct(s.holding)} on a second list, ` +
+        `where ${s.soldEarlyPercent}% of the stocks reached it at some point. ` +
+        `Both lists were of stocks never used before (${f.sixth.stocks} and ${f.seventh.stocks}). ` +
         `Selling after a ${f.fresh.stopPercent}% drop lowered the result too (${pct(s.withStop)} against ${pct(s.holding)}). ` +
         'A stock with no week number counts from today.',
     });

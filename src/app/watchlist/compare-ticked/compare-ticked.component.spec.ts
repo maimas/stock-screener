@@ -7,9 +7,10 @@ import {CompareTickedComponent} from "./compare-ticked.component";
 // The owner of the page, of the stocks in "Could add": "there should be some sort of way of comparing them against
 // each other". The ticked stocks stand side by side here, a column a stock and a row a fact.
 
-/** A case that says only these facts; a fact given as a pair has a sentence behind it. */
-function saying(facts: Partial<Record<FactKey, string | [string, string]>>): StockCase {
-  const cell = (said: string | [string, string]): FactCell => typeof said === 'string' ? {value: said} : {value: said[0], tip: said[1]};
+/** A case that says only these facts; a fact given as a pair has a sentence behind it, one given whole is taken as it is. */
+function saying(facts: Partial<Record<FactKey, string | [string, string] | FactCell>>): StockCase {
+  const cell = (said: string | [string, string] | FactCell): FactCell =>
+    typeof said === 'string' ? {value: said} : Array.isArray(said) ? {value: said[0], tip: said[1]} : said;
   return {
     swings: '', beyondTests: false, swingsTip: '', against: [], againstTip: '',
     facts: Object.fromEntries(Object.entries(facts).map(([key, said]) => [key, cell(said!)])),
@@ -120,6 +121,24 @@ describe('CompareTickedComponent (the ticked stocks of "Could add", side by side
     const row = el.querySelector('table.part:nth-of-type(2) tbody tr:first-child')!;
     expect(row.classList.contains('same')).toBeTrue();
     expect(Array.from(row.querySelectorAll('td')).map(cell => getComputedStyle(cell).color)).toEqual(['rgb(198, 40, 40)', 'rgb(198, 40, 40)']);
+  });
+
+  // The owner, of the block: "highlight the winers so that it's easy to pick".
+  it('sets the best of the ticked stocks in a row in green, and says so to a screen reader', () => {
+    const calm = saying({swings: {value: '33% a year · calm', n: 33}, debt: {value: '0.6 times', n: 0.6}});
+    const wild = saying({swings: {value: '88% a year · volatile', n: 88}, debt: {value: '0.1 times', n: 0.1}});
+    const el: HTMLElement = create([{symbol: 'ACME', case: calm}, {symbol: 'BOLT', case: wild}]).nativeElement;
+    const rows = Array.from(el.querySelectorAll('tbody tr')).map(row => Array.from(row.querySelectorAll('td')) as HTMLElement[]);
+    expect(rows.map(cells => cells.map(say))).toEqual([
+      ['33% a year · calm (best of the ticked)', '88% a year · volatile'],
+      ['0.6 times', '0.1 times (best of the ticked)'],
+    ]);
+    expect(rows.map(cells => cells.map(cell => cell.classList.contains('best')))).toEqual([[true, false], [false, true]]);
+    expect(rows.map(cells => cells.map(cell => getComputedStyle(cell).color === 'rgb(27, 127, 75)')))
+      .withContext('the page\'s green').toEqual([[true, false], [false, true]]);
+    expect(getComputedStyle(rows[0][0]).fontWeight).withContext('and heavier: it does not rest on the colour').toBe('600');
+    const hidden = getComputedStyle(rows[0][0].querySelector('span')!);
+    expect([hidden.position, hidden.width]).withContext('the words are for a screen reader').toEqual(['absolute', '1px']);
   });
 
   it('opens a stock from its symbol, and says the company\'s name under the pointer', () => {

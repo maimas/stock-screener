@@ -100,6 +100,14 @@ tbody tr.same td.against {
   color: var(--loss, #c62828);
 }
 
+// The best of the ticked stocks in its row. The owner: "highlight the winers so that it's easy to pick". The page's
+// green (5.2:1 on white) and a heavier figure, so that it does not rest on the colour. A row's best, not a pick:
+// which rows have one is decided in case-against.ts.
+tbody tr td.best {
+  font-weight: 600;
+  color: var(--gain, #1b7f4b);
+}
+
 tbody tr:last-child th,
 tbody tr:last-child td {
   border-bottom: 0;

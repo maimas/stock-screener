@@ -1,5 +1,5 @@
 import {Stock} from "../api/microsoft-money.service";
-import {againstCell, CASE_COLUMNS, CASE_HELP, caseOf, FactKey, sideBySide, StockCase} from "./case-against";
+import {againstCell, CASE_COLUMNS, CASE_HELP, caseOf, COMPARE_NOTE, FactCell, FactKey, sideBySide, StockCase} from "./case-against";
 import {EVIDENCE, inTen, VOLATILITY_COLUMN_NOTE, VOLATILITY_GROUPS_NOTE, volatilityNote} from "./evidence";
 import {signedPercent, signedWholePercent} from "./format";
 import {trendFor} from "./market-math";
@@ -213,7 +213,7 @@ describe('the facts of a stock, for the block that sets stocks side by side', ()
     expect(facts.profit?.value).toBe('no');
     expect(facts.debt?.value).toBe('3.0 times · high');
     expect(facts.pe?.value).toBe('40 · above its range');
-    expect(facts.target).toEqual({value: '+50%', tip: known.targetTip});
+    expect(facts.target).toEqual({value: '+50%', tip: known.targetTip, n: 50});
     expect(facts.rating?.value).toBe('3.20');
   });
 
@@ -251,6 +251,16 @@ describe('the facts of a stock, for the block that sets stocks side by side', ()
     const facts = caseAt(stock).facts;
     expect(facts.beyond?.value).withContext('beyond the tests: tested, so it has the warning sign of "Swings", not this red').toBe('dropped this far');
     expect((Object.keys(facts) as FactKey[]).filter(key => facts[key]!.against)).toEqual([]);
+  });
+
+  it('gives the figures that can be the best of several stocks as numbers, as they are printed', () => {
+    const stock = marked({swings: SWINGS_69, recommendationRate: 1.4, medianTarget: 120});
+    Object.assign(stock.equity!.analysis!.companyMetrics!, {debtEquityRatio: 0.44});
+    const facts = caseAt(stock).facts, tested = EVIDENCE.cases.volatile;
+    expect([facts.swings?.n, facts.fell?.n, facts.bad?.n, facts.typical?.n, facts.good?.n])
+      .toEqual([69, Math.round(EVIDENCE.fresh.fellPercent.volatile / 10), tested.bad, tested.typical, tested.good]);
+    expect([facts.debt?.n, facts.target?.n, facts.rating?.n]).toEqual([0.4, 50, 1.4]);
+    expect([facts.dropped?.n, facts.growing?.n, facts.trend?.n]).withContext('no best value in these rows').toEqual([undefined, undefined, undefined]);
   });
 
   it('leaves out what the page does not know', () => {
@@ -300,12 +310,19 @@ describe('the facts of a stock, for the block that sets stocks side by side', ()
 });
 
 describe('sideBySide (the ticked stocks of "Could add", a row a fact)', () => {
-  /** A case that says only these facts. */
-  function saying(facts: Partial<Record<FactKey, string>>): StockCase {
+  /** A case that says only these facts: a word, or a whole cell (its figure, a word against it). */
+  function saying(facts: Partial<Record<FactKey, string | FactCell>>): StockCase {
     return {
       swings: '', beyondTests: false, swingsTip: '', against: [], againstTip: '',
-      facts: Object.fromEntries(Object.entries(facts).map(([key, value]) => [key, {value}])),
+      facts: Object.fromEntries(Object.entries(facts).map(([key, said]) => [key, typeof said === 'string' ? {value: said} : said!])),
     };
+  }
+
+  /** What each stock says for one fact, as figures, set side by side: which of them are marked as the best. */
+  function bestOf(key: FactKey, ...figures: (number | FactCell | undefined)[]): boolean[] {
+    const cell = (it: number | FactCell | undefined) => typeof it === 'number' ? {value: String(it), n: it} : it;
+    const shown = sideBySide(figures.map((it, i) => ({symbol: `S${i}`, case: saying(cell(it) ? {[key]: cell(it)} : {})})))!;
+    return shown.parts.flatMap(part => part.rows).find(row => row.key === key)!.cells.map(it => !!it.best);
   }
 
   const one = saying({dropped: '−38%', swings: '47% a year · volatile', profit: 'yes', bigDay: '−10.9% on Mar 20'});
@@ -355,6 +372,74 @@ describe('sideBySide (the ticked stocks of "Could add", a row a fact)', () => {
     const only = sideBySide([{symbol: 'AAA', case: saying({dropped: '−38%'})}, {symbol: 'BBB', case: undefined}])!;
     expect(only.parts.map(part => part.title)).withContext('no row of context, none about the fall').toEqual(['Tested']);
     expect(only.parts[0].rows.map(row => row.cells.map(cell => cell.value))).toEqual([['−38%', '—']]);
+  });
+
+  // The owner, of the block: "highlight the winers so that it's easy to pick". Asked which rows, with what the tests
+  // found for each, they chose: the rows where the tests say which way is better, and the rows where the reading is
+  // plain though untested (debt, analysts' target and rating); no others, and no count of wins a stock.
+  describe('the best of the ticked stocks in a row', () => {
+    it('is the lowest swing, the fewest that fell further and the mildest bad case: the tests say lower is better', () => {
+      expect(bestOf('swings', 69, 88, 47)).toEqual([false, false, true]);
+      expect(bestOf('fell', 4, 2, 4)).toEqual([false, true, false]);
+      expect(bestOf('bad', 41, 23, 31)).toEqual([false, true, false]);
+    });
+
+    it('is the highest typical result and the highest good case', () => {
+      expect(bestOf('typical', 2.4, 4.1, -0.1)).toEqual([false, true, false]);
+      expect(bestOf('good', 85, 41, 56)).toEqual([true, false, false]);
+    });
+
+    it('is, in the context, the least debt, the highest target and the strongest rating (the lowest figure)', () => {
+      expect(bestOf('debt', 0.1, 0.6, 1.1)).toEqual([true, false, false]);
+      expect(bestOf('target', 60, 175, 74)).toEqual([false, true, false]);
+      expect(bestOf('rating', 1.33, 1.93, 1.28)).toEqual([false, false, true]);
+    });
+
+    it('is every stock that shares the best figure, as printed', () => {
+      expect(bestOf('debt', 0, 0.6, 0)).toEqual([true, false, true]);
+    });
+
+    it('is none where all say the same, and none for one stock alone: there is nothing to be better than', () => {
+      expect(bestOf('swings', 47, 47, 47)).toEqual([false, false, false]);
+      expect(bestOf('swings', 47)).toEqual([false]);
+    });
+
+    it('is none in a row the tests gave no direction: a cheaper price for the profit did worse in them', () => {
+      expect(bestOf('pe', 8, 89, 38)).toEqual([false, false, false]);
+      expect(bestOf('dropped', 38, 64, 72)).toEqual([false, false, false]);
+      expect(bestOf('owners', 11, 3, 18)).toEqual([false, false, false]);
+    });
+
+    it('is never a figure that speaks against the stock, and an unknown one neither wins nor is won against', () => {
+      expect(bestOf('target', {value: '−5%', n: -5, against: true}, {value: '−12%', n: -12, against: true})).toEqual([false, false]);
+      expect(bestOf('debt', 0.3, undefined)).withContext('one known figure').toEqual([false, false]);
+      expect(bestOf('debt', 0.3, undefined, 0.8)).toEqual([true, false, false]);
+    });
+
+    it('is worked out for the block and not written into the stock\'s own facts', () => {
+      const calm = saying({swings: {value: '33%', n: 33}}), wild = saying({swings: {value: '88%', n: 88}});
+      const shown = sideBySide([{symbol: 'AAA', case: calm}, {symbol: 'BBB', case: wild}])!;
+      expect(shown.parts[0].rows[0].cells.map(it => it.best)).toEqual([true, undefined]);
+      expect(calm.facts.swings!.best).withContext('alone, or beside a calmer one, it is not the best').toBeUndefined();
+    });
+
+    it('says on the row\'s name what is in green, and for the context that no test backs it', () => {
+      const rows = sideBySide([
+        {symbol: 'AAA', case: saying({swings: {value: '33%', n: 33}, debt: {value: '0.1 times', n: 0.1}, pe: '20'})},
+        {symbol: 'BBB', case: saying({swings: {value: '88%', n: 88}, debt: {value: '0.6 times', n: 0.6}, pe: '40'})},
+      ])!.parts.flatMap(part => part.rows);
+      expect(rows[0].help).toBe(`${VOLATILITY_COLUMN_NOTE} In green: the lowest of the ticked stocks.`);
+      expect(rows[1].help.endsWith(' In green: the least of the ticked stocks; no test says that it is a reason to pick one.')).toBeTrue();
+      expect(rows[2].help).withContext('a row without a best value says nothing of green').not.toContain('green');
+    });
+  });
+
+  it('has one sentence for the box\'s explanations that says what green and red are, and that neither is counted', () => {
+    expect(COMPARE_NOTE).toBe(
+      'Where ticked stocks stand side by side, a figure in green is the best of them in its row: in the rows where the tests say ' +
+      'which way is better ("Swings", "Fell a further 20%", the three cases) and in three rows of context where the reading is ' +
+      'plain though no test backs it ("Debt", "Analyst target", "Analyst rating"). A figure in red speaks against the stock. ' +
+      'The page counts neither and names no pick.');
   });
 
   it('marks a row in which every stock says the same, so that what differs stands out', () => {

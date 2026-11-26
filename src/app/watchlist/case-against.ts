@@ -42,7 +42,15 @@ export type FactKey = 'dropped' | 'growing' | 'swings' | 'fell' | 'bad' | 'typic
  * `against` is set where the fact is one of those the stock's "Against" tags name: the page sets it in red (the
  * owner: "I want that in red so that we know it's a "no no"").
  */
-export type FactCell = { value: string, tip?: string, against?: boolean };
+export type FactCell = {
+  value: string
+  tip?: string
+  against?: boolean
+  /** The figure as it is printed, in the rows that have a best value among the ticked stocks. */
+  n?: number
+  /** Set by `sideBySide`: this is the best of the ticked stocks in its row. The page sets it in green. */
+  best?: boolean
+};
 
 export type StockCase = {
   /** How much the price swings in a year: "85%". Empty without a year of prices. */
@@ -180,9 +188,10 @@ function factsFor(stock: Stock, signal: SignalResult, group: VolatilityGroup | u
     ...(change && change.percent < 0 ? ['targetChange' as const] : []),
     ...(signal.earningsInDays !== undefined ? ['results' as const] : []),
   ]);
-  const put = (key: FactKey, value: string | undefined, tip?: string) => {
+  /** @param n the figure as printed, in a row that has a best value among the ticked stocks (`BEST`) */
+  const put = (key: FactKey, value: string | undefined, tip?: string, n?: number) => {
     if (value) {
-      facts[key] = {value, ...(tip ? {tip} : {}), ...(against.has(key) ? {against: true} : {})};
+      facts[key] = {value, ...(tip ? {tip} : {}), ...(against.has(key) ? {against: true} : {}), ...(n !== undefined ? {n} : {})};
     }
   };
   /** The sentence of a line of context, when the stock's details have that line. */
@@ -198,15 +207,16 @@ function factsFor(stock: Stock, signal: SignalResult, group: VolatilityGroup | u
   const volatility = signal.volatility;
   if (volatility !== undefined) {
     const word = group === 'volatile' ? ' · volatile' : group === 'calm' ? ' · calm' : group === 'middle' ? ' · between' : '';
-    put('swings', `${volatility.toFixed(0)}% a year${word}`, swingsSays);
+    put('swings', `${volatility.toFixed(0)}% a year${word}`, swingsSays, Number(volatility.toFixed(0)));
   }
-  const fell = EVIDENCE.fresh.fellPercent;
-  put('fell', group === 'volatile' ? inTen(fell.volatile) : group === 'calm' ? inTen(fell.calm) : undefined);
+  const fell = EVIDENCE.fresh.fellPercent, fellPercent = group === 'volatile' ? fell.volatile : group === 'calm' ? fell.calm : undefined;
+  // "4 in 10" is what is printed, so 4 is what is compared: 41% and 44% are the same figure to the reader.
+  put('fell', fellPercent === undefined ? undefined : inTen(fellPercent), undefined, fellPercent === undefined ? undefined : Math.round(fellPercent / 10));
   const cases = casesFor(signal);
   if (cases) {
-    put('bad', signedWholePercent(-cases.lossPercent));
-    put('typical', signedPercent(cases.typicalPercent));
-    put('good', signedWholePercent(cases.gainPercent));
+    put('bad', signedWholePercent(-cases.lossPercent), undefined, Math.round(cases.lossPercent));
+    put('typical', signedPercent(cases.typicalPercent), undefined, Number(cases.typicalPercent.toFixed(1)));
+    put('good', signedWholePercent(cases.gainPercent), undefined, Math.round(cases.gainPercent));
   }
   if (signal.rareInTests) {
     const beyond = [
@@ -220,15 +230,19 @@ function factsFor(stock: Stock, signal: SignalResult, group: VolatilityGroup | u
   const eps = stock.equity?.analysis?.keyMetrics?.eps;
   put('profit', isNum(eps) ? (eps > 0 ? 'yes' : 'no') : undefined, line(reason => reason.startsWith('Not profitable')));
   const debt = debtToEquity(stock), highDebt = line(reason => reason.startsWith('High debt'));
-  put('debt', debt === undefined ? undefined : `${debt.toFixed(1)} times${highDebt ? ' · high' : ''}`, highDebt);
+  put('debt', debt === undefined ? undefined : `${debt.toFixed(1)} times${highDebt ? ' · high' : ''}`, highDebt,
+    debt === undefined ? undefined : Number(debt.toFixed(1)));
   const pe = stock.quote?.peRatio, range = peFiveYearRange(stock);
   if (isNum(pe) && pe > 0) {
     const where = !range ? '' : ` · ${pe < range.low ? 'below' : pe > range.high ? 'above' : 'within'} its range`;
     put('pe', `${pe.toFixed(0)}${where}`, line(reason => reason.includes('(P/E)')));
   }
-  put('target', known?.target, known?.targetTip);
+  // The target as a whole percent from today's price, as its cell prints it (a figure that rounds to nothing is 0, not −0).
+  const price = stock.quote?.price, median = stock.equity?.analysis?.estimate?.medianPriceTarget;
+  put('target', known?.target, known?.targetTip,
+    known?.target && isNum(price) && price > 0 && isNum(median) ? Math.round((median - price) / price * 100) || 0 : undefined);
   const rated = line(reason => reason.startsWith('Analysts rate it')), rate = stock.equity?.analysis?.estimate?.recommendationRate;
-  put('rating', rated && isNum(rate) ? rate.toFixed(2) : undefined, rated);
+  put('rating', rated && isNum(rate) ? rate.toFixed(2) : undefined, rated, rated && isNum(rate) ? Number(rate.toFixed(2)) : undefined);
   put('targetChange', change && `${change.percent > 0 ? 'raised' : 'cut'} ${signedWholePercent(change.percent)} since ${change.when}`);
   put('owners', known?.holders, known?.holdersTip);
   const trend = trendFor(stock);
@@ -314,6 +328,56 @@ const PARTS: { title: string, note: string, rows: FactKey[] }[] = [
 ];
 
 /**
+ * The rows that have a best value among the ticked stocks: which way is better, and the word for it.
+ *
+ * The owner, of the block: "highlight the winers so that it's easy to pick". Asked which rows, with what the tests
+ * found for each, they chose these: the five where the tests say which way is better (all five follow from how
+ * much the price swings, so stocks of one group differ in "Swings" only), and three of the context where the
+ * reading is plain though no test backs it (the least debt, the highest target, the strongest rating).
+ *
+ * Left out on purpose, by the same choice: the rows where the tests found the plain reading wrong or of no use (a
+ * cheaper price for the profit did worse; a deeper drop, the kind of growth, the owners in profit and the 200-day
+ * average made no difference), and any count of wins a stock: that would rank the stocks, and no order among the
+ * stocks marked DIP BUY held up in the tests. A row's winner is a fact about that row, not a pick.
+ */
+const BEST: Partial<Record<FactKey, { lower: boolean, word: string, tested: boolean }>> = {
+  swings: {lower: true, word: 'lowest', tested: true},
+  fell: {lower: true, word: 'fewest', tested: true},
+  bad: {lower: true, word: 'mildest', tested: true},
+  typical: {lower: false, word: 'highest', tested: true},
+  good: {lower: false, word: 'highest', tested: true},
+  debt: {lower: true, word: 'least', tested: false},
+  target: {lower: false, word: 'highest', tested: false},
+  rating: {lower: true, word: 'strongest', tested: false},
+};
+
+/**
+ * For the explanations of the box the block stands in ("How to read this table"): what green and red are in the
+ * block, and that the page counts neither. The names are the rows' own.
+ */
+export const COMPARE_NOTE = 'Where ticked stocks stand side by side, a figure in green is the best of them in its row: in the rows ' +
+  `where the tests say which way is better ("${CASE_COLUMNS.swings}", "Fell a further 20%", the three cases) and in three rows of ` +
+  `context where the reading is plain though no test backs it ("Debt", "${FACT_COLUMNS.target}", "Analyst rating"). ` +
+  'A figure in red speaks against the stock. The page counts neither and names no pick.';
+
+/** Said on the name of a context row that has a best value: the green is the row's best, not a tested reason. */
+const UNTESTED_BEST = '; no test says that it is a reason to pick one.';
+
+/**
+ * The cells of a row with the best of them marked: every stock that shares the best figure as printed. None where
+ * fewer than two figures are known or all are the same (there is nothing to be better than), and never a figure
+ * that speaks against the stock. The stocks' own cells are left as they are: a marked cell is a copy.
+ */
+function withBest(cells: FactCell[], lower: boolean): FactCell[] {
+  const figures = cells.flatMap(cell => cell.n === undefined ? [] : [cell.n]);
+  if (figures.length < 2 || figures.every(n => n === figures[0])) {
+    return cells;
+  }
+  const best = lower ? Math.min(...figures) : Math.max(...figures);
+  return cells.map(cell => cell.n === best && !cell.against ? {...cell, best: true} : cell);
+}
+
+/**
  * The ticked stocks side by side: a column a stock in the order given, a row a fact, what was tested apart from
  * the context and from why the price dropped. A row no stock has a value for is left out, and so is a part
  * without rows. Nothing while no stock is ticked, or while the page knows no fact of the ticked ones.
@@ -322,11 +386,15 @@ export function sideBySide(stocks: { symbol: string, case: StockCase | undefined
   if (stocks.length === 0) {
     return undefined;
   }
+  const several = stocks.length > 1;
   const parts = PARTS.map(part => ({
     title: part.title, note: part.note,
     rows: part.rows.filter(key => stocks.some(it => it.case?.facts[key])).map(key => {
-      const cells = stocks.map(it => it.case?.facts[key] ?? {value: '—'});
-      return {key, ...ROWS[key], cells, same: stocks.length > 1 && cells.every(cell => cell.value === cells[0].value)};
+      const said = stocks.map(it => it.case?.facts[key] ?? {value: '—'});
+      const rule = BEST[key];
+      const cells = rule ? withBest(said, rule.lower) : said;
+      const help = rule && several ? `${ROWS[key].help} In green: the ${rule.word} of the ticked stocks${rule.tested ? '.' : UNTESTED_BEST}` : ROWS[key].help;
+      return {key, label: ROWS[key].label, help, cells, same: several && cells.every(cell => cell.value === cells[0].value)};
     }),
   })).filter(part => part.rows.length > 0);
   if (parts.length === 0) {

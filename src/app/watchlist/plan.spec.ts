@@ -3,6 +3,9 @@ import {PositionRow} from "./portfolio-view";
 import {viewOf} from "./positions";
 import {riskOf, TestedCases} from "./sizing";
 import {FIGURES_2026_11_21} from "./testing/figures";
+import {FEAR_HIGH_SHORT} from "./evidence";
+import {marketFear} from "./signal";
+import {firstSentence} from "./more/first-sentence";
 
 const TODAY = '2026-11-21';
 const F = FIGURES_2026_11_21;
@@ -91,9 +94,15 @@ describe('planSteps: a verb, one plain sentence and the stocks with their amount
       ...steps({holdings: [holding('AMD', {verdict: 'DIP BUY'}), holding('ARM', {verdict: 'DIP BUY'})]}),
     ];
     expect(new Set(kinds(toBuy))).toEqual(new Set(['buy', 'spread', 'hold']));
+    // Two lines carry their tested figures, by the owner's yes of 2026-11-26, and are longer for it: GOOD TIME is the
+    // Watchlist's own line of the same fact, which names the reading it quotes (the VIX); YOUR CALL has both results
+    // where it said "the tests disagree". Every other line is within 80 characters, and none uses a trade's word.
+    const withFigures = ['timing', 'review'];
+    expect([...everything].filter(it => withFigures.includes(it.kind)).length).withContext('both are among the lines checked').toBe(2);
     [...everything, ...unknownWorth, ...toBuy].forEach(it => {
-      expect(it.text.length).withContext(it.text).toBeLessThanOrEqual(80);
-      expect(it.text).withContext(it.text).not.toMatch(/DIP BUY|budget|stop-loss|volatil|VIX|bad case|tenth|S&P|index|position|backtest/i);
+      expect(it.text.length).withContext(it.text).toBeLessThanOrEqual(withFigures.includes(it.kind) ? 170 : 80);
+      expect(it.text.replace(/\(VIX [\d.]+\)/, '')).withContext(it.text)
+        .not.toMatch(/DIP BUY|budget|stop-loss|volatil|VIX|bad case|tenth|S&P|index|position|backtest/i);
       expect(it.verb.length).withContext(it.verb).toBeLessThanOrEqual(10);
       expect(it.why.length).withContext(it.verb).toBeGreaterThan(40);
     });
@@ -166,8 +175,9 @@ describe('planSteps: a verb, one plain sentence and the stocks with their amount
       {symbol: 'AVGO', label: 'week 6'}, {symbol: 'GEV', label: 'week 1'}, {symbol: 'LATE', label: 'week 24'}, {symbol: 'NVDA', label: 'week 2'},
     ]);
     expect(list[0].why).toBe(
-      'On two lists of stocks never used before (184 and 202), selling as soon as a stock was up 25% gave less on average than ' +
-      'keeping it for 6 months: +7.4% against +20.2%, and +5.5% against +9.3%; 45% of the stocks reached it at some point. ' +
+      'In tests, selling as soon as a stock was up 25% gave +7.4% on average against +20.2% for keeping it 6 months, and ' +
+      '+5.5% against +9.3% on a second list, where 45% of the stocks reached it at some point. ' +
+      'Both lists were of stocks never used before (184 and 202). ' +
       'Selling after a 20% drop lowered the result too (+6.5% against +9.3%). A stock with no week number counts from today.');
   });
 
@@ -223,11 +233,14 @@ describe('planSteps: a verb, one plain sentence and the stocks with their amount
     const list = steps({holdings: [holding('NVDA', {verdict: 'WATCH', day: '2026-03-01', boughtAsDipBuy: true})]});
     expect(kinds(list)).toEqual(['review']);
     expect(list[0].verb).toBe('YOUR CALL');
-    expect(list[0].text).toBe('Held for over 6 months. After that the tests disagree.');
+    // The one decision left to the reader had the least to go on ("After that the tests disagree."): both results
+    // are in the line, in the words of the note about keeping a stock (evidence.ts).
+    expect(list[0].text).toBe('Held for over 6 months. In tests, stocks kept 6 months more beat the market on one list ' +
+      '(+16.1% against +7.4%) and not clearly on the next (+9.4% against +7.7%).');
     expect(symbols(list[0])).toEqual(['NVDA']);
     expect(list[0].why).toBe(
-      'The tests followed each stock for 6 months. Two of them went on for 6 months more: on one list the kept stocks then ' +
-      'beat the market (+16.1% against +7.4%), on the other not clearly (+9.4% against +7.7%). So the plan has no rule for it. ' +
+      'Kept for 6 months more, the stocks beat the market on one test list (+16.1% against +7.4%) and not clearly on the next ' +
+      '(+9.4% against +7.7%). Only these two tests went on after the 6 months, so the plan has no rule for it. ' +
       'This one is not marked DIP BUY now.');
   });
 
@@ -262,11 +275,11 @@ describe('planSteps: a verb, one plain sentence and the stocks with their amount
     expect(list[0].items).toEqual([]);
     expect(list[0].inRows).toEqual([]);
     expect(list[0].why).toBe(
+      'In tests, the one way of picking among such stocks that looked promising, the fastest fallers first, beat the others in ' +
+      'the same week only 47% of the time. So the tests found no dependable way to tell which will do best: the plan gives ' +
+      'them no order, and how many matters more than which. ' +
       'These are the stocks marked DIP BUY on the Watchlist: the price dropped while the business keeps growing. ' +
       'How such stocks did in the tests is under THE PLAN. ' +
-      'The tests found no dependable way to tell which will do best: the one ordering that looked promising, the fastest fallers ' +
-      'first, beat the others in the same week only 47% of the time. So the plan gives them no order, and how many matters ' +
-      'more than which. ' +
       'The size of each is a share of this portfolio, worked out so that a bad half-year would cost about the same for every ' +
       'stock in it: one whose price swings more gets less. No size is more than fits your limit, and none depends on the cash ' +
       'you have. How to split money between stocks was not tested.');
@@ -303,7 +316,7 @@ describe('planSteps: a verb, one plain sentence and the stocks with their amount
     const list = steps({limit: undefined, candidates: [candidate('COHR'), candidate('MU')]});
     expect(kinds(list)).toEqual(['setup', 'buy', 'spread']);
     expect(step(list, 'buy').text).toBe('2 stocks could be added: see "Could add".');
-    expect(step(list, 'buy').why).toContain('and how many matters more than which. Enter your cash to see the size of each.');
+    expect(step(list, 'buy').why).toContain('How such stocks did in the tests is under THE PLAN. Enter your cash to see the size of each.');
     expect(steps({limit: undefined, candidates: [candidate('MU')]})[1].text).toBe('1 stock could be added: see "Could add".');
   });
 
@@ -313,13 +326,14 @@ describe('planSteps: a verb, one plain sentence and the stocks with their amount
     expect(step(list, 'spread').verb).toBe('HOW MANY');
     expect(step(list, 'spread').items).toEqual([]);
     expect(step(list, 'spread').text).toBe('Three or more rather than one. In tests, a bad half-year then hurt less.');
-    expect(step(list, 'spread').why).toBe(
-      'The plan covers 1 of your stocks today. With fewer than three, one stock decides most of the result. ' +
-      'What the test found is under THE PLAN, above.');
+    const found = 'In tests, three stocks held together had a milder bad half-year than one alone (1 in 10 lost 22% or more, against 33%). ';
+    expect(step(list, 'spread').why).toBe(found +
+      'The plan covers 1 of your stocks today: with fewer than three, one stock decides most of the result. ' +
+      'The whole test is under THE PLAN, above.');
     const none = steps({candidates: [candidate('MU')]});
-    expect(step(none, 'spread').why).toBe(
-      'You hold no stock the plan covers yet. With fewer than three, one stock decides most of the result. ' +
-      'What the test found is under THE PLAN, above.');
+    expect(step(none, 'spread').why).toBe(found +
+      'You hold no stock the plan covers yet: with fewer than three, one stock decides most of the result. ' +
+      'The whole test is under THE PLAN, above.');
   });
 
   it('says nothing about how many once the plan covers three of them, a holding that is too big included', () => {
@@ -330,7 +344,7 @@ describe('planSteps: a verb, one plain sentence and the stocks with their amount
     expect(kinds(steps({holdings: withBig, candidates: [candidate('MU')]}))).toEqual(['trim', 'buy', 'hold']);
     const two = three.slice(0, 2);
     expect(kinds(steps({holdings: two, candidates: [candidate('MU')]}))).toEqual(['buy', 'spread', 'hold']);
-    expect(step(steps({holdings: two, candidates: [candidate('MU')]}), 'spread').why).toContain('The plan covers 2 of your stocks today.');
+    expect(step(steps({holdings: two, candidates: [candidate('MU')]}), 'spread').why).toContain('The plan covers 2 of your stocks today: with fewer than three');
   });
 
   it('does not count a holding the plan has no opinion on, and says nothing while there is nothing to buy', () => {
@@ -375,17 +389,50 @@ describe('planSteps: a verb, one plain sentence and the stocks with their amount
     expect(step(list, 'buy').text).toBe('1 stock could be added: see "Could add".');
   });
 
+  // A review of "How the plan was tested": opened, each step showed a set-up sentence ("The tests followed each stock
+  // for 6 months.") and its result took a second click. The first sentence of a reason is what that box shows.
+  // What the box shows is cut by the rule of its "more" (first-sentence.ts), which cuts a long first sentence at its
+  // colon: a reason that put its figures after a colon showed none of them. So the test asks that rule.
+  it('begins the reason of a step that rests on a test with what the test found, figures included', () => {
+    const shown = (why: string) => firstSentence(why).first;
+    const old = holding('NVDA', {verdict: 'WATCH', day: '2026-03-01', boughtAsDipBuy: true});
+    const list = steps({fear: {vix: 35.9, high: true}, holdings: [old], candidates: [candidate('MU')]});
+    expect(kinds(list)).toEqual(['review', 'timing', 'buy', 'spread']);
+    expect(list.map(it => shown(it.why))).toEqual([
+      'Kept for 6 months more, the stocks beat the market on one test list (+16.1% against +7.4%) and not clearly on the next ' +
+      '(+9.4% against +7.7%).',
+      'In tests, stocks bought after a drop in fearful months gained +20.4% on average over the next 6 months, against +7.3% ' +
+      'in calm months, and about 7 in 10 were up.',
+      'In tests, the one way of picking among such stocks that looked promising, the fastest fallers first, beat the others in ' +
+      'the same week only 47% of the time.',
+      'In tests, three stocks held together had a milder bad half-year than one alone (1 in 10 lost 22% or more, against 33%).',
+    ]);
+    // And the two about what is owned: too big for the limit, and kept.
+    const owned = steps({holdings: [holding('NVDA', {verdict: 'DIP BUY', shares: 60}), holding('AMD', {verdict: 'DIP BUY'})]});
+    expect(kinds(owned)).toContain('trim');
+    expect(kinds(owned)).toContain('hold');
+    ['trim', 'hold'].forEach(kind => {
+      const said = shown(step(owned, kind as 'trim' | 'hold').why);
+      expect(said).withContext(said).toMatch(/^In tests, /);
+      expect(said).withContext(said).toMatch(/\d%/);
+    });
+  });
+
   it('says when a fearful market makes it the better time to buy', () => {
     const list = steps({candidates: [candidate('COHR')], fear: {vix: 35.9, high: true}});
     expect(kinds(list)).toEqual(['timing', 'buy', 'spread']);
     expect(list[0].verb).toBe('GOOD TIME');
-    expect(list[0].text).toBe('The market is fearful now. In the past, that was the better time to buy.');
+    // The same line as the Watchlist's of the same fact, under the same name: the reading, the two figures, the risk.
+    // ("The market is fearful now. In the past, that was the better time to buy." had no figure and no risk.)
+    expect(list[0].text).toBe('Market fear high (VIX 35.9): in the past a better time to buy stocks that dropped ' +
+      '(+20% against +7% on average over 6 months), but fear can get worse first.');
+    expect(list[0].text).toBe(`${marketFear(35.9)!.label}: ${FEAR_HIGH_SHORT}.`);
     expect(list[0].why).toBe(
-      'The VIX measures how nervous investors are; 25 or more counts as fearful. In tests, stocks bought after a drop in fearful months ' +
+      'In tests, stocks bought after a drop in fearful months ' +
       'gained +20.4% on average over the next 6 months, against +7.3% in calm months, and about 7 in 10 were up. ' +
       'Fear can still get worse first: about 15% fell a further 20%. ' +
-      'This rests on only about 16 fearful periods between 1994 and 2026, and a one-day spike may fade before the month ends. ' +
-      'Today the VIX is at 35.9.');
+      'The VIX measures how nervous investors are; 25 or more counts as fearful. Today the VIX is at 35.9. ' +
+      'This rests on only about 16 fearful periods between 1994 and 2026, and a one-day spike may fade before the month ends.');
   });
 
   it('says nothing about timing in a calm market: there is nothing to act on', () => {
@@ -582,7 +629,10 @@ describe('holdingPlans (what the plan says about each stock you own)', () => {
       kind: 'trim', verb: 'SELL SOME', text: 'This stock could lose more than your $1,000 limit. Keep only the amount shown.', amount: 'keep $2,439',
     });
     expect(plans.get('FULL')).toEqual({kind: 'hold', verb: 'KEEP', text: KEEP_ONE});
-    expect(plans.get('OLD')).toEqual({kind: 'review', verb: 'YOUR CALL', text: 'Held for over 6 months. After that the tests disagree.'});
+    expect(plans.get('OLD')).toEqual({
+      kind: 'review', verb: 'YOUR CALL', text: 'Held for over 6 months. In tests, stocks kept 6 months more beat the market on one list ' +
+      '(+16.1% against +7.4%) and not clearly on the next (+9.4% against +7.7%).',
+    });
     expect(plans.get('AMZN')).toEqual({kind: 'outside', verb: 'NO OPINION', text: 'The plan does not cover this stock.'});
   });
 
