@@ -388,14 +388,32 @@ The page is made for a browser window that fills a large monitor, and still work
   show their key columns, so the seven lists take four rows and most of the Watchlist is on one screen. In a
   narrower window the folded box is one short strip above the lists. "Show more" brings it all back; the choice
   is kept in this browser.
-- **A stock's details are in three groups**, side by side where the list is 1280px wide or more (two, with the
-  third under them, in a narrower list such as one of two side by side): this stock (why it has its mark, what is
-  risky about this one stock, why it dropped, the untested context), your stake in it ("Where it fits", then "What
-  you own of it", which names the portfolio when there is more than one), and the rule (what the tests say, and
-  what they found about selling after you buy), which reads the same under every stock with that mark: it says so
-  in a line of its own and is set quieter. The context is said in everyday words ("the price is 38 times
-  the yearly profit per share (P/E)", "cannot be tested", "made no difference in tests"), and its "+" and "−" markers
-  have no green or red: they are not points awarded by a test.
+- **Signal before sentences on the Watchlist** (the owner, of a page where every explanation already showed only
+  its first sentence: "there is too much text and not much signal"). A box shows its title, its marks, figures or
+  table, and at most one sentence; what explains how to read it is behind one control a box, "How to read this",
+  closed until asked for and remembered in this browser. Nothing was deleted: the sentences are behind that
+  control or behind a "more", whole. In "Dip candidates" the three marks are one line of marks with their counts
+  ("DIP BUY 7", and "no mark 2" beside them), and what a mark means is said on the mark, where the pointer rests
+  or the Tab key lands; the tested result is four numbers under one quiet line (a stock with the mark on average,
+  the typical one, any stock that dropped, the market), the typical one beside the average so the average does
+  not stand alone.
+- **A stock's details are three columns, a column a subject**, where the list is 1280px wide or more (two in a
+  narrower list, with the reader's stake on the right): what the mark rests on and what is risky about this one
+  stock; why it dropped; your stake in it ("Where it fits", then "What you own of it", which names the portfolio
+  when there is more than one). What the mark rests on is a row a fact: its name, its figure, and a tick where
+  it is enough for DIP BUY ("Dropped  20.0% below its highest price of the past year · DIP BUY needs 15% or
+  more"), so a WATCH or a PASS shows at a glance which of the two it is short of; a third row says since when the
+  stock has the mark. The sentence that says the same in words is behind "more" at the heading, and each line
+  about risk shows its first sentence. The rule (what the tests say, and what they found about selling after you
+  buy) reads the same under every stock with that mark: it is one line across the foot of the details, closed
+  until asked for. The context is said in everyday words ("the price is 38 times the yearly profit per share
+  (P/E)", "cannot be tested", "made no difference in tests"), and its "+" and "−" markers have no green or red:
+  they are not points awarded by a test.
+- **The layout is checked at six window widths** (2560, 1920, 1707, 1440, 1280 and 1100px), each view as opened
+  and with a stock's details open or rows ticked: the page must not scroll sideways, no box may scroll sideways
+  inside, and no sentence may be squeezed to a word a line. A sentence never stands in a block that is as wide as
+  its content (a table's own block): one such sentence once made "Dip candidates" as wide as itself and squeezed
+  the column beside it.
 - **The plan's BUY line leads to "Could add"**: the box's name in the sentence is a jump to it.
 - **Looking a stock up does not cost the reader their place.** A stock opened from the Portfolio view shows its
   details on the Watchlist with a link "Back to your plan" beside the company's name; the link, and the browser's

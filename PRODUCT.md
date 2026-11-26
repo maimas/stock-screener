@@ -47,6 +47,12 @@ nothing, the page says so instead of guessing. It says how many stocks to hold, 
   to be read at length: "Short, full text on click", over keeping everything open. Nothing is deleted or reworded
   for it. The answer itself is never shortened: the plan's lines, the figures, the reader's own results, what a
   form says. (inferred: which blocks count as explanation)
+- Signal before sentences. With that rule in place the owner said, the same day: "there is too much text and not
+  much signal". Since then a box shows its title, its marks, figures or table, and at most one sentence, an
+  instruction that starts with what to do. What explains how to read a box is behind one control a box ("How to
+  read this"), closed until asked for; a fact with a number is a labelled figure, not a sentence; a column is
+  explained on its heading; a caveat is a short quiet line, said once a view. Nothing is deleted: a sentence that
+  leaves the eye's way goes behind the box's control. (inferred: these rules, from the owner's one sentence)
 - Under the "What you own" headline the page says what the same money would have made in the market on the same
   days, and how far the stocks are ahead of it or behind it. It is a fact about what happened, not a tested signal.
 - In "Could add" the reader ticks the stocks they are thinking of buying, and the box splits the portfolio's cash
