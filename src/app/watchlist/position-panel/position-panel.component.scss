@@ -34,6 +34,45 @@ li.over {
   font-weight: 500;
 }
 
+// The holding as figures with their names: the names read down in a column of their own, the figures beside them.
+.own-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 3px 14px;
+  margin: 2px 0 0;
+  max-width: 70ch;
+  font-variant-numeric: tabular-nums;
+}
+
+.own-facts > div {
+  display: contents;
+}
+
+.own-facts dt {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.own-facts dd {
+  margin: 0;
+}
+
+// A bad half-year that is over the reader's limit: the colour of a warning, as the sentence had.
+.own-facts .over dd {
+  color: var(--warn);
+  font-weight: 500;
+}
+
+// The same in sentences, once asked for: quieter, under the figures.
+.in-words {
+  margin-top: 8px;
+  color: var(--ink-2);
+}
+
+.in-words .holding {
+  margin: 0 0 2px;
+}
+
 .intro,
 .hint {
   color: var(--ink-3);

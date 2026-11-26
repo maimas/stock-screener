@@ -1,5 +1,5 @@
 import {Component, ElementRef, EventEmitter, Input, OnChanges, Optional, Output} from "@angular/core";
-import {NgIf} from "@angular/common";
+import {NgForOf, NgIf} from "@angular/common";
 import {FormsModule} from "@angular/forms";
 import {MatButtonModule} from "@angular/material/button";
 import {Stock} from "../../api/microsoft-money.service";
@@ -11,8 +11,12 @@ import {SaysComponent} from "../says/says.component";
 import {FocusWhenShownDirective} from "../focus-when-shown.directive";
 import {PriceDirective} from "../price.directive";
 import {MoreComponent} from "../more/more.component";
+import {MoreRestDirective} from "../more/more-rest.directive";
 import {money, shareCount, signedMoney, signedPercent, signedWholePercent} from "../format";
 import {CHECK_FIRST, coveredByCash, keptShareCaution, leftAsItIs, purchaseCaution, saleCaution} from "../purchase-words";
+
+/** One figure of a holding with its name; `over` when it is the bad half-year and that is over the reader's limit. */
+export type OwnFact = { label: string, value: string, over?: boolean };
 
 /**
  * A purchase or a sale as it is handed to the page: the holding that results, what it does to the portfolio's
@@ -39,7 +43,7 @@ export type Trade = {
 @Component({
   selector: "app-position-panel",
   standalone: true,
-  imports: [NgIf, FormsModule, MatButtonModule, SaysComponent, FocusWhenShownDirective, PriceDirective, MoreComponent],
+  imports: [NgIf, NgForOf, FormsModule, MatButtonModule, SaysComponent, FocusWhenShownDirective, PriceDirective, MoreComponent, MoreRestDirective],
   templateUrl: "./position-panel.component.html",
   styleUrls: ["./position-panel.component.scss"]
 })
@@ -256,6 +260,48 @@ export class PositionPanelComponent implements OnChanges {
   get weightText(): string {
     const weight = this.row!.view.weightPercent;
     return weight === undefined ? '' : `${weight.toFixed(1)}% of your portfolio.`;
+  }
+
+  /**
+   * The holding as figures with their names, a row each: what the sentences below say, without the sentences. The
+   * three half-years of the tests stand together, the bad one first.
+   */
+  get ownFacts(): OwnFact[] {
+    const v = this.row!.view, p = v.position, risk = this.row?.risk, cases = this.row?.cases;
+    const shares = `${shareCount(p.shares)} share${p.shares === 1 ? '' : 's'}`;
+    const facts: OwnFact[] = [
+      {label: 'Holding', value: p.day ? `${shares}, bought ${dayText(p.day)} at ${p.price.toFixed(2)}` : `${shares} at an average price of ${p.price.toFixed(2)}`},
+      {
+        label: 'Worth now',
+        value: v.value === undefined ? 'no current price: the quote did not load'
+          : `${money(v.value)} · ${signedMoney(v.gain)} (${signedPercent(v.gainPercent)})` +
+            (v.indexPercent === undefined ? '' : ` · the market ${signedPercent(v.indexPercent)} since then`),
+      },
+      {
+        label: 'Held',
+        value: v.daysHeld === undefined ? 'no purchase date recorded'
+          : !v.beyondTested ? `week ${v.week} of the 26 the tests followed`
+            : `${Math.floor(v.daysHeld / 7)} weeks · ` + (this.row!.verdict === 'DIP BUY'
+              ? 'marked DIP BUY today, so its 6 months count from today' : 'longer than the 6 months the tests followed'),
+      },
+    ];
+    if (v.weightPercent !== undefined) {
+      facts.push({label: 'Share', value: `${v.weightPercent.toFixed(1)}% of your portfolio`});
+    }
+    if (risk && cases) {
+      const share = risk.ofPortfolioPercent === undefined ? '' : ` · ${risk.ofPortfolioPercent.toFixed(1)}% of your portfolio`;
+      const limit = risk.overBudget === undefined ? '' : ` · ${risk.overBudget ? 'over' : 'within'} your limit of ${money(this.budget)}`;
+      facts.push(
+        {label: 'Bad half-year', value: `${signedMoney(-risk.loss)} (${signedWholePercent(-cases.lossPercent)})${share}${limit}`, over: !!risk.overBudget},
+        {label: 'Typical', value: `${signedMoney(risk.typical)} (${signedPercent(cases.typicalPercent)})`},
+        {label: 'Good half-year', value: `${signedMoney(risk.gain)} (${signedWholePercent(cases.gainPercent)})`},
+      );
+    }
+    return facts;
+  }
+
+  trackByLabel(_: number, fact: OwnFact): string {
+    return fact.label;
   }
 
   /** What the tested bad case would cost on the holding, against the loss budget. */

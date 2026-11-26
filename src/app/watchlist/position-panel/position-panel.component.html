@@ -1,15 +1,25 @@
-<h4>{{ heading }}</h4>
+<h4>{{ heading }}<app-more *ngIf="row && !editing && !recording" key="details.own" what="these figures in sentences, and what the tests cover"></app-more></h4>
 
 <ng-container *ngIf="row && !editing && !recording">
-  <p class="holding">{{ holdingText }}</p>
-  <ul>
-    <li><app-says [text]="resultText"></app-says></li>
-    <li>{{ timeText }}</li>
-    <li *ngIf="weightText">{{ weightText }}</li>
-    <!-- The two longest lines show their first sentence; the rest is one "more" away. -->
-    <li *ngIf="riskText" [class.over]="row.risk?.overBudget"><app-more key="details.own" [text]="riskText"></app-more></li>
-    <li *ngIf="rangeText"><app-more key="details.own" [text]="rangeText"></app-more></li>
-  </ul>
+  <!-- The holding as figures with their names, read down: what is held, what it is worth, how long, how much of the
+       portfolio, and the three half-years of the tests side by side (the bad one first, never a gain without it).
+       A review found five sentences and a paragraph here, 134 words; the sentences are behind "more" at the heading. -->
+  <dl class="own-facts">
+    <div *ngFor="let fact of ownFacts; trackBy: trackByLabel" [class.over]="fact.over">
+      <dt>{{ fact.label }}</dt>
+      <dd><app-says [text]="fact.value"></app-says></dd>
+    </div>
+  </dl>
+  <div class="in-words" appMoreRest="details.own">
+    <p class="holding">{{ holdingText }}</p>
+    <ul>
+      <li><app-says [text]="resultText"></app-says></li>
+      <li>{{ timeText }}</li>
+      <li *ngIf="weightText">{{ weightText }}</li>
+      <li *ngIf="riskText" [class.over]="row.risk?.overBudget"><app-says [text]="riskText"></app-says></li>
+      <li *ngIf="rangeText"><app-says [text]="rangeText"></app-says></li>
+    </ul>
+  </div>
   <!-- A purchase and a sale are what the plan asks for, so they come first; "Edit" corrects what is recorded. -->
   <div class="actions">
     <button mat-stroked-button type="button" data-opens="bought" (click)="startRecording('bought')">Bought more</button>
@@ -119,4 +129,4 @@
 </form>
 
 <!-- How big a stock that is not held could be, in each portfolio, is said next to this panel ("Where it fits"). -->
-<p class="hint" *ngIf="row && casesText">{{ casesText }}</p>
+<p class="hint" *ngIf="row && casesText" appMoreRest="details.own">{{ casesText }}</p>

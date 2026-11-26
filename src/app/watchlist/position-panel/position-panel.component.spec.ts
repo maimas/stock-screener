@@ -63,6 +63,22 @@ describe('PositionPanelComponent, in everyday words', () => {
     expect(panel({shares: 10, marked: false}).riskText).toBe('');
   });
 
+  // Found by a review: "What you own of it" was five sentences and a paragraph (134 words). The same figures stand
+  // as rows now, a name and a figure each; the sentences are one "more" away.
+  it('gives the holding as figures with their names, the bad half-year before the typical and the good one', () => {
+    expect(panel({shares: 60}).ownFacts.map(it => [it.label, it.value, !!it.over])).toEqual([
+      ['Holding', '60 shares at an average price of 100.00', false],
+      ['Worth now', '$5,400 · −$600 (−10.0%)', false],
+      ['Held', 'no purchase date recorded', false],
+      ['Share', '13.5% of your portfolio', false],
+      ['Bad half-year', '−$2,214 (−41%) · 5.5% of your portfolio · over your limit of $800', true],
+      ['Typical', '+$130 (+2.4%)', false],
+      ['Good half-year', '+$4,590 (+85%)', false],
+    ]);
+    expect(panel({shares: 10, marked: false}).ownFacts.map(it => it.label)).withContext('no tested cases for a stock without the mark').toEqual(
+      ['Holding', 'Worth now', 'Held', 'Share']);
+  });
+
   it('gives the typical and the good half-year beside it', () => {
     expect(panel({shares: 60}).rangeText).toBe(
       'A typical half-year in the same tests (+2.4%) would mean +$130, and a good one (+85%) +$4,590.');
