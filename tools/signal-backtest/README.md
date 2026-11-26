@@ -17,6 +17,7 @@ python backtest_validation3.py # pre-registered #5: risk and holding notes on a 
 python backtest_validation4.py # pre-registered #6: which DIP BUY first, taking profits, and after 26 weeks, on a sixth universe of 184 stocks
 python backtest_validation5.py # pre-registered #7: does following the plan make a profit? on a seventh universe of 202 stocks
 python backtest_validation6.py # pre-registered #9: does taking a profit make a loss rarer? on the eighth universe, the last 202 unused stocks
+python backtest_validation6.py --as-run # the same on the bars as downloaded: prints the first run (2026-11-25) again, records nothing
 python backtest_summary.py     # pooled out-of-sample numbers quoted in the app
 python backtest_plan.py        # the plan as a whole, replayed step by step in monthly batches (descriptive)
 python backtest_several.py     # pre-registered #8: how many to hold, on 30 years of monthly prices of three lists
@@ -555,25 +556,52 @@ After the run the script was changed once: it now also records the "looking ever
 it had only printed, because the evidence box quotes them. Run again on the saved download, its output is the
 same to the character, and so is every figure it recorded before.
 
-**This test and the correction of 2026-11-26.** That correction (below) put the earlier tests right for the
-provider's year bar. It does not reach into #9: the script asks for the bars as downloaded
-(`load_rows(..., as_downloaded=True)`), as the test was written and run, with that bar counted by its close for a
-sell order only. Run again after the correction, its output is the same to the character. What the correction
-would move here, had it been applied (looked at once, on 2026-11-26, on the saved download; not a result): 10 of
-the 797 positions were a dip only because of that bar. Without them, 787 positions from 108 stocks: keeping +10.5%
-on average with a loss in 41.8%; sold once seen at +15% a loss rarer by 11.9 points and at +25% by 5.2 (still not
-surely above its mark: P 13.4% and 12.7%); a sell order at +15% rarer by 16.8 points, bad case 6.8 milder; and a
-sell order at +25% rarer by 7.4 points with a bad case 2.3 points milder, where it was 1.9 against a mark of 2.
-So the one verdict that was a tenth of a point under its mark would sit three tenths over it, with P(under the
-mark) at 35.5% and 34.1%: on this evidence a sell order at +25% is a coin toss either way, as the test's own
-text expects (no P decides T2, because on a list of this size a 1-in-10 result cannot tell 2 points from 4).
+### Since 2026-11-26 the app quotes this test on the corrected bars
 
-Leaving #9 as it was run is a judgement, not something its text settles. The text says how that bar counts where
-a sell order is filled and is silent on which positions are dips, and "the first whole download is the result"
-was written about later downloads, not about a fault in this one. What speaks for it: it holds back an offer and
-turns no pass into a fail, and a result is not re-read after the fact into an offer. What it costs: #9 rests on
-a set of dips that differs from every other test's by those 10 positions. Offering +25% by a sell order, or
-having #9 read the corrected bars from now on, is the user's decision; until then +25% is not offered.
+The correction of that day (below) put the earlier tests right for the provider's year bar. This test had counted
+that bar with its close where a sell order is filled and nowhere else: not in the 52-week high a dip is measured
+from. It was first left as it was run. That was a judgement and not something its text settles: the text is
+silent on which positions are dips, and "the first whole download is the result" was written about later
+downloads, not about a fault in this one. Asked the same day, the user decided: this test reads the corrected
+bars like every other, and +25% stays not offered.
+
+- The script reads the corrected bars. `python backtest_validation6.py --as-run` reads them as downloaded: it
+  prints the run of 2026-11-25 again, the same to the character, and records nothing.
+- **The run of 2026-11-25 is still the result.** Its four verdicts decide what the app offers
+  (`TAKE_PROFIT_REGISTERED` in `tools/evidence/figures.js`), and the tables above are that run. What moved is
+  what the app quotes: 26 figures, all of this test, by tenths.
+- 10 of the 797 positions were a dip only because of that bar. Without them: 787 positions from 108 stocks, the
+  same months, the market rising for 91% of them as before.
+
+| Positions, corrected bars | Ended with a loss | 1 in 10 did worse than | Average | Typical | Sold early |
+|---|---|---|---|---|---|
+| Kept 26 weeks | 41.8% | −32.2% | +10.5% | +5.5% | |
+| Sold once seen at +15% | 29.9% | −28.6% | +6.3% | +15.9% | 59% |
+| Sell order at +15% | 25.0% | −25.5% | +4.9% | +15.0% | 68% |
+| Sold once seen at +25% | 36.6% | −30.6% | +7.1% | +10.2% | 41% |
+| Sell order at +25% | 34.4% | −29.9% | +6.1% | +15.2% | 48% |
+
+| Rule, corrected bars | T1 a loss is rarer (the mark; P under the mark by stock and by quarter; the two halves) | T2 the bad case is milder (2 points, 1 in each half) | As it comes out now |
+|---|---|---|---|
+| Seen at +15% (T1 decides) | +11.9 points (5; 0.0% and 0.1%; +12.4 and +11.6) | +3.6 (+3.3 and +4.2) | PASS, offered |
+| Seen at +25% (T1 decides) | +5.2 points (4; 13.4% and 12.7%; +4.8 and +5.6) | +1.7 (+1.1 and +1.2) | FAIL, not offered |
+| Order at +15% (T1 and T2) | +16.8 points (7; 0.0% and 0.0%; +17.7 and +16.0) | +6.8 (+9.4 and +7.2) | PASS, offered |
+| Order at +25% (T1 and T2) | +7.4 points (4; 0.5% and 0.5%; +7.6 and +7.2) | +2.3 (+1.7 and +2.8) | PASS on these bars, **not offered** |
+
+Of the positions that closed a week 15% up (59%), 20.1% still ended with a loss when kept; kept, they made +27.6%
+on average, sold +20.5%. Of those a sell order at +15% would have sold (68%): 24.5%, and +23.2% against +15.0%.
+Sold once seen at +15%, a loss was rarer by 11.9 points looking every week, 10.4 every second week, 8.8 every
+fourth.
+
+**A sell order at +25% reaches its marks on these bars and is not offered.** Its bad case is 2.3 points milder
+where it was 1.9, against a mark of 2: three tenths over, where it was a tenth under. P(under the mark) is 35.5%
+and 34.1%, so on this evidence it is a coin toss either way, as the test's own text expects (no P decides T2,
+because on a list of this size a 1-in-10 result cannot tell 2 points from 4). A result is not re-read after the
+fact into an offer, and the user left it out. `TAKE_PROFIT_LEFT_OUT` in `tools/evidence/figures.js` holds that
+decision with its day, so an update of the numbers does not bring it up again; any other rule that turns to PASS
+is still noted, and still not offered. On the page its figures stand with those of "seen at +25%", set apart
+under "Not offered: under the marks written down before the test, the first time it was run". Offering it stays
+the user's decision.
 
 ## A free look: which ten to keep, by potential gain or loss (`explore_gain_loss.py`, not shipped)
 
@@ -653,10 +681,13 @@ What was done:
   figures. Keeping stays ahead of selling early wherever it was tested.
 - Not touched: the monthly tests (#3, #4, #8: month-end prices, which have no such bar; #4 also counts weekly
   dips to check its stand-in for "growing", and that count moved from 5,979 to 5,967 with the agreement still at
-  81%, and nothing it records); pre-registered #9, which was left to read the bars as downloaded, as it was run
-  (a judgement: see the end of its section); and the first
-  exploration scripts of 2026-10 (`backtest.py`, `backtest2.py`, `backtest_final.py`), which build their own bars
-  for a timing rule the app no longer uses. No test and no quoted figure rests on those three.
+  81%, and nothing it records); and the first exploration scripts of 2026-10 (`backtest.py`, `backtest2.py`,
+  `backtest_final.py`), which build their own bars for a timing rule the app no longer uses. No test and no
+  quoted figure rests on those three.
+- Pre-registered #9 was left as it was run that morning and brought in the same day, by the user's decision: its
+  script reads the corrected bars, its first run is still the result, and +25% is still not offered. 115 more
+  recorded values moved, all of that test, and 26 figures the app quotes, by tenths (keeping +10.5% for +10.6%,
+  a sell order at +15% +4.9% for +5.0%). The end of its section has them.
 
 What it moved in what the app quotes, each figure as recorded on 2026-11-22 and as corrected:
 
@@ -677,7 +708,8 @@ What it moved in what the app quotes, each figure as recorded on 2026-11-22 and 
 What keeping gave beside them did not move: +20.2% on the sixth list, +9.3% on the seventh, +12.0% on the fresh.
 In the replay of the plan a few printed figures moved, by 1.2 points at most (the index's median batch is +10.0%
 for +9.9%; one position alone beat the index 46% of the time for 45%, ten together 53% for 52%; four monthly
-batches, the one of 2026-04 by the most, +8.3% for +7.1%); what the app quotes from it did not move. Two things reach further than a quoted number:
+batches, the one of 2026-04 by the most, +8.3% for +7.1%); what the app quotes from it did not move. Two things
+reach further than a quoted number:
 
 - **The sizes of calm stocks.** The app divides the user's limit by the bad case of a stock's volatility group.
   3 of the 1,604 positions of the fresh list were a dip only because of that bar, two of them calm ones. Without
@@ -716,9 +748,10 @@ by a few tenths and read the same, and their tables are left too.
   high or its low can be a price of a year before. Its close is sound, and the downloads of 2026-10-31,
   2026-11-22 and 2026-11-25 all show it. Since
   2026-11-26 every row is built from bars in which it counts with its close (`weekly_bars` in
-  `quality_rules.py`; "The correction of 2026-11-26" above has what that moved). Two things still read it as
-  downloaded: pre-registered #9, which counts it with its close for a sell order only, as registered (10 of its
-  797 positions are a dip only because of that bar), and the first exploration scripts of 2026-10. The repair
+  `quality_rules.py`; "The correction of 2026-11-26" above has what that moved). Only two things still read it
+  as downloaded: the first exploration scripts of 2026-10, and `backtest_validation6.py --as-run`, which shows
+  the first run of pre-registered #9 again (10 of its 797 positions were a dip only because of that bar). The
+  repair
   goes by the bar's date, so it holds for this fault only: a refresh that brings a bar like it at another year's
   end would have to be looked at again. The live page takes a stock's 52-week high from its quote, not from these
   bars.

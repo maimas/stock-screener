@@ -567,6 +567,11 @@ SEVERAL_P = 0.05
 #   points milder, over its mark where it was a tenth of a point under (P under the mark 35.5% and 34.1%: a coin
 #   toss either way). A result is not re-read after the fact into an offer, so +25% stays out unless the owner
 #   decides otherwise. The README has the figures.
+#   DECIDED (2026-11-26, the same day): asked, the owner had this test read the corrected bars like every other,
+#   with +25% still not offered. So the script now reads them (787 positions from 108 stocks; what the app quotes
+#   moved by tenths), and `python backtest_validation6.py --as-run` reads the bars as downloaded and prints the
+#   run above again, recording nothing. The run above stays the result: its four verdicts decide what the app
+#   offers (TAKE_PROFIT_REGISTERED in tools/evidence/figures.js), whatever the script prints now.
 # ---------------------------------------------------------------------------------------------------------------
 TAKE_PROFIT_LEVELS = (15, 25)
 TAKE_PROFIT_WAYS = ('seen', 'order')

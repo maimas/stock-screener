@@ -1,250 +1,250 @@
 {
   "eighth": {
-    "dipBuyStocks": 109,
-    "dipBuys": 797,
+    "dipBuyStocks": 108,
+    "dipBuys": 787,
     "firstBuy": "2022-08-12",
     "holding": {
-      "badCase": -31.786,
-      "lossRate": 41.6562,
-      "lostFifth": 17.1895,
-      "mean": 10.6378,
-      "median": 5.5874
+      "badCase": -32.234,
+      "lossRate": 41.8043,
+      "lostFifth": 17.4079,
+      "mean": 10.4776,
+      "median": 5.5404
     },
     "lastBuy": "2026-05-29",
     "lookingLessOften": {
       "15": {
         "2": {
-          "badCase": -29.3737,
-          "lossRate": 30.9912,
-          "mean": 6.4321
+          "badCase": -29.6317,
+          "lossRate": 31.385,
+          "mean": 6.2625
         },
         "4": {
-          "badCase": -29.9325,
-          "lossRate": 32.6223,
-          "mean": 6.9178
+          "badCase": -30.5078,
+          "lossRate": 33.0368,
+          "mean": 6.7468
         }
       },
       "25": {
         "2": {
-          "badCase": -30.7172,
-          "lossRate": 37.5157,
-          "mean": 7.198
+          "badCase": -30.8183,
+          "lossRate": 37.7382,
+          "mean": 6.9931
         },
         "4": {
-          "badCase": -30.8183,
-          "lossRate": 38.2685,
-          "mean": 7.4278
+          "badCase": -31.3335,
+          "lossRate": 38.5006,
+          "mean": 7.2225
         }
       }
     },
-    "marketRose": 91.4508,
+    "marketRose": 91.3613,
     "stocks": 201,
     "symbols": 202,
     "takeProfit": {
       "order": {
         "15": {
-          "averageLower": 5.6458,
-          "badCase": -24.7193,
+          "averageLower": 5.6127,
+          "badCase": -25.4673,
           "badCaseMilder": {
-            "gap": 7.0666,
+            "gap": 6.7667,
             "halfMark": 1,
             "halves": [
-              10.7222,
-              6.4148
+              9.3689,
+              7.24
             ],
-            "high": 12.7805,
-            "low": 3.2437,
+            "high": 12.5723,
+            "low": 3.2052,
             "mark": 2,
             "pDecides": false,
-            "pUnderMarkByQuarter": 0.019,
-            "pUnderMarkByStock": 0.0055,
+            "pUnderMarkByQuarter": 0.0195,
+            "pUnderMarkByStock": 0.007,
             "passed": true
           },
           "lossRarer": {
-            "gap": 16.9385,
+            "gap": 16.7726,
             "halfMark": 3.5,
             "halves": [
-              16.9192,
-              16.9576
+              17.7465,
+              15.9722
             ],
-            "high": 21.9764,
-            "low": 12.2785,
+            "high": 21.813,
+            "low": 12.1381,
             "mark": 7,
             "pDecides": true,
             "pUnderMarkByQuarter": 0.0,
             "pUnderMarkByStock": 0.0,
             "passed": true
           },
-          "lossRate": 24.7177,
-          "lostFifth": 11.4178,
+          "lossRate": 25.0318,
+          "lostFifth": 11.5629,
           "lowerOnThisList": true,
-          "mean": 4.992,
+          "mean": 4.8649,
           "median": 15,
-          "soldEarly": 68.7578,
+          "soldEarly": 68.3609,
           "verdict": "PASS",
           "whenReached": {
-            "badCaseWhenKept": -17.1165,
-            "lossWhenKept": 24.635,
-            "meanWhenKept": 23.2111,
+            "badCaseWhenKept": -17.3493,
+            "lossWhenKept": 24.5353,
+            "meanWhenKept": 23.2104,
             "meanWhenSold": 15,
-            "medianWhenKept": 17.3492,
-            "share": 68.7578
+            "medianWhenKept": 17.1598,
+            "share": 68.3609
           }
         },
         "25": {
-          "averageLower": 4.3567,
-          "badCase": -29.9253,
+          "averageLower": 4.3974,
+          "badCase": -29.9325,
           "badCaseMilder": {
-            "gap": 1.8607,
+            "gap": 2.3015,
             "halfMark": 1,
             "halves": [
-              3.6695,
-              1.5168
+              1.6606,
+              2.843
             ],
-            "high": 5.1122,
-            "low": 0.7459,
+            "high": 5.0076,
+            "low": 0.6978,
             "mark": 2,
             "pDecides": false,
-            "pUnderMarkByQuarter": 0.3325,
-            "pUnderMarkByStock": 0.336,
-            "passed": false
-          },
-          "lossRarer": {
-            "gap": 7.5282,
-            "halfMark": 2.0,
-            "halves": [
-              7.0707,
-              7.98
-            ],
-            "high": 9.8814,
-            "low": 5.2071,
-            "mark": 4,
-            "pDecides": true,
-            "pUnderMarkByQuarter": 0.0045,
-            "pUnderMarkByStock": 0.0025,
+            "pUnderMarkByQuarter": 0.341,
+            "pUnderMarkByStock": 0.3555,
             "passed": true
           },
-          "lossRate": 34.128,
-          "lostFifth": 14.5546,
+          "lossRarer": {
+            "gap": 7.3698,
+            "halfMark": 2.0,
+            "halves": [
+              7.6056,
+              7.1759
+            ],
+            "high": 9.6939,
+            "low": 5.1186,
+            "mark": 4,
+            "pDecides": true,
+            "pUnderMarkByQuarter": 0.0055,
+            "pUnderMarkByStock": 0.005,
+            "passed": true
+          },
+          "lossRate": 34.4346,
+          "lostFifth": 14.7395,
           "lowerOnThisList": true,
-          "mean": 6.2811,
-          "median": 15.5685,
-          "soldEarly": 48.0552,
-          "verdict": "FAIL",
+          "mean": 6.0802,
+          "median": 15.1833,
+          "soldEarly": 47.5222,
+          "verdict": "PASS",
           "whenReached": {
-            "badCaseWhenKept": -9.2626,
-            "lossWhenKept": 15.6658,
-            "meanWhenKept": 34.066,
+            "badCaseWhenKept": -9.7919,
+            "lossWhenKept": 15.508,
+            "meanWhenKept": 34.2533,
             "meanWhenSold": 25,
-            "medianWhenKept": 28.3439,
-            "share": 48.0552
+            "medianWhenKept": 28.3279,
+            "share": 47.5222
           }
         }
       },
       "seen": {
         "15": {
-          "averageLower": 4.2043,
-          "badCase": -28.2741,
+          "averageLower": 4.2086,
+          "badCase": -28.6249,
           "badCaseMilder": {
-            "gap": 3.5119,
+            "gap": 3.6091,
             "halfMark": 1,
             "halves": [
-              5.9978,
-              3.4741
+              3.3117,
+              4.1506
             ],
-            "high": 7.4415,
-            "low": 1.2134,
+            "high": 7.3688,
+            "low": 1.2028,
             "mark": 2,
             "pDecides": false,
-            "pUnderMarkByQuarter": 0.12,
-            "pUnderMarkByStock": 0.1095,
+            "pUnderMarkByQuarter": 0.127,
+            "pUnderMarkByStock": 0.119,
             "passed": true
           },
           "lossRarer": {
-            "gap": 12.1706,
+            "gap": 11.9441,
             "halfMark": 2.5,
             "halves": [
-              11.8687,
-              12.4688
+              12.3944,
+              11.5741
             ],
-            "high": 15.7895,
-            "low": 8.7209,
+            "high": 15.5556,
+            "low": 8.5427,
             "mark": 5,
             "pDecides": true,
-            "pUnderMarkByQuarter": 0.0,
+            "pUnderMarkByQuarter": 0.0005,
             "pUnderMarkByStock": 0.0,
             "passed": true
           },
-          "lossRate": 29.4856,
-          "lostFifth": 13.2999,
+          "lossRate": 29.8602,
+          "lostFifth": 13.4689,
           "lowerOnThisList": true,
-          "mean": 6.4335,
-          "median": 15.8912,
-          "soldEarly": 59.9749,
+          "mean": 6.269,
+          "median": 15.8786,
+          "soldEarly": 59.4663,
           "verdict": "PASS",
           "whenReached": {
-            "badCaseWhenKept": -13.3682,
-            "lossWhenKept": 20.2929,
-            "meanWhenKept": 27.4847,
-            "meanWhenSold": 20.4747,
-            "medianWhenKept": 21.1225,
-            "share": 59.9749
+            "badCaseWhenKept": -13.5714,
+            "lossWhenKept": 20.0855,
+            "meanWhenKept": 27.5753,
+            "meanWhenSold": 20.498,
+            "medianWhenKept": 21.0115,
+            "share": 59.4663
           }
         },
         "25": {
-          "averageLower": 3.3725,
-          "badCase": -30.5078,
+          "averageLower": 3.4009,
+          "badCase": -30.5722,
           "badCaseMilder": {
-            "gap": 1.2782,
+            "gap": 1.6618,
             "halfMark": 1,
             "halves": [
-              2.8234,
-              1.3198
+              1.078,
+              1.2393
             ],
-            "high": 4.4867,
-            "low": 0.4973,
+            "high": 4.4885,
+            "low": 0.4837,
             "mark": 2,
             "pDecides": false,
-            "pUnderMarkByQuarter": 0.4635,
-            "pUnderMarkByStock": 0.4355,
+            "pUnderMarkByQuarter": 0.465,
+            "pUnderMarkByStock": 0.443,
             "passed": false
           },
           "lossRarer": {
-            "gap": 5.2698,
+            "gap": 5.2097,
             "halfMark": 2.0,
             "halves": [
-              4.5455,
-              5.985
+              4.7887,
+              5.5556
             ],
-            "high": 7.093,
-            "low": 3.5019,
+            "high": 7.0196,
+            "low": 3.4762,
             "mark": 4,
             "pDecides": true,
-            "pUnderMarkByQuarter": 0.1155,
-            "pUnderMarkByStock": 0.115,
+            "pUnderMarkByQuarter": 0.1265,
+            "pUnderMarkByStock": 0.1335,
             "passed": false
           },
-          "lossRate": 36.3864,
-          "lostFifth": 15.3074,
+          "lossRate": 36.5947,
+          "lostFifth": 15.5019,
           "lowerOnThisList": true,
-          "mean": 7.2653,
-          "median": 10.5832,
-          "soldEarly": 41.5307,
+          "mean": 7.0767,
+          "median": 10.1727,
+          "soldEarly": 41.0419,
           "verdict": "FAIL",
           "whenReached": {
             "badCaseWhenKept": -5.7433,
-            "lossWhenKept": 12.6888,
-            "meanWhenKept": 38.522,
-            "meanWhenSold": 30.4015,
+            "lossWhenKept": 12.6935,
+            "meanWhenKept": 38.7389,
+            "meanWhenSold": 30.4525,
             "medianWhenKept": 31.0469,
-            "share": 41.5307
+            "share": 41.0419
           }
         }
       }
     },
     "verdicts": {
       "order15": "PASS",
-      "order25": "FAIL",
+      "order25": "PASS",
       "seen15": "PASS",
       "seen25": "FAIL"
     },

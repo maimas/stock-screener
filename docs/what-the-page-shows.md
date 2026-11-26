@@ -123,8 +123,11 @@ once you set a share to keep outside stocks.
 The plan says KEEP for 6 months, because on average keeping paid more. Taking a profit was then tested for what
 it does to losses (pre-registered #9, on the last 202 stocks no test had used): on 201 of them, 42% of the stocks
 marked DIP BUY ended the 6 months below what was paid. With a sell order placed in advance at 15% above the
-purchase price it was 25%, and the average fell from +10.6% to +5.0%; sold after a week closed 15% or more up,
-30% and +6.4%. At +25% the difference did not reach the marks written down beforehand.
+purchase price it was 25%, and the average fell from +10.5% to +4.9%; sold after a week closed 15% or more up,
+30% and +6.3%. At +25% the difference did not reach the marks written down beforehand when the test was first
+run, and that run decides what is offered. (The figures are those of the test with one faulty weekly price of the
+data provider put right, on 2026-11-26. With it a sell order at +25% reaches its marks, by a hair, and is still
+not offered: a result is not re-read afterwards into an offer.)
 
 So +15% is offered as one more setting, "Take a profit at", beside the cash, the limit and the share kept outside
 stocks. It is "no level" until you pick it, and until then the plan is as it was. With the level picked, two lines
@@ -144,7 +147,7 @@ fields says):
   far when they were kept. The whole test stands once, under THE PLAN in the same box and behind its "more", as
   two small tables: what keeping and each way of selling did, and what became of the stocks a sale took out early
   when they were kept instead. Both tables hold every way that was tested, the ways the plan does not offer set
-  apart under "Not offered".
+  apart under "Not offered: under the marks written down before the test, the first time it was run".
 
 Neither line tells you to sell or stands under "To do today": they report your own level on your own holdings. What the test leaves out is said
 with it: weekly prices; a sell order filled at exactly its price; the money left idle after a sale, so "a loss is
