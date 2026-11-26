@@ -46,35 +46,39 @@ describe('BusinessFactsComponent: the business, in a stock\'s details', () => {
     expect(words(el.querySelector('h4'))).toBe('The business · context, not part of the mark');
   });
 
-  it('shows a row a fact: its name, its figure and the industry\'s, then the similar companies', () => {
+  // The owner, shown the section with a row of similar companies and told that the data source's list is loose:
+  // "add the similar companies in the expando details". In sight are the two figures; the companies are in what
+  // the details' control opens.
+  it('shows a row a figure: its name, the figure and the industry\'s, and no row of similar companies', () => {
     const {el} = shown(acme());
     const rows = Array.from(el.querySelectorAll('dl.fact-rows > div')).map(row => [words(row.querySelector('dt')), words(row.querySelector('dd'))]);
     expect(rows).toEqual([
       ['Keeps of its sales', '62% · its industry 48%'],
       ['Earns on money invested', '19% · its industry 9%'],
-      ['Similar companies', 'BOLT CHIP'],
     ]);
+    expect(words(el.querySelector('dl.fact-rows'))).not.toContain('BOLT');
   });
 
-  it("gives the trade's word for a figure on its name, and a company's name on its symbol, for the pointer", () => {
+  it("gives the trade's word for a figure on its name, for the pointer", () => {
     const {fixture} = shown(acme());
     const tips = fixture.debugElement.queryAll(By.directive(MatTooltip))
       .map(it => [words(it.nativeElement), it.injector.get(MatTooltip).message.split(',')[0].split(':')[0]]);
     expect(tips).toEqual([
       ['Keeps of its sales', 'Gross margin'],
       ['Earns on money invested', 'Return on capital'],
-      ['BOLT', 'Bolt Works Inc'],
-      ['CHIP', 'Chip Foundry Corp'],
     ]);
   });
 
-  it('shows eight similar companies at most, with how many more the data source lists', () => {
+  it('names the similar companies in what the control opens: eight at most, and how many more there are', () => {
     const stock = acme() as any;
     stock.equity.relatedStocks = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B09', 'B10', 'B11'].map(symbol => ({symbol}));
-    const {el} = shown(stock);
-    expect(words(el.querySelector('dd.similar'))).toBe('B01 B02 B03 B04 B05 B06 B07 B08 +3');
-    expect(words(el.querySelector('dd.similar .more'))).withContext('quiet, and said in words for a screen reader').toBe('+3');
-    expect(el.querySelector('dd.similar .more')?.getAttribute('aria-label')).toBe('and 3 more');
+    const {fixture, el} = shown(stock);
+    const line = () => (Array.from(el.querySelectorAll('p')) as HTMLElement[]).find(p => words(p).startsWith('Similar companies'));
+    expect(line()?.hidden).withContext('not in sight until asked for').toBeTrue();
+    TestBed.inject(MoreService).toggle('details.words');
+    fixture.detectChanges();
+    expect(line()?.hidden).toBeFalse();
+    expect(words(line() ?? null)).toBe('Similar companies, as the data source lists them: B01, B02, B03, B04, B05, B06, B07, B08, and 3 more.');
   });
 
   it('calls no figure good or bad: no tick, no sign, no colour of a gain or a loss', () => {
@@ -97,7 +101,7 @@ describe('BusinessFactsComponent: the business, in a stock\'s details', () => {
     expect(words(sentences()[1])).toContain('Bolt Works Inc (BOLT), Chip Foundry Corp (CHIP).');
   });
 
-  it('leaves out the row of similar companies, and their sentence, when none is listed', () => {
+  it('has no sentence about similar companies when none is listed', () => {
     const stock = acme() as any;
     stock.equity.relatedStocks = [];
     const {el} = shown(stock);
@@ -110,6 +114,12 @@ describe('BusinessFactsComponent: the business, in a stock\'s details', () => {
     expect(shown(fund).el.children.length).toBe(0);
     TestBed.resetTestingModule();
     expect(shown(makeStock({symbol: 'BARE'})).el.children.length).toBe(0);
+  });
+
+  it('is not there for a company with listed companies and no figure: nothing of it would be in sight', () => {
+    const stock = makeStock({symbol: 'BARE'}) as any;
+    stock.equity.relatedStocks = [{symbol: 'BOLT', displayName: 'Bolt Works Inc'}];
+    expect(shown(stock as Stock).el.children.length).toBe(0);
   });
 
   it('follows the stock it is given', () => {

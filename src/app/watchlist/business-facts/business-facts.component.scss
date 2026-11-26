@@ -28,18 +28,6 @@ h4 .note {
   color: var(--ink-2);
 }
 
-// The listed companies: symbols one after the other, wrapping where the column ends, never breaking inside one.
-.similar .symbol {
-  white-space: nowrap;
-  margin-right: 6px;
-}
-
-// How many more the data source lists than are shown: a count, not a company, so not in the full ink.
-.similar .more {
-  color: var(--ink-2);
-  white-space: nowrap;
-}
-
 p {
   margin: 6px 0 0;
   max-width: 70ch;

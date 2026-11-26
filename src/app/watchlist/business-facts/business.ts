@@ -3,7 +3,7 @@ import {Metrics, Stock} from "../../api/microsoft-money.service";
 /** One figure about the business: its name in plain words, the trade's word for it, the figure, and its industry's. */
 export type BusinessRow = { label: string, tip: string, value: string, industry: string };
 
-/** A company the data source lists beside this one: its symbol, and its name for the pointer. */
+/** A company the data source lists beside this one: its symbol and its name. */
 export type Similar = { symbol: string, name: string };
 
 /** `more`: how many companies the data source lists beyond the ones in `similar`. */
@@ -11,8 +11,8 @@ export type Business = { rows: BusinessRow[], similar: Similar[], more: number, 
 
 const MINUS = '−';
 /**
- * The most companies shown beside a stock, in the order the data source lists them: it lists seven beside one
- * stock and fourteen beside another, and fourteen symbols filled five lines of a 380px column.
+ * The most companies named beside a stock, in the order the data source lists them: it lists seven beside one
+ * stock and fourteen beside another, and fourteen names are a paragraph.
  */
 const MOST_SIMILAR = 8;
 /** Two sentences of a description longer than this are a paragraph: the first one is kept alone. */
@@ -78,9 +78,9 @@ export const BUSINESS_HOW_TO_READ =
   'The data source does not say how it picks the similar companies, and it gives no market share.';
 
 /**
- * The listed companies by name, as a sentence. In the row they stand as symbols with the name on the pointer, which
- * a reader by keyboard or by screen reader does not have: the names are here for them, and no symbol is a stop of
- * the Tab key.
+ * The listed companies by name, as a sentence: the one place they are said. They were a row of symbols first; the
+ * data source's list is loose, and the owner chose to have them in what the details' control opens ("add the
+ * similar companies in the expando details").
  */
 export function similarLine(similar: Similar[], more = 0): string {
   if (similar.length === 0) {
@@ -91,11 +91,11 @@ export function similarLine(similar: Similar[], more = 0): string {
 }
 
 /**
- * There is a figure or a listed company to show. A description alone is not enough: it stands behind the
+ * There is a figure to show. A description or listed companies alone are not enough: they stand behind the
  * details' sentences, and a section with nothing in sight would be a heading over nothing.
  */
 export function hasBusiness(business: Business): boolean {
-  return business.rows.length > 0 || business.similar.length > 0;
+  return business.rows.length > 0;
 }
 
 /** Percentages beyond this are not a margin or a return: the data source fills gaps with numbers like −99,999,901. */

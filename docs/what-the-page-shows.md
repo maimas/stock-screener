@@ -492,18 +492,19 @@ The page is made for a browser window that fills a large monitor, and still work
   (P/E)", "cannot be tested", "made no difference in tests"), and its "+" and "−" markers have no green or red:
   they are not points awarded by a test.
 - **"The business" is in a stock's details, as context.** Under "Why it dropped", in the column that is about
-  the company itself, a section says what the data source (MSN) already sends about it, a row a fact: "Keeps of
+  the company itself, a section says what the data source (MSN) already sends about it, a row a figure: "Keeps of
   its sales  62% · its industry 48%" (gross margin: what is left of sales after the direct costs) and "Earns on
-  money invested  19% · its industry 9%" (return on capital), both averages of the last 5 years, and "Similar
-  companies  BOLT CHIP", the companies the data source lists beside this one, each with its name on the pointer:
-  eight at most, with "+3" after them when it lists three more. The names of the rows are short because the
-  column can be 380px wide: longer ones broke each figure over two lines. Beside its title stands
-  "context, not part of the mark", the page's words for what no test used, and no row has a tick, a sign or a
-  colour: nothing here was tested, so no figure is called good or bad. The sentences open with "Read these
-  details in sentences": what the company does, in the data source's words; the similar companies by name; how to
-  read the two figures; and that the data source gives no market share and does not say how it picks the similar
-  companies. Nothing is fetched for it: it all arrives with the request the page already makes. A fund, or a
-  company the data source says nothing about, has no such section.
+  money invested  19% · its industry 9%" (return on capital), both averages of the last 5 years. The names of the
+  rows are short because the column can be 380px wide: longer ones broke each figure over two lines. Beside its
+  title stands "context, not part of the mark", the page's words for what no test used, and no row has a tick, a
+  sign or a colour: nothing here was tested, so no figure is called good or bad. The sentences open with "Read
+  these details in sentences": what the company does, in the data source's words; the companies the data source
+  lists beside this one, by name ("Similar companies, as the data source lists them: Bolt Works Inc (BOLT), Chip
+  Foundry Corp (CHIP), and 3 more.": eight at most); how to read the two figures; and that the data source gives
+  no market share and does not say how it picks the similar companies. Those companies were a row of symbols
+  first; the list is loose, and the owner chose to have it in the sentences and not in sight. Nothing is fetched
+  for the section: it all arrives with the request the page already makes. A fund, or a company the data source
+  gives no figure for, has no such section.
 - **The layout is checked at six window widths** (2560, 1920, 1707, 1440, 1280 and 1100px), each view as opened
   and with a stock's details open or rows ticked: the page must not scroll sideways, no box may scroll sideways
   inside, and no sentence may be squeezed to a word a line. A sentence never stands in a block that is as wide as
