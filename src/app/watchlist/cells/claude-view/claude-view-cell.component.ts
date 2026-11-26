@@ -24,7 +24,7 @@ import {TipOnFocusDirective} from "../../tip-on-focus.directive";
       <span class="word">{{ cell.word }}</span>
       <!-- The space before each is for what reads the row aloud or copies it: the gap on the screen is the layout's. -->
       <span class="short" *ngIf="!compact && cell.short"> {{ cell.short }}</span>
-      <span class="from" *ngIf="cell.from"> {{ cell.from }}</span>
+      <span class="from" *ngIf="!compact && cell.from"> {{ cell.from }}</span>
     </span>
     <ng-template #none><span class="none">{{ waiting ? 'asking…' : '—' }}</span></ng-template>`,
   styles: [`

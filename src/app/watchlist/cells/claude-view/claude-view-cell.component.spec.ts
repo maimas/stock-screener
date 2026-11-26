@@ -102,3 +102,24 @@ describe('ClaudeViewCellComponent (Claude\'s view of a stock, in its row)', () =
     expect(getComputedStyle(word).color).toBe(getComputedStyle(el().querySelector<HTMLElement>('.view')!).color);
   });
 });
+
+// The key columns of a list have fixed shares of its width: there the cell is one short word and nothing else.
+describe('ClaudeViewCellComponent in the short view of the table', () => {
+  it('shows an old view as its word alone, quieter; its day is under the pointer', () => {
+    const views = new FakeClaudeViews();
+    TestBed.configureTestingModule({
+      imports: [ClaudeViewCellComponent, NoopAnimationsModule],
+      providers: [{provide: ClaudeViewService, useValue: views}],
+    });
+    const fixture = TestBed.createComponent(ClaudeViewCellComponent);
+    fixture.componentRef.setInput('symbol', 'ABCD');
+    fixture.componentRef.setInput('today', '2026-11-20');
+    fixture.componentRef.setInput('compact', true);
+    views.knows({views: {ABCD: {'2026-11-10': keptView('WAIT')}}});
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect((el.textContent ?? '').replace(/\s+/g, ' ').trim()).toBe('WAIT');
+    expect(el.querySelector('.view')!.classList.contains('stale')).toBeTrue();
+    expect(fixture.debugElement.query(By.directive(MatTooltip)).injector.get(MatTooltip).message).toContain('Asked Nov 10.');
+  });
+});
