@@ -74,3 +74,7 @@ Of every key the version before the last change is kept too.
 | `npm run evidence:schedule` | Optional: has Windows do that refresh every fourth Saturday (`npm run evidence:unschedule` removes it) |
 | `npm run schedule:status` | Shows whether that task is registered and when it last ran |
 | `npm run log:record` | Records the daily log now, in the running app (the app does it by itself on weekdays) |
+
+## Licence
+
+MIT: see `LICENSE`. The page's layout started from the Material Pro Admin template; its files under `src/assets/styles` keep their author's notice.
