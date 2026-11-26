@@ -43,7 +43,12 @@ const REFUSED: Record<ViewRefusal['refused'], string> = {
     </ng-container>`,
   styles: [`
     :host { display: inline-flex; align-items: baseline; gap: 8px; white-space: nowrap; }
-    .link-button.ask-claude { min-height: 28px; margin-left: 0; font-size: var(--text-data); }
+    /* A link like "Edit list" beside it (the page styles its link-buttons in each part's own stylesheet). */
+    .link-button.ask-claude {
+      min-height: 28px; margin: 0; padding: 0; border: 0; background: none; font: inherit; font-size: var(--text-data);
+      color: var(--link); text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
+    }
+    .link-button.ask-claude:disabled { color: var(--ink-3); text-decoration: none; cursor: default; }
     .asked, .ask-note { font-size: var(--text-meta); color: var(--ink-3); }
     .ask-note:empty { display: none; }
   `]

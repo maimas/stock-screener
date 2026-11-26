@@ -48,6 +48,17 @@ describe('ClaudeAskComponent (the button that asks Claude about a list)', () => 
     expect(button().textContent!.trim()).toBe('Ask Claude about this one');
   });
 
+  // Seen on the page: it stood beside "Edit list" as a grey box of the browser's own. It is a link like its neighbour.
+  it('looks like the link beside it, not like a box of the browser', () => {
+    create();
+    const look = getComputedStyle(button());
+    expect(look.borderTopWidth).toBe('0px');
+    expect(look.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    expect(look.textDecorationLine).toBe('underline');
+    expect(look.cursor).toBe('pointer');
+    expect(look.paddingLeft).toBe('0px');
+  });
+
   it('is not there where Claude Code cannot be asked, or for a list with no stock', () => {
     views.installed = false;
     create();
