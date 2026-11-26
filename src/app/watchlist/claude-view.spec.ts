@@ -1,0 +1,165 @@
+import {ASK_BUTTON, ASKING, cellOf, FACT_LIMITS, factsFor, HELD_NOTE, parseViews, View, VIEW_HEADING, ViewFacts} from "./claude-view";
+import {computeSignal} from "./signal";
+import {flatCloses, makeStock, NOW, reportedQuarters} from "./testing/fixtures";
+
+// The owner of the page asked for the details of a stock "summarized by AI and added to a column as an AI suggestion
+// to act on the stock". One button a list asks Claude Code about every stock of it; this is what the page sends
+// about a stock (figures only, nothing about what is owned) and how it shows the answer.
+describe("Claude's view of a stock", () => {
+  /** A made-up company: sales up 20% on a year ago, the price 20% below its highest, analysts' middle target at 120. */
+  const stock = makeStock({
+    symbol: 'ACME', price: 80, high52: 100, medianTarget: 120, recommendationRate: 1.77, providerEpsTtm: -0.05,
+    quarters: reportedQuarters(8, {baseRevenue: 100, latestRevenue: 120}), closes: flatCloses(250, 80),
+  });
+
+  describe('factsFor (what the page sends about a stock)', () => {
+    const facts = factsFor(stock, NOW);
+
+    it('sends the mark and what it rests on', () => {
+      expect(computeSignal(stock, NOW)?.verdict).toBe('DIP BUY');
+      expect(facts.mark).toBe('DIP BUY');
+      expect(facts.growing).toBe('yes');
+      expect(facts.belowHigh).toBe(20);
+      expect(facts.salesGrowth).toBe(20);
+    });
+
+    it('sends what analysts say and the profit per share, as the details show them', () => {
+      expect(facts.targetPercent).toBe(50);
+      expect(facts.rating).toBe(1.77);
+      expect(facts.analysts).toBe(10);
+      expect(facts.eps).toBe(-0.05);
+    });
+
+    it('says how the price swings, and for a marked stock which group that is', () => {
+      expect(facts.swings).toBe(0);
+      expect(facts.swingGroup).toBe('low');
+      expect(facts.fellFurther).toBe(2);
+    });
+
+    it('leaves out a figure the stock does not have', () => {
+      const bare = factsFor(makeStock({symbol: 'BARE', price: 50, high52: 50}), NOW);
+      expect(bare.mark).toBe('none');
+      for (const missing of ['growing', 'targetPercent', 'rating', 'analysts', 'swings', 'swingGroup', 'fellFurther', 'from200', 'rising200',
+        'ownersInProfit', 'resultsInDays', 'beat', 'bigDropDay', 'bigDropPercent', 'dropAbout', 'pe', 'peLow', 'peHigh', 'eps'] as (keyof ViewFacts)[]) {
+        expect(bare[missing]).withContext(missing).toBeUndefined();
+      }
+    });
+
+    it('never sends a broken number, and never one outside what the server takes', () => {
+      const wild = makeStock({symbol: 'WILD', price: 1, high52: 100000, medianTarget: 5000, recommendationRate: 1.2, providerEpsTtm: NaN});
+      const sent = factsFor(wild, NOW);
+      Object.entries(sent).forEach(([field, value]) => {
+        if (typeof value === 'number') {
+          expect(Number.isFinite(value)).withContext(field).toBeTrue();
+          const [low, high] = FACT_LIMITS[field as keyof typeof FACT_LIMITS];
+          expect(value >= low && value <= high).withContext(`${field} ${value}`).toBeTrue();
+        }
+      });
+      expect(sent.targetPercent).withContext('+499900% is no figure the server takes: left out').toBeUndefined();
+      expect(sent.eps).toBeUndefined();
+    });
+
+    it('sends what kind of news a kept reading of the fall found, and only its kind', () => {
+      /** The same company with one bad day: 100 for 200 days, then 80. */
+      const fell = makeStock({
+        symbol: 'FELL', price: 80, high52: 100, quarters: reportedQuarters(8, {baseRevenue: 100, latestRevenue: 120}),
+        closes: [...flatCloses(200, 100), ...flatCloses(50, 80)],
+      });
+      const sent = factsFor(fell, NOW, 'industry');
+      expect(sent.bigDropPercent).toBe(-20);
+      expect(sent.bigDropDay).toMatch(/^2026-\d\d-\d\d$/);
+      expect(sent.dropAbout).toBe('industry');
+      expect(factsFor(fell, NOW).dropAbout).withContext('no reading is kept').toBeUndefined();
+      expect(factsFor(stock, NOW, 'industry').dropAbout).withContext('no big one-day fall to be about').toBeUndefined();
+    });
+
+    it('sends nothing about what is owned', () => {
+      expect(Object.keys(facts).join(' ')).not.toMatch(/held|hold|share|cash|portfolio|amount/i);
+    });
+  });
+
+  const view = (word: string, day: string): object => ({
+    view: word, short: 'Results due next week', why: 'It reports its results next week.',
+    sources: [{title: 'A page', url: 'https://news.example.com/a'}], asked: `${day}T15:00:00.000Z`, model: 'm', version: '1',
+  });
+
+  describe('parseViews (what the server says)', () => {
+    it('shows the newest view of each stock and keeps every day for the record', () => {
+      const state = parseViews({views: {ABCD: {'2026-11-01': view('AVOID', '2026-11-01'), '2026-11-20': view('WAIT', '2026-11-20')}}, failed: {}});
+      expect(state.views['ABCD'].view).toBe('WAIT');
+      expect(state.views['ABCD'].day).toBe('2026-11-20');
+      expect(Object.keys(state.history['ABCD'])).toEqual(['2026-11-01', '2026-11-20']);
+      expect(state.queue).toBeUndefined();
+    });
+
+    it('drops what is not one of the three words with a reason, and what is not a day', () => {
+      const state = parseViews({
+        views: {
+          ABCD: {'2026-11-20': view('STRONG BUY', '2026-11-20'), 'yesterday': view('WAIT', '2026-11-19')},
+          EFGH: {'2026-11-20': {view: 'WAIT', short: 42}}, IJKL: 'WAIT', MNOP: {'2026-11-20': view('BUY SOME', '2026-11-20')},
+        },
+      });
+      expect(Object.keys(state.views)).toEqual(['MNOP']);
+      expect(Object.keys(state.history)).toEqual(['MNOP']);
+    });
+
+    it('says which list is being asked about and which stocks got no answer', () => {
+      const state = parseViews({views: {}, queue: {symbols: ['ABCD', 'EFGH'], done: ['ABCD'], failed: {}}, failed: {WXYZ: 'timeout', 7: 9}});
+      expect(state.queue).toEqual({symbols: ['ABCD', 'EFGH'], done: ['ABCD'], failed: {}});
+      expect(state.failed).toEqual({WXYZ: 'timeout'});
+    });
+
+    it('is empty for anything that is not an answer of the server', () => {
+      for (const odd of [undefined, null, 'x', 42, [], {views: 'x'}, {queue: {symbols: 'ABCD'}}]) {
+        expect(parseViews(odd)).withContext(JSON.stringify(odd)).toEqual({views: {}, history: {}, failed: {}});
+      }
+    });
+  });
+
+  describe('cellOf (what a row shows)', () => {
+    const kept = parseViews({views: {ABCD: {'2026-11-14': view('WAIT', '2026-11-14')}}}).views['ABCD'] as View;
+
+    it('shows the word, the short reason, and the sentence with the day asked under the pointer', () => {
+      expect(cellOf(kept, '2026-11-20', false)).toEqual({
+        word: 'WAIT', short: 'Results due next week', tip: 'It reports its results next week. Asked Nov 14.', stale: false, from: '',
+      });
+    });
+
+    it('is quieter, with its day, once the view is more than 7 days old', () => {
+      expect(cellOf(kept, '2026-11-21', false).stale).withContext('7 days').toBeFalse();
+      const old = cellOf(kept, '2026-11-22', false);
+      expect(old.stale).withContext('8 days').toBeTrue();
+      expect(old.from).toBe('from Nov 14');
+    });
+
+    it('says on a stock that is held that Claude was not told so', () => {
+      expect(HELD_NOTE).toBe('Claude was not told what you hold; your plan and its limit still apply.');
+      expect(cellOf(kept, '2026-11-20', true).tip).toBe(`It reports its results next week. Asked Nov 14. ${HELD_NOTE}`);
+    });
+
+    it('says "no answer" with the reason when the last ask failed and nothing is kept', () => {
+      const failed = cellOf(undefined, '2026-11-20', false, 'timeout');
+      expect(failed.word).toBe('no answer');
+      expect(failed.short).toBe('');
+      expect(failed.tip).toBe('Claude took too long and was stopped. Ask again.');
+    });
+
+    it('keeps showing the earlier view when a new ask failed, and says so under the pointer', () => {
+      const still = cellOf(kept, '2026-11-20', false, 'busy');
+      expect(still.word).toBe('WAIT');
+      expect(still.tip).toBe('It reports its results next week. Asked Nov 14. Asked again since, without an answer: ' +
+        'Claude was busy with something else. Ask again.');
+    });
+
+    it('shows nothing for a stock that was never asked about', () => {
+      expect(cellOf(undefined, '2026-11-20', true)).toEqual({word: '', short: '', tip: '', stale: false, from: ''});
+    });
+  });
+
+  it('names the column and the button in plain words', () => {
+    expect(VIEW_HEADING).toBe('Claude · not tested');
+    expect(ASK_BUTTON(5)).toBe('Ask Claude about these 5');
+    expect(ASK_BUTTON(1)).toBe('Ask Claude about this one');
+    expect(ASKING(2, 5)).toBe('Asking Claude… 2 of 5');
+  });
+});

@@ -159,3 +159,25 @@ test('cuts the short reason to 6 words and the sentence to 25', () => {
   assert.equal(made.short, words(6));
   assert.equal(made.why, `${words(25)}.`);
 });
+
+test('the page and this recipe agree on every figure: its name, its least and most, its decimals, its fixed words', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const page = fs.readFileSync(path.join(__dirname, '../../src/app/watchlist/claude-view.ts'), 'utf8');
+  const limits = /export const FACT_LIMITS = (\{[\s\S]*?\}) as const;/.exec(page);
+  assert.ok(limits, 'FACT_LIMITS is in claude-view.ts');
+  const ofPage = new Function(`return ${limits[1]}`)();
+  const numbers = Object.fromEntries(Object.entries(FACT_FIELDS).filter(([, known]) => known.kind === 'number')
+    .map(([field, known]) => [field, [known.min, known.max, known.decimals]]));
+  assert.deepEqual(ofPage, numbers);
+
+  const facts = /export type ViewFacts = \{([\s\S]*?)\n\};/.exec(page);
+  assert.ok(facts, 'ViewFacts is in claude-view.ts');
+  const named = [...facts[1].matchAll(/^\s*(\w+)\?:/gm)].map(match => match[1]);
+  assert.deepEqual(named, Object.keys(FACT_FIELDS), 'the same figures, in the same order');
+  // "What the fall was about" is typed on the page by the reading's own kinds (ReadingAbout), not written out.
+  for (const [field, known] of Object.entries(FACT_FIELDS).filter(([name, it]) => it.kind === 'enum' && name !== 'dropAbout')) {
+    const words = new RegExp(field + String.raw`\?: ([^,\n]+),`).exec(facts[1])[1].split('|').map(word => word.trim().replace(/'/g, ''));
+    assert.deepEqual(words, known.values, field);
+  }
+});
