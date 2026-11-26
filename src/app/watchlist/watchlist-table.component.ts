@@ -65,7 +65,9 @@ import {
   whyNoVerdict
 } from "./signal";
 import {factsOf, StockFacts} from "./stock-facts";
+import {caseOf, StockCase} from "./case-against";
 import {alsoFits, Findable, findMatches, notFound} from "./find-stock";
+import {FitCases, fitCases} from "./fit-cases";
 import {costDistributionFor, trendFor, volatilityFor} from "./market-math";
 import {CostDistributionCellComponent} from "./cells/cost-distribution/cost-distribution-cell.component";
 import {TrendCellComponent} from "./cells/trend/trend-cell.component";
@@ -367,6 +369,8 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
   couldAddNames: Record<string, string> = {};
   /** What the page knows of each of those stocks itself: how far it dropped, how it grows, and two pieces of context. */
   couldAddFacts: Record<string, StockFacts> = {};
+  /** The case against each of those stocks: how much its price swings, and what speaks against it among the context. */
+  couldAddCases: Record<string, StockCase> = {};
   /** Today's price of each of those stocks: a row of "Could add" records a purchase starting from it. */
   couldAddPrices: Record<string, number> = {};
   /** "Find a stock", above the lists: every stock in the lists, what is typed, and what is said when nothing fits. */
@@ -380,6 +384,8 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
   /** What each portfolio has to say about the marked stocks: a stock's details say from it where the stock fits. */
   private fitting: Fitting[] = [];
   private fits = new Map<string, string[]>();
+  /** What a stock's size in the portfolio being shown could lose or make, by symbol; worked out once per refresh. */
+  private fitCasesBySymbol = new Map<string, FitCases | undefined>();
   private positionBySymbol = new Map<string, PositionRow>();
   private casesCache = new WeakMap<Stock, TestedCases | null>();
   private stocksBySymbol = new Map<string, Stock>();
@@ -1324,6 +1330,10 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
       const facts = factsOf(this.stocksBySymbol.get(it.symbol));
       return facts ? [[it.symbol, facts] as const] : [];
     }));
+    this.couldAddCases = Object.fromEntries([...shown.recommendations, ...shown.additions].flatMap(it => {
+      const found = caseOf(this.stocksBySymbol.get(it.symbol), {log: this.log, today: this.today});
+      return found ? [[it.symbol, found] as const] : [];
+    }));
     this.couldAddPrices = Object.fromEntries([...shown.recommendations, ...shown.additions].flatMap(it => {
       const price = this.stocksBySymbol.get(it.symbol)?.quote?.price;
       return isNum(price) && price > 0 ? [[it.symbol, price] as const] : [];
@@ -1334,6 +1344,7 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
       recommendations: it.plan.recommendations, additions: it.plan.additions,
     }));
     this.fits.clear();
+    this.fitCasesBySymbol.clear();
     // "held" among the candidates is held in any portfolio, as in the lists, and the tag says in which.
     this.candidates = this.opportunities.map(it => {
       const names = heldIn(this.book, it.symbol);
@@ -1349,6 +1360,20 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
   /** Which portfolio that is: what the user ticked in "Could add" belongs to it, whatever its name. */
   get shownId(): string {
     return activeOf(this.book).id;
+  }
+
+  /**
+   * What the stock's size in the portfolio being shown could lose or make in 6 months: the three figures of its row
+   * in "Could add", for its details (a review: the size stood there without them, and they were on the other view).
+   * Nothing for a stock that has no size there: one that is held, or one without the DIP BUY mark.
+   */
+  fitCasesOf(stock: Stock): FitCases | undefined {
+    const symbol = stock.quote?.symbol ?? '';
+    if (!this.fitCasesBySymbol.has(symbol)) {
+      const marked = this.recommendations.find(it => it.symbol === symbol);
+      this.fitCasesBySymbol.set(symbol, fitCases(this.shownName, marked?.size, marked?.cases));
+    }
+    return this.fitCasesBySymbol.get(symbol);
   }
 
   /** Where a stock fits: its size in each portfolio, a line each. Empty unless the stock is marked DIP BUY. */
@@ -1569,7 +1594,7 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
         columnDisplayName: 'Mark · dropped',
         columnTooltip: 'DIP BUY: the price is ' + DIP_PERCENT + '% or more below its highest of the past year and the business is ' +
           'growing (profit per share on course to grow ' + GROWTH_EPS_PERCENT + '% or more, or sales up ' + GROWTH_REVENUE_PERCENT +
-          '% or more on a year ago; see Growth). WATCH: growing, but no such drop yet. PASS: not growing enough. ' +
+          '% or more on a year ago; see Growing). WATCH: growing, but no such drop yet. PASS: not growing enough. ' +
           'No mark for funds, or for companies with fewer than ' + MIN_REPORTED_QUARTERS +
           ' reported quarters or less than a year of prices.\n\n' + CARD_NOTE + '\n\n' +
           'The % next to the mark is how far the price is below its highest of the past year; a flag means the company reports ' +
@@ -1591,7 +1616,8 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
       },
       {
         columnName: 'growth',
-        columnDisplayName: 'Growth',
+        // "Growing", the name of this fact in "Dip candidates" and "Could add" (this heading said "Growth").
+        columnDisplayName: 'Growing',
         columnTooltip: 'The two numbers behind the mark. Profit: profit per share (EPS), the next quarter as analysts expect it ' +
           'plus the last 3 reported, against the last 4 reported. Sales: the latest quarter\'s sales (revenue) against the same ' +
           'quarter a year earlier. A tick marks a pass (profit ' + GROWTH_EPS_PERCENT + '% or more, sales ' + GROWTH_REVENUE_PERCENT +
@@ -1628,7 +1654,9 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
       },
       {
         columnName: 'volatility',
-        columnDisplayName: 'Volatility',
+        // "Swings", the name of this fact in "Could add" and in a stock's details (this heading said "Volatility",
+        // a word of the trade).
+        columnDisplayName: 'Swings',
         columnTooltip: VOLATILITY_COLUMN_NOTE + ' Worked out from the past year\'s weekly price changes. ' +
           'It measures risk, not which stocks do better.',
         template: this.volatilityCellTemplate,
@@ -1664,7 +1692,7 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
       },
       {
         columnName: 'dividend',
-        columnDisplayName: 'Div. Yield',
+        columnDisplayName: 'Div. yield',
         columnTooltip: 'Forward annual dividend as a % of the current price. "—" if the stock pays no dividend.',
         template: this.neutralPercentCellTemplate,
         // The API reports 0 for non-payers; show "—" rather than a misleading "0.00%".
@@ -1673,7 +1701,7 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
       },
       {
         columnName: 'dayRange',
-        columnDisplayName: 'Day Range',
+        columnDisplayName: 'Day range',
         columnTooltip: "Today's low and high. The dot marks the current price.",
         template: this.dayRangeCellTemplate,
         templateData: (it: Stock) => ({
@@ -1700,7 +1728,7 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
       },
       {
         columnName: 'holders',
-        columnDisplayName: 'Holders in Profit',
+        columnDisplayName: 'Holders in profit',
         columnTooltip: 'An estimate of the prices at which today\'s holders bought over the last year. ' +
           "Dark = bought below today's price (in profit), pale = bought above it. Context only: in the tests it did not " +
           'tell which of the stocks that dropped did well, so the mark does not use it.',
@@ -1710,7 +1738,7 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
       },
       {
         columnName: 'analystRating',
-        columnDisplayName: 'Analyst Rating',
+        columnDisplayName: 'Analyst rating',
         columnTooltip: "The stock's analyst consensus, with the split of ratings from Sell (left) to Strong Buy (right). " +
           'A click orders the rows by the average rating, the most favourable first. Context only: there is no history of ' +
           'past ratings to test it on.',
@@ -1720,10 +1748,10 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
         sortValue: (it: Stock) => it?.equity?.analysis?.estimate?.recommendationRate
       },
       // Who holds the stock stands with the two other columns about its holders and its analysts (the owner asked
-      // for it right after "Analyst Rating"; it used to be the last column, a long scroll to the right).
+      // for it right after "Analyst rating"; it used to be the last column, a long scroll to the right).
       {
         columnName: 'ownership',
-        columnDisplayName: 'Inst. Ownership',
+        columnDisplayName: 'Inst. ownership',
         columnTooltip: '% of shares held by institutions (funds, banks, pensions). Hover a cell for insider ownership.',
         template: this.ownershipCellTemplate,
         templateData: (it: Stock) => it.equity?.ownershipSummary,
@@ -1801,7 +1829,7 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
       },
       {
         columnName: 'debtToEquity',
-        columnDisplayName: 'Debt/Equity',
+        columnDisplayName: 'Debt/equity',
         columnTooltip: 'Debt ÷ shareholder equity. Lower = safer balance sheet. Bold above 2 (banks and utilities often run higher). ' +
           'Hover a cell for the industry average.',
         template: this.debtEquityCellTemplate,
@@ -1824,11 +1852,28 @@ function readView(): ViewMode {
   }
 }
 
+/** From this window width "Dip candidates" stands beside the lists (the stylesheet's own figure); narrower, above them. */
+const PANE_BESIDE_FROM = 1800;
+
+/**
+ * Whether "Dip candidates" starts folded. The reader's own choice decides, once it was made ("Show less" or "Show
+ * more", kept in this browser). Before that: open where the box stands beside the lists, and folded where it stands
+ * above them, in a window narrower than 1800px. Open, it filled the first screen there and the lists began under
+ * it (three reviews in a row said so); folded, it is one strip with the marks' counts and the line about the
+ * market, the lists are on the first screen, and "Show more" opens all of it.
+ *
+ * @param kept  what this browser remembers: 'folded', 'open', or nothing yet
+ * @param width the window's width in CSS pixels
+ */
+export function startsFolded(kept: string | null, width: number): boolean {
+  return kept === 'folded' || (kept !== 'open' && width < PANE_BESIDE_FROM);
+}
+
 function readFolded(): boolean {
   try {
-    return localStorage.getItem(PANE_STORAGE_KEY) === 'folded';
+    return startsFolded(localStorage.getItem(PANE_STORAGE_KEY), window.innerWidth);
   } catch {
-    return false;
+    return startsFolded(null, window.innerWidth);
   }
 }
 

@@ -1,0 +1,39 @@
+<!-- The ticked stocks side by side. Figures and names only: the sentences are where the pointer rests. -->
+<section class="compare" *ngIf="comparison as shown" [attr.aria-label]="shown.title" [style.--stocks]="shown.symbols.length">
+  <h3 class="compare-title">{{ shown.title }}</h3>
+  <!-- With many stocks ticked a part is wider than the box: it scrolls inside this block, the names of the rows
+       staying in place, and the page does not. -->
+  <div class="compare-scroll">
+    <!-- A part a small table: what was tested, the context, why the price dropped. They stand beside each other
+         where the box has the room and one under the other where it has not; every part has the same columns, so
+         a stock stays in its column either way. One table of twenty rows was a tall strip in a box four times as
+         wide. -->
+    <div class="parts">
+      <table class="part" *ngFor="let part of shown.parts; let first = first; trackBy: trackByTitle">
+        <caption class="visually-hidden">{{ part.title }}<ng-container *ngIf="part.note"> ({{ part.note }})</ng-container></caption>
+        <thead>
+        <tr>
+          <!-- The part's name stands where the table's corner is; what the part is shows under the pointer. -->
+          <th scope="col" class="part-title" [matTooltip]="part.note" matTooltipClass="multiline-tooltip">{{ part.title }}</th>
+          <!-- The symbols head every part. The Tab key stops on those of the first: one stop a stock. -->
+          <th scope="col" *ngFor="let symbol of shown.symbols; let column = index; trackBy: trackByText">
+            <button type="button" class="symbol" (click)="open.emit(symbol)" [attr.aria-label]="'Open details for ' + symbol"
+                    [attr.tabindex]="first ? null : -1"
+                    (focus)="onSymbolFocus(symbol, $event)" (blur)="onSymbolBlur()"
+                    [matTooltip]="symbolTip(symbol, column)" matTooltipPosition="above" matTooltipClass="multiline-tooltip">{{ symbol }}</button>
+          </th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr *ngFor="let row of part.rows; trackBy: trackByKey" [class.same]="row.same">
+          <th scope="row" [matTooltip]="row.help" matTooltipClass="multiline-tooltip">{{ row.label }}</th>
+          <!-- A fact that speaks against the stock (one its "Against" tag names) is in red, by the owner's word; the
+               words after it say the same to a screen reader, so that it does not rest on the colour. -->
+          <td *ngFor="let cell of row.cells; trackBy: trackByColumn" [class.against]="cell.against"
+              [matTooltip]="cell.tip || ''" matTooltipClass="multiline-tooltip">{{ cell.value }}<span class="visually-hidden" *ngIf="cell.against"> (speaks against it)</span></td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

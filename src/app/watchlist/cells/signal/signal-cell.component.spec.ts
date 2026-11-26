@@ -11,7 +11,9 @@ describe('SignalCellComponent: a stock without a mark', () => {
     expect(cell('no-data').tooltip).toBe("The history of the company's results is missing or incomplete at the data source, so there is no mark.");
   });
 
-  it('names the kind of stock in place of a mark', () => {
-    expect(['fund', 'too-new', 'no-data'].map(reason => cell(reason as NoVerdict).noVerdictLabel)).toEqual(['FUND', 'TOO NEW', 'NO DATA']);
+  // Found by a review: the legend said "no mark", the rows "FUND" and "TOO NEW", the details "No mark".
+  it('is called "NO MARK", as in the legend and in its details, with why beside it', () => {
+    expect(cell('fund').noMark).toBe('NO MARK');
+    expect(['fund', 'too-new', 'no-data'].map(reason => cell(reason as NoVerdict).noVerdictLabel)).toEqual(['fund', 'too new', 'no data']);
   });
 });

@@ -31,6 +31,17 @@ li {
   color: var(--ink-2);
 }
 
+// What the size could lose or make: a quiet line that says of which size, then the page's figures with their names.
+.cases {
+  margin-top: 6px;
+}
+
+.at-size {
+  margin: 0;
+  font-size: var(--text-meta);
+  color: var(--ink-2);
+}
+
 .hint {
   margin: 6px 0 0;
   max-width: 70ch;

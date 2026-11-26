@@ -1,0 +1,27 @@
+<!-- The business, as the data source already sends it: figures with their names in sight, a row a fact (the page's
+     `dl.fact-rows`). No tick, no sign and no colour: nothing here was tested, so no figure is called good or bad.
+     The sentences open with the details' one control ("Read these details in sentences"), like every other. -->
+<!-- Nothing for a fund, or for a company the data source says nothing about: not a heading over nothing. -->
+<section *ngIf="shown">
+  <h4>The business<span class="note"> · {{ note }}</span></h4>
+  <dl class="fact-rows">
+    <div *ngFor="let row of business.rows; trackBy: trackByLabel">
+      <dt><span [matTooltip]="row.tip" matTooltipClass="multiline-tooltip">{{ row.label }}</span></dt>
+      <dd>{{ row.value }}<span class="industry" *ngIf="row.industry"> · {{ row.industry }}</span></dd>
+    </div>
+    <div *ngIf="business.similar.length">
+      <dt>Similar companies</dt>
+      <!-- A symbol a company, its name on the pointer (and in the sentence below, for who has no pointer). A real
+           space stands between two symbols, written out because the compiler drops a space that stands alone
+           between two tags: the line wraps there (the column can be 380px wide) and a copy reads "BOLT CHIP". -->
+      <dd class="similar">
+        <ng-container *ngFor="let company of business.similar; trackBy: trackBySymbol; let last = last"><span class="symbol" [matTooltip]="company.name">{{ company.symbol }}</span>{{ last && !business.more ? '' : ' ' }}</ng-container>
+        <!-- The data source lists more than are shown: how many, quietly, so the row does not pass for the whole list. -->
+        <span class="more" *ngIf="business.more" [attr.aria-label]="'and ' + business.more + ' more'">+{{ business.more }}</span>
+      </dd>
+    </div>
+  </dl>
+  <p *ngIf="business.does" appMoreRest="details.words">{{ business.does }}</p>
+  <p *ngIf="similarLine" appMoreRest="details.words">{{ similarLine }}</p>
+  <p class="same" appMoreRest="details.words">{{ howToRead }}</p>
+</section>

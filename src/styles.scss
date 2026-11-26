@@ -321,3 +321,29 @@ dl.facts dd {
   font-weight: 600;
   color: var(--ink);
 }
+
+/* Facts with their names, read down (`dl.fact-rows`): the names in a column of their own, in bold, and what each
+   comes to beside it. For a column of a stock's details (what a mark rests on, its risk, a holding, the business).
+   `dl.facts` above is the other shape: figures one after the other on a line. Markup:
+   `<dl class="fact-rows"><div><dt>name</dt><dd>figure or phrase</dd></div>…</dl>`. */
+dl.fact-rows {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 3px 14px;
+  margin: 2px 0 0;
+  max-width: 70ch;
+  font-variant-numeric: tabular-nums;
+}
+
+dl.fact-rows > div {
+  display: contents;
+}
+
+dl.fact-rows dt {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+dl.fact-rows dd {
+  margin: 0;
+}

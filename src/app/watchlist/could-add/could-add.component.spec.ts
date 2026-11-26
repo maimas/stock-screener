@@ -10,6 +10,8 @@ import {MORE_STORAGE_KEY} from "../more/more.service";
 import {TestedCases} from "../sizing";
 import {FACTS_NOTE, StockFacts} from "../stock-facts";
 import {CASES_LIMIT} from "../evidence";
+import {CASE_HELP, StockCase} from "../case-against";
+import {CompareTickedComponent} from "../compare-ticked/compare-ticked.component";
 import {Trade} from "../position-panel/position-panel.component";
 import {PurchaseFormComponent} from "../purchase-form/purchase-form.component";
 import {PurchasesFormComponent} from "../purchases-form/purchases-form.component";
@@ -43,7 +45,7 @@ const MORE_CCC: Addition = {symbol: 'CCC', sharePercent: 4, dollars: 400, loss: 
 
 type Inputs = Partial<Pick<CouldAddComponent,
   'recommendations' | 'portfolio' | 'marked' | 'fresh' | 'loading' | 'reading' | 'additions' | 'sizing' | 'cash' | 'names' | 'portfolioId'
-  | 'unpriced' | 'facts' | 'prices' | 'positions' | 'today' | 'keep'>>;
+  | 'unpriced' | 'facts' | 'prices' | 'positions' | 'today' | 'keep' | 'cases'>>;
 
 /** The box for Brokerage: worth $10,000, of which $9,000 is in its three stocks and $1,000 is cash. */
 function create(inputs: Inputs = {}): ComponentFixture<CouldAddComponent> {
@@ -57,9 +59,9 @@ function create(inputs: Inputs = {}): ComponentFixture<CouldAddComponent> {
 const say = (el: Element | null | undefined) => (el?.textContent ?? '').replace(/\s+/g, ' ').trim();
 const page = (fixture: ComponentFixture<CouldAddComponent>) => fixture.nativeElement as HTMLElement;
 /** The table's headings and rows without the column of tick boxes, which holds no words. */
-const headings = (fixture: ComponentFixture<CouldAddComponent>) => Array.from(page(fixture).querySelectorAll('thead th:not(.tick)')).map(say);
+const headings = (fixture: ComponentFixture<CouldAddComponent>) => Array.from(page(fixture).querySelectorAll('.table-scroll thead th:not(.tick)')).map(say);
 const rows = (fixture: ComponentFixture<CouldAddComponent>) =>
-  Array.from(page(fixture).querySelectorAll('tbody tr:not(.group):not(.form-row)'))
+  Array.from(page(fixture).querySelectorAll('.table-scroll tbody tr:not(.group):not(.form-row)'))
     .map(row => Array.from(row.querySelectorAll('th, td:not(.tick):not(.act)')).map(say));
 const boxes = (fixture: ComponentFixture<CouldAddComponent>) =>
   Array.from(page(fixture).querySelectorAll<HTMLInputElement>('tbody input[type="checkbox"]'));
@@ -136,7 +138,9 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
     const line = page(fixture).querySelector('.body p.caveat')!;
     expect(say(line)).toBe(CASES_LIMIT);
     expect(say(line)).toMatch(/^Bad, typical and good case: tested in \d{4}–\d{4}, when the market was rising\. In a falling market they can be worse\.$/);
-    expect(line.previousElementSibling?.classList.contains('table-scroll')).withContext('right under the table').toBeTrue();
+    // Between the table and the line stands the block of the ticked stocks, which draws nothing while none is ticked.
+    expect(line.previousElementSibling?.classList.contains('compare-block')).toBeTrue();
+    expect(line.previousElementSibling?.previousElementSibling?.classList.contains('table-scroll')).withContext('under the table').toBeTrue();
     const noSizes = create({recommendations: [{symbol: 'ACME', cases: VOLATILE}], reading: undefined, sizing: undefined, cash: undefined});
     expect(page(noSizes).querySelector('p.caveat')).withContext('no cases in the table: nothing to say of them').toBeNull();
   });
@@ -148,6 +152,60 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
       ['ACME', '20.1% $2,013', '−$825', '+$48', '+$1,711', '', 'Technology (2)', 'closely'],
       ['ZED', '12.2% $1,220 at your limit', '−$378', '−$1', '+$683', '', 'Energy (none)', 'not closely'],
     ]);
+  });
+
+  // "at your limit" on most rows of a portfolio whose limit binds made the table wider than its box: 22px beside
+  // the plan on a full-width window, 42px at 1280. There the tag reads "limit": the two words before it are not
+  // drawn, are still read out, and the sentence is where the pointer rests.
+  it('shortens "at your limit" to "limit" where the box has no room for the words', () => {
+    const fixture = create();
+    const tag = page(fixture).querySelector('tbody td.size .capped') as HTMLElement;
+    expect(say(tag)).toBe('at your limit');
+    const words = tag.querySelector('.at') as HTMLElement;
+    expect(words).withContext('the two words that step back').not.toBeNull();
+    const drawn = () => words.getBoundingClientRect().width > 1;
+    (fixture.nativeElement as HTMLElement).style.width = '1500px';
+    expect(drawn()).withContext('a box with room: the three words').toBeTrue();
+    (fixture.nativeElement as HTMLElement).style.width = '1300px';
+    expect(drawn()).withContext('the box beside the plan: "limit"').toBeFalse();
+    expect(say(tag)).withContext('still read out in full').toBe('at your limit');
+    expect(getComputedStyle(words).display).withContext('not taken from a screen reader').not.toBe('none');
+  });
+
+  // With seventeen columns, a table of longer figures (a bigger portfolio, more cash to split) can be wider than its
+  // box whatever is trimmed. One column gives way then, so that "Add" is not cut off: a sector may take a second
+  // line. Every figure stays on one line.
+  it('lets the sector take a second line before the table is wider than its box, and no figure', () => {
+    const fixture = create();
+    // In a wide box too: the rule is for every width, and the browser uses it only when the table would not fit.
+    (fixture.nativeElement as HTMLElement).style.width = '1500px';
+    const wraps = (name: string) => getComputedStyle(page(fixture).querySelector(`.table-scroll tbody td${name}`)!).whiteSpace;
+    expect(wraps('.fit.sector')).toBe('normal');
+    expect([wraps('.fit.moves'), wraps('.size'), wraps('.num')]).toEqual(['nowrap', 'nowrap', 'nowrap']);
+    // In a narrow box the column is as wide as its heading, which held it there: the heading may take two lines too.
+    const heading = page(fixture).querySelector('.table-scroll thead th.sector-head .sort-head')!;
+    expect(getComputedStyle(heading).whiteSpace).withContext('a box with room: one line').toBe('nowrap');
+    (fixture.nativeElement as HTMLElement).style.width = '1040px';
+    expect(getComputedStyle(heading).whiteSpace).withContext('a narrow box').toBe('normal');
+    // There the size may take a second line as well ("add 24.4% $2,837" over "limit"), between its parts and never
+    // inside one: a share, an amount and the tag each stay whole.
+    expect(wraps('.size')).withContext('a narrow box: the size gives way too').toBe('normal');
+    expect(['.share', '.sub', '.capped'].map(name => wraps(`.size ${name}`))).toEqual(['nowrap', 'nowrap', 'nowrap']);
+    expect([wraps('.fit.moves'), wraps('.num:not(.size)')]).withContext('and still no other figure').toEqual(['nowrap', 'nowrap']);
+  });
+
+  // A window of 1,100px with its scroll bar leaves the box 989px: under the 1,000px from which the room for the
+  // answer to a tick was kept, so a tick moved the table by 112px there.
+  it('keeps the room for the answer to a tick in a box of 989px too, and not on a phone', () => {
+    const fixture = create();
+    const answer = page(fixture).querySelector<HTMLElement>('.tick-answer')!;
+    const kept = (width: string) => {
+      (fixture.nativeElement as HTMLElement).style.width = width;
+      return getComputedStyle(answer).minHeight;
+    };
+    expect(kept('1300px')).withContext('two lines').toBe('62px');
+    expect(kept('989px')).withContext('three lines').toBe('90px');
+    expect(kept('600px')).withContext('a narrow box keeps nothing').not.toBe('90px');
   });
 
   // The owner of the page asked to see these four in the box. What the mark rests on stands beside the stock, as in
@@ -205,7 +263,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
     // Colour is for the mark and what it rests on. The two pieces of context keep their sign and get no green or red.
     it('marks the two pieces of context as context, in the heading and in every row', () => {
       const fixture = create({facts: FACTS});
-      expect(Array.from(page(fixture).querySelectorAll('thead th.context')).map(say)).toEqual(['Analyst target', 'Holders in profit']);
+      expect(Array.from(page(fixture).querySelectorAll('.table-scroll thead th.context')).map(say)).toEqual(['Analyst target', 'Holders in profit']);
       expect(page(fixture).querySelectorAll('tbody td.context').length).toBe(4);
     });
 
@@ -214,7 +272,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
     // neighbour of "Good case". Each kind now starts at a hairline.
     it('sets the four kinds of fact in a row apart: the plan\'s numbers, the context and the fit each start at a line', () => {
       const fixture = create({facts: FACTS});
-      expect(Array.from(page(fixture).querySelectorAll('thead th.starts')).map(say)).toEqual(['Size', 'Analyst target', 'Sector (you own)']);
+      expect(Array.from(page(fixture).querySelectorAll('.table-scroll thead th.starts')).map(say)).toEqual(['Size', 'Analyst target', 'Sector (you own)']);
       const first = page(fixture).querySelector('tbody tr')!;
       expect(Array.from(first.querySelectorAll('td.starts')).map(say)).toEqual(['20.1% $2,013', '+56%', 'Technology (2)']);
     });
@@ -223,7 +281,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
     // same columns of "What you own" do.
     it('says what each column is when its heading is pointed at or reached with the Tab key', () => {
       const fixture = create({facts: FACTS});
-      const helped = fixture.debugElement.queryAll(By.css('thead th .has-help'));
+      const helped = fixture.debugElement.queryAll(By.css('.table-scroll thead th .has-help'));
       expect(helped.map(it => say(it.nativeElement))).toEqual(
         ['Dropped', 'Growing', 'Size', 'Bad case', 'Typical', 'Good case', 'With your cash', 'Analyst target', 'Holders in profit', 'Sector (you own)', 'Moves with yours']);
       expect(helped.slice(9).map(it => it.injector.get(MatTooltip).message)).withContext('what the two columns about fit are').toEqual(
@@ -252,6 +310,176 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
 
   // A bad or a good case is worked out from tests, not counted: cents would claim a precision it does not have, and
   // "−$41.03" under "−$825" made one column of two kinds of number. The same holds in "What you own".
+  // The owner of the page, of this box: "I need the risk analysis to be surfaced so that I can pick the risky one.
+  // Also there should be some sort of way of comparing them against each other". What a stock's case is comes from
+  // case-against.ts (its own tests); these are about where the box shows it. The page ranks nothing and names no
+  // pick: an order by a column is the reader's own, and a tested fact never shares a column with an untested one.
+  describe('the case against each stock', () => {
+    const CASES: Record<string, StockCase> = {
+      ACME: {
+        swings: '85%', group: 'volatile', beyondTests: true, volatility: 85,
+        swingsTip: 'Volatile: its price swings 85% a year.\nOnly 1 in 20 of the tested stocks swung this much.',
+        against: [
+          {tag: 'no profit', text: 'Not profitable over the past year.'}, {tag: 'high debt', text: 'High debt: 2.4 times what belongs to its owners.'},
+          {tag: 'results in 5d', text: 'Its results are due in 5 days.'},
+        ],
+        againstTip: 'Not profitable over the past year.\nHigh debt: 2.4 times what belongs to its owners.\nIts results are due in 5 days.',
+        facts: {dropped: {value: '−42%'}, swings: {value: '85%', tip: 'Volatile.'}, profit: {value: 'no'}},
+      },
+      ZED: {
+        swings: '31%', group: 'middle', beyondTests: false, volatility: 31, swingsTip: 'In between: its price swings 31% a year.',
+        against: [], againstTip: '', facts: {dropped: {value: '−17%'}, swings: {value: '31%'}, profit: {value: 'yes'}},
+      },
+    };
+    const withCases = (inputs: Inputs = {}) => create({cases: CASES, ...inputs});
+    const order = (fixture: ComponentFixture<CouldAddComponent>) =>
+      Array.from(page(fixture).querySelectorAll('tbody tr[data-row]')).map(row => row.getAttribute('data-row'));
+    const heading = (fixture: ComponentFixture<CouldAddComponent>, name: string) =>
+      Array.from(page(fixture).querySelectorAll<HTMLButtonElement>('.table-scroll thead th button')).find(it => say(it) === name)!;
+    const block = (fixture: ComponentFixture<CouldAddComponent>) =>
+      fixture.debugElement.query(By.directive(CompareTickedComponent)).componentInstance as CompareTickedComponent;
+
+    it('has no column about it until the page hands the cases in', () => {
+      expect(headings(create())).not.toContain('Swings');
+      expect(headings(create())).not.toContain('Against');
+    });
+
+    it('shows how much each stock swings beside what its mark rests on, and what speaks against it with the context', () => {
+      expect(headings(withCases())).withContext('without the four columns about the stock')
+        .toEqual(['Stock', 'Swings', 'Size', 'Bad case', 'Typical', 'Good case', 'With your cash', 'Against', 'Sector (you own)', 'Moves with yours']);
+      const facts: Record<string, StockFacts> = {ACME: {dropped: '−42%', droppedTip: '', growing: 'profit +21%', growingTip: '', target: '+56%', targetTip: '', holders: '38%', holdersTip: ''}};
+      expect(headings(withCases({facts}))).withContext('"Swings" after "Growing", "Against" after "Holders in profit"').toEqual([
+        'Stock', 'Dropped', 'Growing', 'Swings', 'Size', 'Bad case', 'Typical', 'Good case', 'With your cash', 'Analyst target', 'Holders in profit', 'Against',
+        'Sector (you own)', 'Moves with yours',
+      ]);
+    });
+
+    it('says what the two columns are on their headings', () => {
+      const fixture = withCases();
+      const tip = (name: string) => fixture.debugElement.queryAll(By.css('.table-scroll thead th button')).find(it => say(it.nativeElement) === name)!.injector.get(MatTooltip).message;
+      expect([tip('Swings'), tip('Against')]).toEqual([CASE_HELP.swings, CASE_HELP.against]);
+    });
+
+    it('prints the swing as a figure alone, marks one that is beyond what the tests saw, and says the sentences at the pointer', () => {
+      const fixture = withCases();
+      const cells = fixture.debugElement.queryAll(By.css('tbody td.swings'));
+      expect(cells.map(cell => say(cell.nativeElement.querySelector('.figure')))).toEqual(['85%', '31%']);
+      expect(cells.map(cell => !!cell.nativeElement.querySelector('.beyond'))).withContext('the warning sign').toEqual([true, false]);
+      expect(say(cells[0].nativeElement.querySelector('.visually-hidden'))).withContext('said to a screen reader in words').toBe('beyond what the tests saw');
+      expect(cells[0].nativeElement.querySelector('.beyond')!.getAttribute('aria-hidden')).toBe('true');
+      expect(cells.map(cell => cell.injector.get(MatTooltip).message)).toEqual([CASES['ACME'].swingsTip, CASES['ZED'].swingsTip]);
+      const unknown = withCases({cases: {...CASES, ZED: {...CASES['ZED'], swings: '', volatility: undefined}}});
+      expect(say(page(unknown).querySelectorAll('tbody td.swings')[1])).withContext('no figure: a dash').toBe('—');
+    });
+
+    it('prints at most two tags of what speaks against a stock and how many more there are, and a dash for none', () => {
+      const fixture = withCases();
+      const cells = fixture.debugElement.queryAll(By.css('tbody td.against'));
+      expect(cells.map(cell => say(cell.nativeElement.querySelector('.tags')))).toEqual(['no profit · high debt +1', '—']);
+      // In a box too narrow for the tags (a window of about 1,100px) the cell shows how many there are; the style
+      // sheet draws one of the two, and the tags stay where the pointer rests.
+      expect(cells.map(cell => say(cell.nativeElement.querySelector('.count')))).toEqual(['3', '—']);
+      (fixture.nativeElement as HTMLElement).style.width = '1300px';
+      const drawn = (name: string) => getComputedStyle(cells[0].nativeElement.querySelector(name)).display !== 'none';
+      expect([drawn('.tags'), drawn('.count')]).withContext('a box with room: the tags').toEqual([true, false]);
+      (fixture.nativeElement as HTMLElement).style.width = '1040px';
+      expect([drawn('.tags'), drawn('.count')]).withContext('a narrow box: the count').toEqual([false, true]);
+      expect(cells[0].injector.get(MatTooltip).message).withContext('every sentence, a line each, where the pointer rests').toBe(CASES['ACME'].againstTip);
+      expect(cells[0].nativeElement.classList.contains('context')).withContext('among the context: none of it was tested').toBeTrue();
+    });
+
+    // The owner, 2026-11-26, of what stands in "Against": "I want that in red so that we know it's a "no no"". The
+    // tags, and their number in a narrow box, are in the page's red. A dash, which says there is nothing, stays in
+    // the grey of the context, and so do the two columns before it, which were not asked for.
+    it('sets what speaks against a stock in red, and leaves a dash grey', () => {
+      const fixture = withCases();
+      const colour = (name: string) => fixture.debugElement.queryAll(By.css(`.table-scroll tbody ${name}`))
+        .map(cell => getComputedStyle(cell.nativeElement).color);
+      const [against, nothing] = colour('td.against');
+      expect(against).withContext('the page\'s red').toBe('rgb(198, 40, 40)');
+      expect(nothing).withContext('a dash').not.toBe('rgb(198, 40, 40)');
+      expect(colour('td.against .count')[0]).withContext('the number, in a narrow box').toBe('rgb(198, 40, 40)');
+      expect(colour('td.context:not(.against)')).withContext('the other context stays quiet').not.toContain('rgb(198, 40, 40)');
+    });
+
+    it('orders the rows by either column on a click: the most first, and the other way on the next', () => {
+      const fixture = withCases({cases: {...CASES, ZED: {...CASES['ZED'], volatility: 96, swings: '96%'}}});
+      heading(fixture, 'Swings').click();
+      fixture.detectChanges();
+      expect(order(fixture)).withContext('ZED swings 96%, ACME 85%').toEqual(['ZED', 'ACME']);
+      expect(heading(fixture, 'Swings').closest('th')!.getAttribute('aria-sort')).toBe('descending');
+      heading(fixture, 'Swings').click();
+      fixture.detectChanges();
+      expect(order(fixture)).toEqual(['ACME', 'ZED']);
+      heading(fixture, 'Against').click();
+      fixture.detectChanges();
+      expect(order(fixture)).withContext('three things against ACME, none against ZED').toEqual(['ACME', 'ZED']);
+      heading(fixture, 'Against').click();
+      fixture.detectChanges();
+      expect(order(fixture)).toEqual(['ZED', 'ACME']);
+    });
+
+    it('lets the heading over the owned stocks span the two columns too', () => {
+      const fixture = withCases({additions: [MORE_CCC]});
+      expect(page(fixture).querySelector('tr.group th')!.getAttribute('colspan')).toBe(String(headings(fixture).length + 1));
+    });
+
+    it('says with the keyboard on a stock what its two cells say to a pointer, under the names of their columns', () => {
+      const fixture = withCases({names: {ACME: 'Acme Tools Inc'}});
+      fixture.componentInstance.onStockFocus('ACME', {target: {matches: () => true}} as unknown as FocusEvent);
+      fixture.detectChanges();
+      const lines = fixture.debugElement.query(By.css('tbody button.symbol')).injector.get(MatTooltip).message.split('\n');
+      expect(lines).toContain('Swings: Volatile: its price swings 85% a year. Only 1 in 20 of the tested stocks swung this much.');
+      expect(lines).toContain('Against: Not profitable over the past year. High debt: 2.4 times what belongs to its owners. Its results are due in 5 days.');
+    });
+
+    // The ticked stocks side by side: a block under the table, so that a tick never moves the table.
+    it('sets the ticked stocks side by side under the table, in the order of the rows, and nothing while none is ticked', () => {
+      const fixture = withCases();
+      expect(block(fixture).comparison).toBeUndefined();
+      expect(page(fixture).querySelector('.compare')).withContext('nothing drawn').toBeNull();
+      tick(fixture, 'ZED');
+      expect(block(fixture).comparison!.symbols).toEqual(['ZED']);
+      tick(fixture, 'ACME');
+      expect(block(fixture).comparison!.symbols).withContext('as the rows stand, not as they were ticked').toEqual(['ACME', 'ZED']);
+      expect(block(fixture).comparison!.title).toBe('2 ticked stocks, side by side');
+      const host = page(fixture).querySelector('app-compare-ticked')!;
+      expect(host.previousElementSibling?.classList.contains('table-scroll')).withContext('right under the table').toBeTrue();
+      expect(host.nextElementSibling?.classList.contains('caveat')).withContext('above the quiet line').toBeTrue();
+      expect(page(fixture).querySelector('.tick-answer app-compare-ticked')).withContext('not in the answer above the table: a tick must not move the table').toBeNull();
+      tick(fixture, 'ACME');
+      tick(fixture, 'ZED');
+      expect(block(fixture).comparison).withContext('unticked again').toBeUndefined();
+    });
+
+    it('follows the reader\'s order of the rows, and keeps the same comparison while nothing changes', () => {
+      const fixture = withCases({cases: {...CASES, ZED: {...CASES['ZED'], volatility: 96, swings: '96%'}}});
+      tick(fixture, 'ACME');
+      tick(fixture, 'ZED');
+      const before = block(fixture).comparison;
+      fixture.detectChanges();
+      expect(block(fixture).comparison).withContext('not worked out anew on every look').toBe(before);
+      heading(fixture, 'Swings').click();
+      fixture.detectChanges();
+      expect(block(fixture).comparison!.symbols).toEqual(['ZED', 'ACME']);
+    });
+
+    it('opens a stock from the block, and hands it the names of the companies', () => {
+      const fixture = withCases({names: {ACME: 'Acme Tools Inc'}});
+      const opened: string[] = [];
+      fixture.componentInstance.open.subscribe(symbol => opened.push(symbol));
+      tick(fixture, 'ACME');
+      expect(block(fixture).names).toEqual({ACME: 'Acme Tools Inc'});
+      page(fixture).querySelector<HTMLButtonElement>('app-compare-ticked button.symbol')!.click();
+      expect(opened).toEqual(['ACME']);
+    });
+
+    it('explains the two columns among the explanations of the box, behind its one control', () => {
+      const body = about(withCases()).body;
+      expect(Array.from(body.querySelectorAll('p.note')).map(say)).toContain(`"Swings" and "Against": ${CASE_HELP.swings} ${CASE_HELP.against}`);
+    });
+  });
+
   it('says a bad, a typical and a good case in whole dollars, also under $100', () => {
     const small: Recommendation = {...ACME, size: {sharePercent: 1, dollars: 100.07, loss: 41.03, gain: 85.06, capped: false}};
     const fixture = create({recommendations: [small], additions: [{...MORE_CCC, dollars: 60, loss: 18.6, gain: 33.6}]});
@@ -310,7 +538,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
   // A box as wide as the window has room for both: the table, and beside it what is said about the table.
   it('keeps the table and what is said about it in one block, so that a wide box can set them side by side', () => {
     const body = page(create()).querySelector('.body')!;
-    expect(Array.from(body.children).map(part => part.className)).toEqual(['table-scroll', 'caveat', 'about']);
+    expect(Array.from(body.children).map(part => part.className)).toEqual(['table-scroll', 'compare-block', 'caveat', 'about']);
     expect(body.querySelector('.about .reading')).withContext('the example').not.toBeNull();
     expect(body.querySelectorAll('.about p.note').length).withContext('the sentences that hold for every row').toBe(2);
     expect(page(create()).querySelector('.about p.lead')).withContext('the lead is the first of the explanations').not.toBeNull();
@@ -421,9 +649,9 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
       expect(say(heading)).toBe('Stocks you own that could be added to');
       const cell = heading.querySelector('th')!;
       expect(cell.getAttribute('scope')).toBe('rowgroup');
-      expect(cell.colSpan).withContext('as wide as the table').toBe(page(fixture).querySelectorAll('thead th').length);
+      expect(cell.colSpan).withContext('as wide as the table').toBe(page(fixture).querySelectorAll('.table-scroll thead th').length);
       tick(fixture, 'ACME');
-      expect(cell.colSpan).withContext('also with the second amount showing').toBe(page(fixture).querySelectorAll('thead th').length);
+      expect(cell.colSpan).withContext('also with the second amount showing').toBe(page(fixture).querySelectorAll('.table-scroll thead th').length);
     });
 
     it('has no such heading when there is nothing owned to add to, and none when every row is such a stock', () => {
@@ -1112,7 +1340,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
         fixture.componentRef.setInput('tied', TIED);
         fixture.detectChanges();
         const order = () => Array.from(page(fixture).querySelectorAll('tbody tr[data-row]')).map(row => row.getAttribute('data-row'));
-        const heading = (name: string) => Array.from(page(fixture).querySelectorAll<HTMLButtonElement>('thead th button')).find(it => say(it) === name)!;
+        const heading = (name: string) => Array.from(page(fixture).querySelectorAll<HTMLButtonElement>('.table-scroll thead th button')).find(it => say(it) === name)!;
         expect(order()).withContext('as given, A to Z, until a heading is clicked').toEqual(['ACME', 'MID', 'ZED']);
         heading('Group').click();
         fixture.detectChanges();
@@ -1129,8 +1357,8 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
       it('orders the rows by a column of figures: the biggest first, and the other way on the next click', () => {
         const fixture = withPrices();
         const order = () => Array.from(page(fixture).querySelectorAll('tbody tr[data-row]')).map(row => row.getAttribute('data-row'));
-        const heading = (name: string) => Array.from(page(fixture).querySelectorAll<HTMLButtonElement>('thead th button')).find(it => say(it) === name)!;
-        expect(Array.from(page(fixture).querySelectorAll('thead th button')).map(say).slice(0, 5)).toEqual(['Stock', 'Size', 'Bad case', 'Typical', 'Good case']);
+        const heading = (name: string) => Array.from(page(fixture).querySelectorAll<HTMLButtonElement>('.table-scroll thead th button')).find(it => say(it) === name)!;
+        expect(Array.from(page(fixture).querySelectorAll('.table-scroll thead th button')).map(say).slice(0, 5)).toEqual(['Stock', 'Size', 'Bad case', 'Typical', 'Good case']);
         heading('Size').click();
         fixture.detectChanges();
         expect(order()).withContext('ACME is sized 20.1%, ZED 12.2%').toEqual(['ACME', 'ZED']);
@@ -1147,7 +1375,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
       it('names the example\'s row and no place once an order has put another stock first', () => {
         const fixture = withPrices();
         const title = () => say(page(fixture).querySelector('.reading-title')).replace(/\s*more.*$/, '');
-        const heading = (name: string) => Array.from(page(fixture).querySelectorAll<HTMLButtonElement>('thead th button')).find(it => say(it) === name)!;
+        const heading = (name: string) => Array.from(page(fixture).querySelectorAll<HTMLButtonElement>('.table-scroll thead th button')).find(it => say(it) === name)!;
         expect(title()).toBe('For example, the first row: ACME');
         heading('Size').click();
         fixture.detectChanges();

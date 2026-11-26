@@ -559,10 +559,11 @@ table.every td.row-actions {
   padding: 0;
 }
 
-// In a box under 1,340px (beside "Could add" on a 2560 window) every column with those gaps was 1,323px in a box
-// of 1,196px, and "Bought" and the remove button were cut off. The gaps are closer there, and the few words under
-// the weeks ("DIP BUY today: counts from today") may take two lines.
-@container (max-width: 1339px) {
+// In a box under 1,400px every column with those gaps does not fit: beside "Could add" on a 2560 window the table
+// was 1,323px in a box of 1,196px, and since "Typical" joined it, 1,375px in the 1,344px of a 1440 window; "Bought"
+// and the remove button were cut off. The gaps are closer there, and the few words under the weeks ("DIP BUY
+// today: counts from today") may take two lines.
+@container (max-width: 1399px) {
   table.every th,
   table.every td {
     padding-right: 8px;

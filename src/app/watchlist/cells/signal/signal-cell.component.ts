@@ -13,13 +13,20 @@ export const VERDICT_CLASS: Record<SignalVerdict, string> = {
   'PASS': 'pass',
 };
 
+/**
+ * A stock without a mark carries the name the legend and its own details give it, "NO MARK", and beside it, quieter,
+ * why (as the drop stands beside a mark). The pill used to say the reason alone ("FUND", "TOO NEW"): a review
+ * counted that as a second and a third name for what the legend calls "no mark".
+ */
+export const NO_MARK = 'NO MARK';
+
 const NO_VERDICT: Record<NoVerdict, { label: string, text: string }> = {
-  'fund': {label: 'FUND', text: "Funds have no profit of their own, so the mark, which rests on a company's growth, does not apply."},
+  'fund': {label: 'fund', text: "Funds have no profit of their own, so the mark, which rests on a company's growth, does not apply."},
   'too-new': {
-    label: 'TOO NEW',
+    label: 'too new',
     text: 'Too young for the tested rule, which needs 8 reported quarters and a year of prices. No mark rather than an untested one.',
   },
-  'no-data': {label: 'NO DATA', text: "The history of the company's results is missing or incomplete at the data source, so there is no mark."},
+  'no-data': {label: 'no data', text: "The history of the company's results is missing or incomplete at the data source, so there is no mark."},
 };
 
 /** The verdict pill. The full reasoning opens under the row; the hover text is only the one-line answer. */
@@ -38,6 +45,9 @@ export class SignalCellComponent {
     return this.signal ? VERDICT_CLASS[this.signal.verdict] : 'none';
   }
 
+  readonly noMark = NO_MARK;
+
+  /** Why the stock has no mark, in a word or two beside "NO MARK". */
   get noVerdictLabel(): string {
     return NO_VERDICT[this.noVerdict].label;
   }

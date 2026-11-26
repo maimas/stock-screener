@@ -101,6 +101,9 @@
                 <th scope="col" class="num" [attr.aria-sort]="sortedAs('dropped')"><button type="button" class="sort-head has-help" (click)="sortBy('dropped')" [matTooltip]="factHelp.dropped" matTooltipClass="multiline-tooltip">{{ factColumns.dropped }}</button></th>
                 <th scope="col" [attr.aria-sort]="sortedAs('growing')"><button type="button" class="sort-head has-help" (click)="sortBy('growing')" [matTooltip]="factHelp.growing" matTooltipClass="multiline-tooltip">{{ factColumns.growing }}</button></th>
               </ng-container>
+              <!-- How much the price swings: the one measure of a stock's risk that the tests could use, so it stands
+                   with what the mark rests on. A stock's risk used to stand only in its details on the Watchlist. -->
+              <th scope="col" class="num" *ngIf="hasStockCases" [attr.aria-sort]="sortedAs('swings')"><button type="button" class="sort-head has-help" (click)="sortBy('swings')" [matTooltip]="caseHelp.swings" matTooltipClass="multiline-tooltip">{{ caseColumns.swings }}</button></th>
               <th scope="col" class="num starts" *ngIf="hasSizes" [attr.aria-sort]="sortedAs('size')"><button type="button" class="sort-head has-help" (click)="sortBy('size')" [matTooltip]="columnHelp.size" matTooltipClass="multiline-tooltip">{{ columns.size }}</button></th>
               <th scope="col" class="num" *ngIf="hasSizes" [attr.aria-sort]="sortedAs('bad')"><button type="button" class="sort-head has-help" (click)="sortBy('bad')" [matTooltip]="columnHelp.bad" matTooltipClass="multiline-tooltip">{{ columns.bad }}</button></th>
               <th scope="col" class="num" *ngIf="hasSizes" [attr.aria-sort]="sortedAs('typical')"><button type="button" class="sort-head has-help" (click)="sortBy('typical')" [matTooltip]="columnHelp.typical" matTooltipClass="multiline-tooltip">{{ columns.typical }}</button></th>
@@ -110,8 +113,10 @@
                 <th scope="col" class="num context two-lines starts" [attr.aria-sort]="sortedAs('target')"><button type="button" class="sort-head has-help" (click)="sortBy('target')" [matTooltip]="factHelp.target" matTooltipClass="multiline-tooltip">{{ factColumns.target }}</button></th>
                 <th scope="col" class="num context two-lines" [attr.aria-sort]="sortedAs('holders')"><button type="button" class="sort-head has-help" (click)="sortBy('holders')" [matTooltip]="factHelp.holders" matTooltipClass="multiline-tooltip">{{ factColumns.holders }}</button></th>
               </ng-container>
+              <!-- What speaks against the stock among the facts no test could use: context, so with the context. -->
+              <th scope="col" class="context" [class.starts]="!hasFacts" *ngIf="hasStockCases" [attr.aria-sort]="sortedAs('against')"><button type="button" class="sort-head has-help" (click)="sortBy('against')" [matTooltip]="caseHelp.against" matTooltipClass="multiline-tooltip">{{ caseColumns.against }}</button></th>
               <ng-container *ngIf="hasFit">
-                <th scope="col" class="starts" [attr.aria-sort]="sortedAs('sector')"><button type="button" class="sort-head up has-help" (click)="sortBy('sector')" [matTooltip]="columnHelp.sector" matTooltipClass="multiline-tooltip">{{ columns.sector }}</button></th>
+                <th scope="col" class="starts sector-head" [attr.aria-sort]="sortedAs('sector')"><button type="button" class="sort-head up has-help" (click)="sortBy('sector')" [matTooltip]="columnHelp.sector" matTooltipClass="multiline-tooltip">{{ columns.sector }}</button></th>
                 <th scope="col" class="two-lines" [attr.aria-sort]="sortedAs('moves')"><button type="button" class="sort-head up has-help" (click)="sortBy('moves')" [matTooltip]="columnHelp.moves" matTooltipClass="multiline-tooltip">{{ columns.moves }}</button></th>
               </ng-container>
               <th scope="col" class="act" *ngIf="canRecord"><span class="visually-hidden">Record a purchase</span></th>
@@ -189,10 +194,21 @@
                 <td class="num" [matTooltip]="row.facts?.droppedTip || ''">{{ row.facts?.dropped || '—' }}</td>
                 <td [matTooltip]="row.facts?.growingTip || ''" matTooltipClass="multiline-tooltip">{{ row.facts?.growing || '—' }}</td>
               </ng-container>
+              <!-- The swing as a figure alone; a warning sign marks one that is beyond what the tests saw (the lists'
+                   own sign), said to a screen reader in words. Its sentences are where the pointer rests. -->
+              <td class="num swings" *ngIf="hasStockCases" [matTooltip]="row.stockCase?.swingsTip || ''" matTooltipClass="multiline-tooltip">
+                <ng-container *ngIf="row.stockCase?.swings as swings; else noSwings">
+                  <span class="figure">{{ swings }}</span>
+                  <ng-container *ngIf="row.stockCase?.beyondTests">
+                    <mat-icon class="beyond" aria-hidden="true">warning</mat-icon><span class="visually-hidden"> beyond what the tests saw</span>
+                  </ng-container>
+                </ng-container>
+                <ng-template #noSwings>—</ng-template>
+              </td>
               <td class="num size starts" *ngIf="hasSizes" [matTooltip]="row.sizeTip" matTooltipClass="multiline-tooltip">
                 <span class="share">{{ row.share }}</span>
                 <span class="sub" *ngIf="row.dollars"> {{ row.dollars }}</span>
-                <span class="sub capped" *ngIf="row.capped"> at your limit</span>
+                <span class="sub capped" *ngIf="row.capped">&ngsp;<span class="at">at your </span>limit</span>
               </td>
               <!-- The three cases: for the row's size, or, in a ticked row that gets an amount, for that amount. -->
               <ng-container *ngIf="hasSizes">
@@ -215,6 +231,8 @@
                 <td class="num context starts" [matTooltip]="row.facts?.targetTip || ''" matTooltipClass="multiline-tooltip">{{ row.facts?.target || '—' }}</td>
                 <td class="num context" [matTooltip]="row.facts?.holdersTip || ''" matTooltipClass="multiline-tooltip">{{ row.facts?.holders || '—' }}</td>
               </ng-container>
+              <!-- Context too: short tags for what speaks against the stock, in the same quiet look. No score. -->
+              <td class="context against" [class.speaks]="row.stockCase?.against?.length" [class.starts]="!hasFacts" *ngIf="hasStockCases" [matTooltip]="row.stockCase?.againstTip || ''" matTooltipClass="multiline-tooltip"><span class="tags">{{ row.against }}</span><span class="count">{{ row.againstCount }}</span></td>
               <!-- Two short cells a row, so that the sectors can be read down the table and so can "closely". A stock
                    that is owned says in their place what is held of it. -->
               <ng-container *ngIf="hasFit">
@@ -233,6 +251,10 @@
             </ng-template>
           </table>
         </div>
+        <!-- The ticked stocks side by side, a column a stock and a row a fact (the owner: "some sort of way of
+             comparing them against each other"). Under the table, not with the answer above it: a tick must not
+             move the table. It draws nothing while nothing is ticked. -->
+        <app-compare-ticked class="compare-block" [comparison]="comparison" [names]="names" (open)="open.emit($event)"></app-compare-ticked>
         <!-- In sight, by the owner's word: when the three cases were tested, and that it can be worse. -->
         <p class="caveat" *ngIf="hasSizes">{{ casesLimit }}</p>
 
@@ -269,6 +291,7 @@
 
             <p class="note">{{ sizeNote }}</p>
             <p class="note" *ngIf="hasFacts">{{ factsNote }}</p>
+            <p class="note" *ngIf="hasStockCases">{{ stockCasesNote }}</p>
             <p class="note" *ngIf="showFitNote">{{ fitNote }}</p>
             <p class="note" *ngIf="hasGroups">{{ groupNote }}</p>
             <!-- Whose an order of the rows is: the page starts A to Z and ranks nothing. -->

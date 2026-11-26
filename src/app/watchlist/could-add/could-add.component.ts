@@ -1,6 +1,7 @@
 import {Component, ElementRef, EventEmitter, Input, OnChanges, Output, SimpleChanges} from "@angular/core";
 import {NgForOf, NgIf, NgTemplateOutlet} from "@angular/common";
 import {MatCardModule} from "@angular/material/card";
+import {MatIconModule} from "@angular/material/icon";
 import {MatTooltipModule} from "@angular/material/tooltip";
 import {CashSplit, cashSplit} from "../cash-split";
 import {money, signedWholeMoney} from "../format";
@@ -21,6 +22,8 @@ import {ariaSort, inOrder, numberIn, orderAfterClick, RowOrder} from "../row-ord
 import {AboutComponent} from "../more/about.component";
 import {FACT_COLUMNS, FACT_HELP, FACTS_NOTE, StockFacts} from "../stock-facts";
 import {CASES_LIMIT} from "../evidence";
+import {againstCell, CASE_COLUMNS, CASE_HELP, Comparison, sideBySide, StockCase} from "../case-against";
+import {CompareTickedComponent} from "../compare-ticked/compare-ticked.component";
 
 /** One row, as it is shown: every cell worked out once, when what the box is given changes. */
 type Row = {
@@ -55,6 +58,12 @@ type Row = {
   ownedNote: string
   /** What the page knows of the stock itself (how far it dropped, how it grows, two pieces of context). */
   facts?: StockFacts
+  /** The case against the stock: how much its price swings, and what speaks against it among the context. */
+  stockCase?: StockCase
+  /** That context as the cell prints it: two tags at most and how many more there are, or a dash. */
+  against: string
+  /** How many such things there are, for a box too narrow for the tags; a dash for none. */
+  againstCount: string
 };
 
 /**
@@ -107,7 +116,8 @@ type ShownCases = { bad: string, badTip: string, typical: string, typicalTip: st
  * were thinking of buying, so they are the ones bought together.
  */
 /** The columns of the table that its rows can be ordered by. */
-export type AddColumn = 'symbol' | 'group' | 'dropped' | 'growing' | 'size' | 'bad' | 'typical' | 'good' | 'cash' | 'target' | 'holders' | 'sector' | 'moves';
+export type AddColumn = 'symbol' | 'group' | 'dropped' | 'growing' | 'swings' | 'size' | 'bad' | 'typical' | 'good' | 'cash' | 'target' | 'holders'
+  | 'against' | 'sector' | 'moves';
 /** The columns that read from the top on the first click (A first, group A first). */
 const FROM_THE_TOP = new Set<AddColumn>(['symbol', 'group', 'sector', 'moves']);
 
@@ -115,7 +125,7 @@ const FROM_THE_TOP = new Set<AddColumn>(['symbol', 'group', 'sector', 'moves']);
   selector: "app-could-add",
   standalone: true,
   imports: [NgIf, NgForOf, NgTemplateOutlet, MatCardModule, MatTooltipModule, SaysComponent, PurchaseFormComponent,
-    PurchasesFormComponent, AboutComponent],
+    PurchasesFormComponent, AboutComponent, MatIconModule, CompareTickedComponent],
   templateUrl: "./could-add.component.html",
   styleUrls: ["./could-add.component.scss"]
 })
@@ -155,6 +165,13 @@ export class CouldAddComponent implements OnChanges {
   @Input() names: Record<string, string> = {};
   /** What the page knows of each stock itself, by symbol: the row's four cells about the stock. */
   @Input() facts: Record<string, StockFacts> = {};
+  /**
+   * The case against each stock, by symbol (case-against.ts): how much its price swings, which the tests could use,
+   * and what speaks against it among the facts they could not. The owner asked for a stock's risk to stand in this
+   * table and for a way to hold the ticked stocks against each other. Two columns and the block under the table
+   * come from it; the box ranks nothing by them and names no pick.
+   */
+  @Input() cases: Record<string, StockCase> = {};
   /** Today's price of each stock, by symbol: a row can record a purchase once its price is known. */
   @Input() prices: Record<string, number> = {};
   /** What the portfolio being shown holds, by symbol: a purchase of a stock that is held is added to it. */
@@ -216,6 +233,8 @@ export class CouldAddComponent implements OnChanges {
   /** A click on a heading: the rows follow that column, and a second click turns them round. */
   sortBy(column: AddColumn): void {
     this.order = orderAfterClick(this.order, column, FROM_THE_TOP.has(column));
+    // The ticked stocks stand side by side in the order of the rows.
+    this.compare();
   }
 
   sortedAs(column: AddColumn): 'ascending' | 'descending' | null {
@@ -254,6 +273,11 @@ export class CouldAddComponent implements OnChanges {
         return size(numberIn(row.facts?.dropped));
       case 'growing':
         return numberIn(row.facts?.growing);
+      // How much the price swings, and how many things speak against the stock: the most first.
+      case 'swings':
+        return row.stockCase?.volatility;
+      case 'against':
+        return row.stockCase?.against.length;
       case 'size':
         return numberIn(row.share);
       // By what the cells show: in a ticked row the cases of the amount the money would buy.
@@ -311,6 +335,14 @@ export class CouldAddComponent implements OnChanges {
   readonly factsNote = FACTS_NOTE;
   /** Under the table, in sight: when the three cases were tested, and that it can be worse. */
   readonly casesLimit = CASES_LIMIT;
+  /** The two columns of the case against a stock: their headings, what each is, and the note among the explanations. */
+  readonly caseColumns = CASE_COLUMNS;
+  readonly caseHelp = CASE_HELP;
+  readonly stockCasesNote = `"${CASE_COLUMNS.swings}" and "${CASE_COLUMNS.against}": ${CASE_HELP.swings} ${CASE_HELP.against}`;
+  /** The page handed in the case of at least one row: the table then has those two columns. */
+  hasStockCases = false;
+  /** The ticked stocks side by side, in the order of the rows; none while nothing is ticked. Kept until the ticks, the order or the cases change. */
+  comparison?: Comparison;
   /** Under the lines about what is ticked: that ticks are not kept. */
   readonly ticksNote = 'Ticks are not saved: a reload of the page clears them.';
   /** Where the pointer rests on "Add": that it records a purchase and buys nothing. */
@@ -447,6 +479,7 @@ export class CouldAddComponent implements OnChanges {
     }
     const fresh = this.recommendations.map((it): Row => ({
       symbol: it.symbol, isNew: this.fresh.has(it.symbol), owned: false, cases: it.cases, facts: this.facts[it.symbol],
+      stockCase: this.cases[it.symbol], against: againstSaid(this.cases[it.symbol]), againstCount: againstCounted(this.cases[it.symbol]),
       share: it.size ? shareText(it.size.sharePercent) : '', dollars: it.size ? money(it.size.dollars) : '', alone: it.size?.dollars,
       capped: !!it.size?.capped, sizeTip: it.size ? sizeTip(it.size) : '',
       bad: it.size ? signedWholeMoney(-it.size.loss) : '', badTip: it.size ? badCaseTip(it.cases) : '',
@@ -460,6 +493,7 @@ export class CouldAddComponent implements OnChanges {
       const held = this.sizing?.holdings.find(holding => holding.symbol === it.symbol);
       return !held?.cases ? [] : [{
         symbol: it.symbol, isNew: this.fresh.has(it.symbol), owned: true, cases: held.cases, facts: this.facts[it.symbol],
+        stockCase: this.cases[it.symbol], against: againstSaid(this.cases[it.symbol]), againstCount: againstCounted(this.cases[it.symbol]),
         share: `add ${shareText(it.sharePercent)}`, dollars: money(it.dollars), alone: it.dollars, capped: it.capped, sizeTip: ADD_TEXT,
         bad: signedWholeMoney(-it.loss), badTip: badCaseTip(held.cases), good: signedWholeMoney(it.gain), goodTip: goodCaseTip(held.cases),
         typical: signedWholeMoney(it.dollars * held.cases.typicalPercent / 100), typicalTip: typicalCaseTip(held.cases),
@@ -473,6 +507,7 @@ export class CouldAddComponent implements OnChanges {
     this.hasFit = this.rows.some(row => row.sector !== '' || row.moves !== '' || row.ownedNote !== '');
     this.showFitNote = fresh.some(row => row.sector !== '' || row.moves !== '');
     this.hasFacts = this.rows.some(row => !!row.facts);
+    this.hasStockCases = this.rows.some(row => !!row.stockCase);
     this.canRecord = this.rows.some(row => this.prices[row.symbol] > 0);
     this.sizeNote = this.hasSizes ? SIZE_RULES : NO_SIZE_NOTE;
     this.lead = couldAddLead(fresh.length, this.portfolio, more.length);
@@ -501,7 +536,8 @@ export class CouldAddComponent implements OnChanges {
   /** How many columns the table has now: the heading over the owned rows spans them all. */
   get columnCount(): number {
     // With sizes: the tick box, "Size", and the bad, the typical and the good case.
-    return 1 + (this.hasGroups ? 1 : 0) + (this.hasFacts ? 4 : 0) + (this.hasSizes ? 5 : 0) + (this.cashColumn ? 1 : 0) + (this.hasFit ? 2 : 0) + (this.canRecord ? 1 : 0);
+    return 1 + (this.hasGroups ? 1 : 0) + (this.hasFacts ? 4 : 0) + (this.hasStockCases ? 2 : 0) + (this.hasSizes ? 5 : 0) + (this.cashColumn ? 1 : 0)
+      + (this.hasFit ? 2 : 0) + (this.canRecord ? 1 : 0);
   }
 
   /** The reader typed in the form for the ticked stocks since it was opened. */
@@ -594,10 +630,12 @@ export class CouldAddComponent implements OnChanges {
       ...(name ? [name] : []),
       ...said(this.factColumns.dropped, row.facts?.droppedTip),
       ...said(this.factColumns.growing, row.facts?.growingTip),
+      ...said(this.caseColumns.swings, oneLine(row.stockCase?.swingsTip)),
       // A ticked row: what its amount is measured against. In the order of the columns, like the rest.
       ...said(this.cashTitle, this.cashOf(row.symbol)?.tip),
       ...said(this.factColumns.target, row.facts?.targetTip),
       ...said(this.factColumns.holders, row.facts?.holdersTip),
+      ...said(this.caseColumns.against, oneLine(row.stockCase?.againstTip)),
       ...said(this.columns.moves, row.movesTip),
     ].join('\n');
   }
@@ -714,6 +752,7 @@ export class CouldAddComponent implements OnChanges {
       this.splitInstead = '';
       this.batchLines = [];
       this.batching = false;
+      this.compare();
       return;
     }
     // Under half a cent above what is kept is nothing to split, here as in the hint.
@@ -756,5 +795,35 @@ export class CouldAddComponent implements OnChanges {
     const answer = splitFacts(this.split, {freed, offered, alone, keep, cash, keepUnknown});
     this.splitFigures = answer.facts;
     this.splitInstead = answer.instead;
+    this.compare();
   }
+
+  /**
+   * Sets the ticked stocks side by side, in the order their rows stand in (the reader's own order, when they chose
+   * one). Worked out here, when the ticks, the order or the cases change, and kept until then: the block loops over
+   * it, and a comparison made anew on every look would be built anew on every key press.
+   */
+  private compare(): void {
+    const ticked = [...this.ordered(this.newRows), ...this.ordered(this.ownedRows)].filter(row => this.ticked.has(row.symbol));
+    this.comparison = sideBySide(ticked.map(row => ({symbol: row.symbol, case: row.stockCase})));
+  }
+}
+
+/** What the "Against" cell prints: two tags at most with how many more there are, or a dash when nothing speaks against the stock. */
+function againstSaid(found: StockCase | undefined): string {
+  if (!found || found.against.length === 0) {
+    return '—';
+  }
+  const {tags, more} = againstCell(found.against);
+  return tags.join(' · ') + (more > 0 ? ` +${more}` : '');
+}
+
+/** How many things speak against the stock, as a narrow box shows it in place of the tags; a dash for none. */
+function againstCounted(found: StockCase | undefined): string {
+  return found && found.against.length > 0 ? String(found.against.length) : '—';
+}
+
+/** A tip of several lines as one line, for the list the keyboard hears on a stock's name (a line a column there). */
+function oneLine(text: string | undefined): string | undefined {
+  return text ? text.replace(/\n/g, ' ') : text;
 }

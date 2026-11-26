@@ -26,6 +26,23 @@ describe('WhereItFitsComponent ("Where it fits", in a stock\'s details)', () => 
     expect(el.querySelector('app-more')).withContext('no control of its own: the details have one for all their sentences').toBeNull();
   });
 
+  // Found by a review: the size stood without what it could lose or make, which was on the other view only.
+  it('says what the size in the portfolio being shown could lose or make, the bad case first', () => {
+    const fixture: ComponentFixture<WhereItFitsComponent> = TestBed.createComponent(WhereItFitsComponent);
+    fixture.componentRef.setInput('lines', ['Brokerage: 20.1% ($2,013)']);
+    fixture.componentRef.setInput('marked', true);
+    fixture.componentRef.setInput('cases', {portfolio: 'Brokerage', bad: '−$825', typical: '+$48', good: '+$1,711'});
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(say(el.querySelector('.cases .at-size'))).toBe('At that size in Brokerage, after 6 months');
+    expect(Array.from(el.querySelectorAll('.cases dl.facts > div')).map(it => [say(it.querySelector('dt')), say(it.querySelector('dd'))])).toEqual(
+      [['Bad case', '−$825'], ['Typical', '+$48'], ['Good case', '+$1,711']]);
+  });
+
+  it('shows no such figures for a stock without a size there', () => {
+    expect(create(['Brokerage: you own it; add 8.4% ($840)'], true).querySelector('.cases')).toBeNull();
+  });
+
   it('works out no amount for a stock that is not marked DIP BUY, and says why', () => {
     const el = create([], false);
     expect(el.querySelector('ul')).toBeNull();

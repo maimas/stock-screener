@@ -1,0 +1,53 @@
+// A section of a stock's details, set like the others there (their rules are scoped to the details' own component,
+// so the few that make a section are said again here): room above it, a heading in the full ink and in bold.
+:host {
+  display: block;
+}
+
+section {
+  break-inside: avoid;
+  padding-top: 16px;
+}
+
+h4 {
+  margin: 0 0 4px;
+  font-size: var(--text-data);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+// That this is no part of the mark: beside the title, quieter than it, so the eye still lands on "The business".
+h4 .note {
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
+// The industry's figure beside the company's: the same size, not in the full ink, so the company's is read first.
+.industry {
+  color: var(--ink-2);
+}
+
+// The listed companies: symbols one after the other, wrapping where the column ends, never breaking inside one.
+.similar .symbol {
+  white-space: nowrap;
+  margin-right: 6px;
+}
+
+// How many more the data source lists than are shown: a count, not a company, so not in the full ink.
+.similar .more {
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+p {
+  margin: 6px 0 0;
+  max-width: 70ch;
+}
+
+// How to read the section: the same words under every stock, so a size smaller and not in the full ink, as the
+// details set what reads the same under each of them. What is about this company stays in the full ink above it.
+p.same {
+  font-size: var(--text-data);
+  color: var(--ink-2);
+}
