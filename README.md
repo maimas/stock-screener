@@ -47,6 +47,7 @@ The page has two views. The Portfolio view answers "what do I own, and what do I
 | `watchlists` | Your lists and the stocks in them | "Edit list" on a list and "New list" at the top of the lists |
 | `log` | The daily log: price, verdict and analyst figures of every stock, one entry a day | The page when it loads prices, and the app's daily recording |
 | `readings` | What Claude Code read in the news about a stock's fall, one reading a stock | "Read it for me" in a stock's details |
+| `claude-views` | Claude's view of a stock (BUY SOME, WAIT or AVOID, with its reason), by stock and by the day it was asked | "Ask Claude about these" above a list |
 | `recorder-status` | What the daily recording last did | The app's daily recording |
 | `evidence-status` | What the last refresh of the backtests did | `npm run evidence` |
 | `copy-status` | The outcome of the last daily copy | The app, after each daily copy |
@@ -56,6 +57,8 @@ Of every key the version before the last change is kept too.
 ## What Claude Code does for the page
 
 "Read it for me" in a stock's details hands Claude Code one job: read why this stock fell on that day. It runs in a container of its own (the reader), and its only way out is the gate, which lets through Anthropic's addresses and nothing else. The sign-in is kept in a Docker volume, not in the data folder. It can search the web and do nothing else, and nothing about what you own goes into the question: only the stock's name and symbol, and the day and size of its fall. Claude Code itself tells every run the email of the signed-in account; that cannot be switched off from here, and a run that can only search has nowhere to send it but a search. The answer is context, not a tested signal: it changes neither the mark nor the plan.
+
+"Ask Claude about these", above each of your lists on the Watchlist, hands it a second job: say for each stock of the list whether it would buy some now, wait, or avoid it, with a short reason. The answer fills the column "Claude · not tested". This is Claude's own opinion and no test stands behind it. It changes neither the mark nor the plan nor any amount, the stocks are not put in an order by it, and each is judged on its own. The same limits hold as for "Read it for me": it can search the web and do nothing else, and nothing about what you own goes into the question. What goes in is the stock's name and symbol and the figures its details show (how far it dropped, how its sales grow, what analysts expect, and so on), each a number or a fixed word. The list of stocks you hold outside every list has no such button, because that list is made of what you own. A list is asked about stock by stock (about half a minute and a few cents of your Claude plan each), ten stocks at a time at most. Every view is kept with its day, and once a view is four weeks old the column's heading says how the stock has done since, beside the S&P 500: a look at how good the views were, not a test.
 
 ## For maintainers
 
