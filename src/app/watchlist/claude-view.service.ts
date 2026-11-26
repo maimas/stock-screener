@@ -1,6 +1,6 @@
 import {Injectable} from "@angular/core";
 import {HttpClient, HttpErrorResponse} from "@angular/common/http";
-import {catchError, concat, concatMap, map, Observable, of, switchMap, take, takeWhile, timer} from "rxjs";
+import {BehaviorSubject, catchError, concat, concatMap, filter, map, Observable, of, switchMap, take, takeWhile, tap, timer} from "rxjs";
 import {parseViews, ViewRequest, ViewsState} from "./claude-view";
 import {POLL_MS, ReadingService} from "./reading.service";
 
@@ -28,7 +28,47 @@ const NOTHING: ViewsState = {views: {}, history: {}, failed: {}};
  */
 @Injectable({providedIn: 'root'})
 export class ClaudeViewService {
+  /**
+   * What the server last said, kept for every part of the page that shows it (the column's cells, the buttons above
+   * the lists): a row then fills in everywhere at once. Nothing until `start` or `askAbout`.
+   */
+  readonly state$ = new BehaviorSubject<ViewsState>({...NOTHING});
+  private started = false;
+
   constructor(private http: HttpClient, private readings: ReadingService) {
+  }
+
+  /**
+   * Loads what is kept, once, however many parts of the page ask for it, and only where Claude Code can be asked.
+   * A list that is being asked about (the page was opened again meanwhile) goes on being followed.
+   */
+  start(): void {
+    if (this.started) {
+      return;
+    }
+    this.started = true;
+    this.available().pipe(
+      filter(can => can),
+      switchMap(() => this.views()),
+      switchMap(state => state.queue ? concat(of(state), this.follow()) : of(state)),
+    ).subscribe(state => this.state$.next(state));
+  }
+
+  /**
+   * Asks about a list and keeps `state$` up to date while its rows fill in. The one who asked is handed every step
+   * too: a list that was not taken is theirs to say, and changes nothing that is known.
+   */
+  askAbout(list: ViewRequest[]): Observable<ViewStep> {
+    return this.ask(list).pipe(
+      tap((step) => {
+        if (isRefusal(step)) {
+          return;
+        }
+        // The answer that the list was taken carries no views: the ones already known stay in their rows.
+        const taken = !Object.keys(step.views).length && !!step.queue;
+        this.state$.next(taken ? {...this.state$.value, queue: step.queue} : step);
+      }),
+    );
   }
 
   /** Whether Claude Code can be asked here: the same look-up, made once, as for the readings. */
