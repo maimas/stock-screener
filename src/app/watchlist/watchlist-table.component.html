@@ -128,7 +128,7 @@
     </ng-template>
     <!-- One button asks Claude Code for its view of every stock of the list (the column "Claude · not tested").
          Not for the stocks held outside every list: that list is made of what is owned, and nothing owned is sent. -->
-    <app-claude-ask *ngIf="watchList !== heldOutside" [stocks]="watchList.dataSource.data"></app-claude-ask>
+    <app-claude-ask *ngIf="watchList !== heldOutside" [stocks]="watchList.dataSource.data" [tied]="tied"></app-claude-ask>
   </app-sector-distribution-widget>
 
   <ng-container *ngIf="watchList !== heldOutside && editingListId === watchList.id">

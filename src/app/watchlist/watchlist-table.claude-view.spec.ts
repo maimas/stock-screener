@@ -58,6 +58,15 @@ describe("WatchlistTableComponent: Claude's view of the stocks of a list", () =>
     expect((asks[0].componentInstance as ClaudeAskComponent).stocks.map(it => it.quote!.symbol)).toEqual(['ABCD', 'EFGH']);
   });
 
+  // The owner: "claude needs to factor also the same group stocks so compare". The button is handed the page's groups.
+  it('hands the button the page\'s groups of stocks that move together, so that Claude can compare them after the list', () => {
+    const ask = fixture.debugElement.query(By.directive(ClaudeAskComponent)).componentInstance as ClaudeAskComponent;
+    expect(ask.tied).toBe(page().tied);
+    page().tied = {groups: [{letter: 'A', index: 0, symbols: ['ABCD', 'EFGH'], level: 0.7, sector: ''}], alone: [], unknown: []};
+    fixture.detectChanges();
+    expect(ask.tied.groups.map(it => it.letter)).toEqual(['A']);
+  });
+
   it('has no button for the stocks held outside every list: asking about that list would send out what is owned', () => {
     const held = listOf(page().heldOutside.title);
     expect(held).withContext('the list is on the page').toBeTruthy();

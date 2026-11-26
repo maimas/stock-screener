@@ -144,18 +144,19 @@ const RESULTS_AHEAD_DAYS = 30;
 const STALE_AFTER_DAYS = 7;
 
 export const VIEW_HEADING = 'Claude · not tested';
-export const VIEW_HELP = 'Claude\'s own view of each stock, from the figures in its details and the recent news, asked for with the ' +
-  'button above the list. It is an opinion, not a tested signal: it changes nothing else on the page.';
 /** What the star is, in the words the page has for a group ("Group": stocks with the same letter moved closely together). */
 export const PICK_HELP = 'A star marks the stock Claude would take first among the stocks with the same letter under "Group" ' +
   '(they moved closely together over the past year) that it compared. That is its own pick, not tested: the page\'s marks rank no stock.';
+export const VIEW_HELP = 'Claude\'s own view of each stock, from the figures in its details and the recent news, asked for with the ' +
+  'button above the list. It is an opinion, not a tested signal: it changes nothing else on the page. ' + PICK_HELP;
 export const COMPARING = (letter: string): string => `Comparing group ${letter}…`;
 export const HELD_NOTE = 'Claude was not told what you hold; your plan and its limit still apply.';
 export const ASK_BUTTON = (stocks: number): string => stocks === 1 ? 'Ask Claude about this one' : `Ask Claude about these ${stocks}`;
 export const ASKING = (done: number, stocks: number): string => `Asking Claude… ${done} of ${stocks}`;
 /** Where the pointer rests on the button, or the keyboard reaches it: who is asked what, what it costs in time. */
 export const ASK_TIP = 'Claude Code on this computer reads each stock\'s figures and the recent news about it, then says BUY SOME, ' +
-  'WAIT or AVOID with a short reason. About half a minute a stock. Nothing about what you hold is sent.';
+  'WAIT or AVOID with a short reason. After the list it compares the stocks that move together (the same letter under "Group") ' +
+  'and marks the one it would take first. About half a minute a stock. Nothing about what you hold is sent.';
 export const ASK_BUSY = 'Claude is busy with another list. Try again in a minute.';
 
 const FAILURE_TEXT: Record<string, string> = {

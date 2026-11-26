@@ -1,5 +1,5 @@
 import {
-  ASK_BUTTON, ASKING, cellOf, COMPARING, FACT_LIMITS, factsFor, HELD_NOTE, parseViews, PICK_HELP, pickOf, View, VIEW_HEADING, ViewFacts,
+  ASK_BUTTON, ASKING, cellOf, COMPARING, FACT_LIMITS, factsFor, HELD_NOTE, parseViews, PICK_HELP, pickOf, View, VIEW_HEADING, VIEW_HELP, ViewFacts,
 } from "./claude-view";
 import {computeSignal} from "./signal";
 import {flatCloses, makeStock, NOW, reportedQuarters} from "./testing/fixtures";
@@ -260,5 +260,6 @@ describe("Claude's pick among stocks that move together", () => {
     expect(PICK_HELP).toContain('not tested');
     expect(PICK_HELP).toContain('the page\'s marks rank no stock');
     expect(COMPARING('A')).toBe('Comparing group A…');
+    expect(VIEW_HELP.endsWith(PICK_HELP)).withContext('the heading of the column says it').toBeTrue();
   });
 });

@@ -2,7 +2,7 @@ import {Component, Input, OnDestroy, OnInit} from "@angular/core";
 import {NgIf} from "@angular/common";
 import {MatTooltipModule} from "@angular/material/tooltip";
 import {Subscription} from "rxjs";
-import {cellOf, ViewCell, ViewsState} from "../../claude-view";
+import {cellOf, pickOf, ViewCell, ViewsState} from "../../claude-view";
 import {ClaudeViewService} from "../../claude-view.service";
 import {TipOnFocusDirective} from "../../tip-on-focus.directive";
 
@@ -13,6 +13,10 @@ import {TipOnFocusDirective} from "../../tip-on-focus.directive";
  * It is Claude's opinion, not a tested mark, and it is not dressed as one: a plain word in the row's own colour, no
  * filled shape, no green or red. The short view of the table ("Key columns") shows the word alone, so its rows stay
  * one line tall.
+ *
+ * The stock Claude would take first among those of its group that it compared (the stocks that move together) wears
+ * a plain star and the words "first of A" under "All columns"; every compared stock says under the pointer which one
+ * that is and why. The key columns have no room for the star: there the pick is under the pointer only.
  */
 @Component({
   selector: "app-claude-view-cell",
@@ -23,6 +27,8 @@ import {TipOnFocusDirective} from "../../tip-on-focus.directive";
           tabindex="0" appTipOnFocus [matTooltip]="cell.tip" matTooltipClass="multiline-tooltip">
       <span class="word">{{ cell.word }}</span>
       <!-- The space before each is for what reads the row aloud or copies it: the gap on the screen is the layout's. -->
+      <!-- Claude's pick among the stocks of its group that it compared. Read aloud as its words, not as "black star". -->
+      <span class="first" *ngIf="!compact && cell.first" role="img" [attr.aria-label]="cell.first"> ★ {{ cell.first }}</span>
       <span class="short" *ngIf="!compact && cell.short"> {{ cell.short }}</span>
       <span class="from" *ngIf="!compact && cell.from"> {{ cell.from }}</span>
     </span>
@@ -32,6 +38,7 @@ import {TipOnFocusDirective} from "../../tip-on-focus.directive";
     .view { display: inline-flex; align-items: baseline; gap: 2px; white-space: pre; border-radius: 3px; }
     .view:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: 2px; }
     .word { font-weight: 600; }
+    .first { font-size: var(--text-meta); }
     .short, .from { font-size: var(--text-meta); color: var(--ink-3); }
     .view.stale .word, .view.failed .word { font-weight: 400; color: var(--ink-3); }
     .none { color: var(--ink-3); }
@@ -62,7 +69,8 @@ export class ClaudeViewCellComponent implements OnInit, OnDestroy {
   }
 
   get cell(): ViewCell {
-    return cellOf(this.state.views[this.symbol], this.today, this.held, this.state.failed[this.symbol]);
+    return cellOf(this.state.views[this.symbol], this.today, this.held, this.state.failed[this.symbol],
+      pickOf(this.symbol, this.state.picks, this.today));
   }
 
   /** The stock is in the list being asked about and its answer is not there yet. */

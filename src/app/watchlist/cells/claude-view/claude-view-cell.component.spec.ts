@@ -123,3 +123,65 @@ describe('ClaudeViewCellComponent in the short view of the table', () => {
     expect(fixture.debugElement.query(By.directive(MatTooltip)).injector.get(MatTooltip).message).toContain('Asked Nov 10.');
   });
 });
+
+// The owner of the page: "claude needs to factor also the same group stocks so compare". The stock Claude would take
+// first among those of its group wears a star; every compared stock says under the pointer which one that is.
+describe('ClaudeViewCellComponent: Claude\'s pick among stocks that move together', () => {
+  let views: FakeClaudeViews;
+  let fixture: ComponentFixture<ClaudeViewCellComponent>;
+  const pick = {first: 'ABCD', why: 'It makes a profit and swings less.', members: ['ABCD', 'EFGH']};
+
+  function create(symbol: string, compact = false): void {
+    views = new FakeClaudeViews();
+    TestBed.configureTestingModule({
+      imports: [ClaudeViewCellComponent, NoopAnimationsModule],
+      providers: [{provide: ClaudeViewService, useValue: views}],
+    });
+    fixture = TestBed.createComponent(ClaudeViewCellComponent);
+    fixture.componentRef.setInput('symbol', symbol);
+    fixture.componentRef.setInput('today', '2026-11-20');
+    fixture.componentRef.setInput('compact', compact);
+    views.knows({views: {ABCD: {'2026-11-18': keptView('BUY SOME')}, EFGH: {'2026-11-18': keptView('WAIT')}}, picks: {'2026-11-18': {A: pick}}});
+    fixture.detectChanges();
+  }
+
+  const el = (): HTMLElement => fixture.nativeElement;
+  const say = (): string => (el().textContent ?? '').replace(/\s+/g, ' ').trim();
+  const tip = (): string => fixture.debugElement.query(By.directive(MatTooltip)).injector.get(MatTooltip).message;
+
+  it('marks the pick with a star and "first of A" after its word, before the short reason', () => {
+    create('ABCD');
+    expect(say()).toBe('BUY SOME ★ first of A Results due next week');
+    expect(el().querySelector('.first')!.getAttribute('aria-label')).withContext('read aloud as words, not as "black star"').toBe('first of A');
+    expect(tip()).toContain('Of the 2 stocks of group A that Claude compared (ABCD, EFGH), it would take this one first: It makes a profit and swings less.');
+  });
+
+  it('marks no other stock of the group, and says under the pointer which one Claude would take first', () => {
+    create('EFGH');
+    expect(say()).toBe('WAIT Results due next week');
+    expect(el().querySelector('.first')).toBeNull();
+    expect(tip()).toContain('it would take ABCD first: It makes a profit and swings less.');
+  });
+
+  it('keeps the word alone in the short view of the table: its columns have no room for the star; the pick is under the pointer', () => {
+    create('ABCD', true);
+    expect(say()).toBe('BUY SOME');
+    expect(el().querySelector('.first')).toBeNull();
+    expect(tip()).toContain('it would take this one first');
+  });
+
+  it('wears no colour and no shape of its own: a plain star in the row\'s ink', () => {
+    create('ABCD');
+    const star = el().querySelector<HTMLElement>('.first')!;
+    expect(getComputedStyle(star).backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    expect(getComputedStyle(star).borderTopWidth).toBe('0px');
+  });
+
+  it('forgets a comparison that is more than a week old', () => {
+    create('ABCD');
+    fixture.componentRef.setInput('today', '2026-11-26');
+    fixture.detectChanges();
+    expect(el().querySelector('.first')).toBeNull();
+    expect(tip()).not.toContain('compared');
+  });
+});
