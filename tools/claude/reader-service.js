@@ -16,6 +16,7 @@ const http = require('node:http');
 const {findClaude, runRecipe} = require('./claude-cli');
 const {recipe} = require('./why-it-dropped');
 const {recipe: viewRecipe} = require('./claude-view');
+const {recipe: compareRecipe} = require('./claude-compare');
 
 const MAX_PROMPT = 4000;
 const MAX_BODY = 16 * 1024;                          // a prompt of 4000 characters fits many times over
@@ -62,7 +63,7 @@ function readJson(req) {
  * @param run       runs a recipe on a question; only tests replace it
  * @param available whether Claude Code is installed; only tests replace it
  */
-function createReaderService({recipes = {'why-it-dropped': recipe, 'claude-view': viewRecipe}, run = runRecipe, available = () => !!findClaude()} = {}) {
+function createReaderService({recipes = {'why-it-dropped': recipe, 'claude-view': viewRecipe, 'claude-compare': compareRecipe}, run = runRecipe, available = () => !!findClaude()} = {}) {
   let busy = false;
 
   const handleRun = async (req, res) => {

@@ -38,8 +38,11 @@ async function main() {
   // Claude's view of the stocks of a list: the same reader, asked with its other recipe. It answers before the
   // reading routes, which take every other address under /claude as their own.
   const views = viewRoutes(asker
-    ? {storage, run: readerClient({socketPath: READER_SOCKET, recipe: 'claude-view'}).run, available: askAtMostEvery(asker.available, 60_000)}
-    : {storage, available: () => false, run: async () => ({ok: false, reason: 'not-installed'})});
+    ? {
+      storage, run: readerClient({socketPath: READER_SOCKET, recipe: 'claude-view'}).run,
+      compare: readerClient({socketPath: READER_SOCKET, recipe: 'claude-compare'}).run, available: askAtMostEvery(asker.available, 60_000),
+    }
+    : {storage, available: () => false, run: async () => ({ok: false, reason: 'not-installed'}), compare: async () => ({ok: false, reason: 'not-installed'})});
   const server = createAppServer({
     storage, distDir, providerRoutes: require('../../proxy.conf.json'), routes: [views, reader],
   });

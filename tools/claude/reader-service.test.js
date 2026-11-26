@@ -176,7 +176,7 @@ test('does not remove an ordinary file or a folder that happens to be at the pat
   assert.ok(fs.existsSync(folder));
 });
 
-test('as it is started, it runs both jobs the app asks for: why a stock fell, and a view of a stock', async () => {
+test('as it is started, it runs the three jobs the app asks for: why a stock fell, a view of a stock, a comparison of a group', async () => {
   const place = socketPath + (process.platform === 'win32' ? '-both' : '.both');
   const ran = [];
   const both = createReaderService({available: () => true, run: async recipe => (ran.push(recipe), {ok: true, output: {}})});
@@ -186,8 +186,9 @@ test('as it is started, it runs both jobs the app asks for: why a stock fell, an
     socketPath = place;
     assert.equal((await post('/run', {recipe: 'why-it-dropped', prompt: 'a'})).status, 200);
     assert.equal((await post('/run', {recipe: 'claude-view', prompt: 'b'})).status, 200);
-    assert.deepEqual(ran.map(recipe => recipe.name), ['why-it-dropped', 'claude-view']);
-    assert.deepEqual(ran.map(recipe => recipe.tools), [['WebSearch'], ['WebSearch']], 'each with its own, and only, tool');
+    assert.equal((await post('/run', {recipe: 'claude-compare', prompt: 'c'})).status, 200);
+    assert.deepEqual(ran.map(recipe => recipe.name), ['why-it-dropped', 'claude-view', 'claude-compare']);
+    assert.deepEqual(ran.map(recipe => recipe.tools), [['WebSearch'], ['WebSearch'], ['WebSearch']], 'each with its own, and only, tool');
   } finally {
     socketPath = usual;
     await stop(both);

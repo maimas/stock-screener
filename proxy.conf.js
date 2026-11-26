@@ -23,13 +23,16 @@ const {viewRoutes, oneAtATime} = require('./tools/claude/view-routes');
 const {runRecipe} = require('./tools/claude/claude-cli');
 const {recipe: readingRecipe} = require('./tools/claude/why-it-dropped');
 const {recipe: viewRecipe} = require('./tools/claude/claude-view');
+const {recipe: compareRecipe} = require('./tools/claude/claude-compare');
 
 const port = Number(process.env.STORE_PORT) || 4301;
 const storage = createMemoryStorage();
 // Claude Code runs one thing at a time here too: a view of a stock waits while a fall is being read, and the other way round.
 const inTurn = oneAtATime();
 const routesOfClaude = [
-  viewRoutes({storage, run: inTurn(question => runRecipe(viewRecipe, question))}),
+  viewRoutes({
+    storage, run: inTurn(question => runRecipe(viewRecipe, question)), compare: inTurn(question => runRecipe(compareRecipe, question)),
+  }),
   readerRoutes({storage, run: inTurn(question => runRecipe(readingRecipe, question))}),
 ];
 startStore({storage, port, routes: routesOfClaude, where: 'memory only: nothing survives when this server stops'});

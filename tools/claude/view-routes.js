@@ -3,14 +3,21 @@
  * Claude's view of the stocks of a list, asked for by one button of the page (the recipe is claude-view.js). Served
  * beside what reader-routes.js serves, by the store's own server, so the same checks on who is asking apply.
  *
- *   POST /claude/views   ask about a list: {list: [{symbol, name, facts}]}, 1 to 10 stocks
- *   GET  /claude/views   the views kept (by stock, then by the day asked), which list is being asked about and how
- *                        far it is, and which stocks got no answer the last time they were asked about
+ *   POST /claude/views   ask about a list: {list: [{symbol, name, facts}]}, 1 to 10 stocks; and, to have the stocks
+ *                        that move together compared after it: {groups: [{letter, members: [{symbol, name, facts}]}]}
+ *   GET  /claude/views   the views kept (by stock, then by the day asked), the picks kept (by day, then by group),
+ *                        which list is being asked about and how far it is, and which stocks got no answer the last
+ *                        time they were asked about
  *
  * A list is asked about stock by stock, one run after the other: each stock is judged on its own anyway, a run that
  * fails costs one row and not the list, and every run keeps the limits on time and usage its recipe has. One list
  * at a time; a second one is answered with "busy". When Claude is busy with something else (a reading of why a
  * stock fell), the stock waits and is asked again.
+ *
+ * After the stocks, each group the request names is put to Claude once (claude-compare.js): the stocks of the group
+ * that have a view of the past week, side by side, and which of them it would take first. That needs one question
+ * that sees them all: views given apart could each prefer their own stock. A group of which fewer than two stocks
+ * have a view is not compared, and a comparison that fails leaves the views as they are.
  *
  * A view is kept in the store (under the key "claude-views") with the day it was given, and the older days stay:
  * the page works out from them, and from the prices of its daily log, how Claude's past views turned out. The run
@@ -21,9 +28,13 @@ const {localDay} = require('../store/day');
 const {runRecipe} = require('./claude-cli');
 const {installedCheck} = require('./reader-routes');
 const {recipe, listFrom, promptFor, testedHeadline, viewFrom} = require('./claude-view');
+const {recipe: compareRecipe, groupsFrom, comparePrompt, pickFrom} = require('./claude-compare');
 
 const KEY = 'claude-views';
 const ROUTE = '/claude/views';
+/** A view counts in a comparison while it is this fresh: as long as the page shows it without calling it old. */
+const FRESH_DAYS = 7;
+const dayNumber = day => Date.parse(`${day}T12:00:00Z`) / 86_400_000;
 
 /** The figures the backtests record, or nothing when they are not there: then nothing is quoted as tested. */
 function recordedFigures() {
@@ -59,26 +70,32 @@ const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 /**
  * @param storage    where views are kept (the same storage the store answers from)
  * @param run        answers a question with what runRecipe resolves to; only tests replace it
+ * @param compare    the same for the question that compares the stocks of a group
  * @param available  whether Claude Code can be reached (a boolean, or a promise of one)
  * @param figures    the figures the backtests record; only tests replace them
  * @param retryMs    how long a stock waits when Claude is busy with something else, and
  * @param maxRetries how many times it is asked again before it is given up
  */
 function viewRoutes({
-  storage, run = question => runRecipe(recipe, question), available = installedCheck(), now = () => new Date(), log = console,
-  figures = recordedFigures(), retryMs = 5000, maxRetries = 24,
+  storage, run = question => runRecipe(recipe, question), compare = question => runRecipe(compareRecipe, question),
+  available = installedCheck(), now = () => new Date(), log = console, figures = recordedFigures(), retryMs = 5000, maxRetries = 24,
 }) {
-  let queue;                                        // the list being asked about: {symbols, done, failed}
+  let queue;                                        // the list being asked about: {symbols, done, failed, comparing?}
   const failed = new Map();                         // stock -> why it got no view the last time it was asked about
+
+  /** Asks, and asks again while Claude is busy with something else. */
+  const untilFree = async (ask, question) => {
+    let outcome = await ask(question);
+    for (let tries = 0; outcome?.reason === 'busy' && tries < maxRetries; tries++) {
+      await wait(retryMs);
+      outcome = await ask(question);
+    }
+    return outcome;
+  };
 
   /** One stock: asked, asked again while Claude is busy elsewhere, and its view kept. Resolves to why not, or nothing. */
   const askOne = async (asked, headline) => {
-    const question = promptFor(asked, headline);
-    let outcome = await run(question);
-    for (let tries = 0; outcome?.reason === 'busy' && tries < maxRetries; tries++) {
-      await wait(retryMs);
-      outcome = await run(question);
-    }
+    const outcome = await untilFree(run, promptFor(asked, headline));
     if (!outcome?.ok) {
       return outcome?.reason ?? 'failed';
     }
@@ -95,7 +112,42 @@ function viewRoutes({
     }
   };
 
-  const askAll = async list => {
+  /**
+   * One group: its stocks that have a view of the past week, compared in one question, and the pick kept under the
+   * day and the group's letter. Resolves to why there is no pick, or nothing.
+   */
+  const compareOne = async group => {
+    const today = localDay(now());
+    const all = (await storage.read(KEY)).value?.views ?? {};
+    const views = {};
+    const members = group.members.filter(member => {
+      const newest = Object.keys(all[member.symbol] ?? {}).sort().pop();
+      if (!newest || dayNumber(today) - dayNumber(newest) > FRESH_DAYS) {
+        return false;
+      }
+      views[member.symbol] = all[member.symbol][newest];
+      return true;
+    });
+    if (members.length < 2) {
+      return 'too-few';
+    }
+    const outcome = await untilFree(compare, comparePrompt(group.letter, members, views));
+    if (!outcome?.ok) {
+      return outcome?.reason ?? 'failed';
+    }
+    const made = pickFrom(outcome.output, members, now());
+    if (!made.ok) {
+      return made.reason;
+    }
+    try {
+      const kept = await storage.merge(KEY, {v: 1, picks: {[today]: {[group.letter]: {...made.pick, model: outcome.model, version: outcome.version}}}});
+      return kept.saved ? undefined : 'not-saved';
+    } catch {
+      return 'not-saved';
+    }
+  };
+
+  const askAll = async (list, groups) => {
     const headline = testedHeadline(figures);
     for (const asked of list) {
       const started = Date.now();
@@ -109,21 +161,43 @@ function viewRoutes({
         log.log(`[claude] gave its view of ${asked.symbol} (${Math.round((Date.now() - started) / 1000)}s)`);
       }
     }
+    for (const group of groups) {
+      const started = Date.now();
+      const reason = await compareOne(group).catch(() => 'failed');
+      queue.comparing = queue.comparing.filter(letter => letter !== group.letter);
+      if (reason === 'too-few') {
+        log.log(`[claude] group ${group.letter} was not compared: fewer than two of its stocks have a view`);
+      } else if (reason) {
+        log.warn(`[claude] no pick in group ${group.letter}: ${reason}`);
+      } else {
+        log.log(`[claude] compared group ${group.letter} (${Math.round((Date.now() - started) / 1000)}s)`);
+      }
+    }
   };
 
-  const start = list => {
-    queue = {symbols: list.map(it => it.symbol), done: [], failed: {}};
+  const start = (list, groups) => {
+    queue = {symbols: list.map(it => it.symbol), done: [], failed: {}, ...(groups.length ? {comparing: groups.map(it => it.letter)} : {})};
     list.forEach(it => failed.delete(it.symbol));
-    askAll(list).catch(error => log.warn(`[claude] the list was not asked through: ${error?.message}`)).finally(() => {
+    askAll(list, groups).catch(error => log.warn(`[claude] the list was not asked through: ${error?.message}`)).finally(() => {
       queue = undefined;
     });
   };
 
-  const state = async () => ({
-    views: (await storage.read(KEY)).value?.views ?? {},
-    ...(queue ? {queue: {symbols: queue.symbols, done: [...queue.done], failed: {...queue.failed}}} : {}),
-    failed: Object.fromEntries(failed),
+  /** Where the list being asked about stands, as a copy: which stocks are through, which groups are still to be compared. */
+  const standing = () => ({
+    symbols: queue.symbols, done: [...queue.done], failed: {...queue.failed},
+    ...(queue.comparing ? {comparing: [...queue.comparing]} : {}),
   });
+
+  const state = async () => {
+    const kept = (await storage.read(KEY)).value;
+    return {
+      views: kept?.views ?? {},
+      ...(kept?.picks && Object.keys(kept.picks).length ? {picks: kept.picks} : {}),
+      ...(queue ? {queue: standing()} : {}),
+      failed: Object.fromEntries(failed),
+    };
+  };
 
   return (req, res) => {
     if (String(req.url).split('?')[0] !== ROUTE) {
@@ -141,14 +215,18 @@ function viewRoutes({
         if (!asked.ok) {
           return [400, {error: asked.error}];
         }
+        const grouped = groupsFrom(body);
+        if (!grouped.ok) {
+          return [400, {error: grouped.error}];
+        }
         if (!(await available())) {
           return [503, {state: 'failed', reason: 'not-installed'}];
         }
         if (queue) {
           return [429, {state: 'busy'}];
         }
-        start(asked.list);
-        return [202, {state: 'asking', queue: {symbols: queue.symbols, done: [], failed: {}}}];
+        start(asked.list, grouped.groups);
+        return [202, {state: 'asking', queue: standing()}];
       });
     } else {
       send(res, 405, {error: 'Only GET and POST here.'});
