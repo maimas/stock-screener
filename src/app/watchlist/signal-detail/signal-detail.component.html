@@ -6,29 +6,51 @@
   </p>
   <button type="button" class="back" *ngIf="back" (click)="goBack.emit()">{{ back }}</button>
 </div>
-<!-- Three groups, by what they are about, side by side where there is room: this stock; the reader's stake in it;
-     and the rule, which reads the same under every stock with this mark and so comes last and is set quieter. -->
+<!-- Four groups, by what they are about. Side by side where there is room: what the mark rests on and what is
+     risky about this stock; why its price dropped; the reader's stake in it. Under them, across the width and closed
+     until asked for, the rule: it reads the same under every stock with this mark.
+     The owner, of these details: "too much text and not much signal". They opened with a sentence, two bullets that
+     said the sentence again with its numbers, and three columns of paragraphs. The mark's two facts are rows now
+     (what, how much, whether it is enough), and each further line shows its first sentence. -->
 <div class="sections">
   <div class="group about-stock">
     <section>
-      <h4>{{ title }}</h4>
-      <p class="lead"><app-more key="details.lead" [text]="lead"></app-more></p>
-      <ul *ngIf="inputs.length">
-        <li *ngFor="let line of inputs; trackBy: trackByText">{{ line }}</li>
-      </ul>
-      <p class="since" *ngIf="since">{{ since }}</p>
+      <!-- With facts to show, the sentence that says them in words is behind "more"; without a mark the sentence is
+           all there is, and it is shown. -->
+      <h4>{{ title }}<app-more *ngIf="facts.length" key="details.lead" what="the mark in one sentence"></app-more></h4>
+      <p class="lead" *ngIf="!facts.length">{{ lead }}</p>
+      <p class="lead" *ngIf="facts.length" appMoreRest="details.lead">{{ lead }}</p>
+      <!-- What the mark rests on, a row a fact: its name, its figure, and a tick where it is enough for DIP BUY. -->
+      <dl class="facts" *ngIf="facts.length">
+        <div *ngFor="let fact of facts; trackBy: trackByLabel" [class.met]="fact.ok === true" [class.unmet]="fact.ok === false">
+          <dt>{{ fact.label }}<span class="visually-hidden" *ngIf="fact.ok !== undefined">{{ fact.ok ? ' (enough for the mark)' : ' (not enough for the mark)' }}</span></dt>
+          <dd>{{ fact.value }}<span class="needs" *ngIf="fact.needs"> · {{ fact.needs }}</span></dd>
+        </div>
+      </dl>
     </section>
 
     <!-- What is risky about this one stock: how much its price swings, that it is unlike most tested ones, that its
-         results are due. Its own lines, so with the stock and in the full ink. -->
+         results are due. Its own lines, so with the stock and in the full ink; each shows its first sentence. -->
     <section *ngIf="risks.length">
       <h4>Risk of this stock</h4>
       <ul>
-        <li *ngFor="let line of risks; trackBy: trackByText">{{ line }}</li>
+        <li *ngFor="let line of risks; trackBy: trackByText"><app-more key="details.risk" [text]="line"></app-more></li>
       </ul>
     </section>
 
-    <section *ngIf="fall">
+    <section *ngIf="context.length">
+      <h4>Context, not part of the mark<app-more key="details.context" what="the context that is not part of the mark"></app-more></h4>
+      <!-- The markers in front of the lines are drawn, not written: said once in words, for the eye and for a
+           screen reader. -->
+      <p class="context-key" appMoreRest="details.context">A line marked + speaks for the stock, one marked − against it; the others do neither.</p>
+      <ul class="context" appMoreRest="details.context">
+        <li *ngFor="let line of context" [class]="line.mark">{{ line.text }}</li>
+      </ul>
+    </section>
+  </div>
+
+  <div class="group dropped" *ngIf="fall">
+    <section>
       <h4>Why it dropped</h4>
       <p>{{ fall }}</p>
       <!-- The headlines are shown until the Claude Code on this computer was asked to read the news; then its reading is. -->
@@ -44,16 +66,6 @@
         <p class="hint" *ngIf="headlines.length">A one-off scare and a change in the business look the same on a chart. The headlines are there to tell them apart.</p>
       </app-drop-reading>
     </section>
-
-    <section *ngIf="context.length">
-      <h4>Context, not part of the mark<app-more key="details.context" what="the context that is not part of the mark"></app-more></h4>
-      <!-- The markers in front of the lines are drawn, not written: said once in words, for the eye and for a
-           screen reader. -->
-      <p class="context-key" appMoreRest="details.context">A line marked + speaks for the stock, one marked − against it; the others do neither.</p>
-      <ul class="context" appMoreRest="details.context">
-        <li *ngFor="let line of context" [class]="line.mark">{{ line.text }}</li>
-      </ul>
-    </section>
   </div>
 
   <!-- How much of it fits each portfolio and "What you own of it", supplied by the page. -->
@@ -64,19 +76,21 @@
   <div class="group the-rule" *ngIf="tests.length || afterBuying.length">
     <!-- Said once, so that who opens several stocks in a row knows this part can be skipped the second time. -->
     <p class="same">The same under every stock marked DIP BUY.<app-more key="details.rule" what="what the tests say, and what to do after you buy"></app-more></p>
-    <section *ngIf="tests.length" appMoreRest="details.rule">
-      <h4>What the tests say</h4>
-      <ul>
-        <li *ngFor="let line of tests; trackBy: trackByText">{{ line }}</li>
-      </ul>
-    </section>
+    <div class="rule-parts">
+      <section *ngIf="tests.length" appMoreRest="details.rule">
+        <h4>What the tests say</h4>
+        <ul>
+          <li *ngFor="let line of tests; trackBy: trackByText">{{ line }}</li>
+        </ul>
+      </section>
 
-    <section *ngIf="afterBuying.length" appMoreRest="details.rule">
-      <h4>After you buy</h4>
-      <ul>
-        <li *ngFor="let line of afterBuying; trackBy: trackByText">{{ line }}</li>
-      </ul>
-    </section>
+      <section *ngIf="afterBuying.length" appMoreRest="details.rule">
+        <h4>After you buy</h4>
+        <ul>
+          <li *ngFor="let line of afterBuying; trackBy: trackByText">{{ line }}</li>
+        </ul>
+      </section>
+    </div>
   </div>
 </div>
 <!-- The foot of the details: the one link out of the app, and a way to close the details from where the reading ends. -->

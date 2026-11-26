@@ -10,6 +10,7 @@ import {casesNote} from "../evidence";
 import {SaysComponent} from "../says/says.component";
 import {FocusWhenShownDirective} from "../focus-when-shown.directive";
 import {PriceDirective} from "../price.directive";
+import {MoreComponent} from "../more/more.component";
 import {money, shareCount, signedMoney, signedPercent, signedWholePercent} from "../format";
 import {CHECK_FIRST, coveredByCash, keptShareCaution, leftAsItIs, purchaseCaution, saleCaution} from "../purchase-words";
 
@@ -38,7 +39,7 @@ export type Trade = {
 @Component({
   selector: "app-position-panel",
   standalone: true,
-  imports: [NgIf, FormsModule, MatButtonModule, SaysComponent, FocusWhenShownDirective, PriceDirective],
+  imports: [NgIf, FormsModule, MatButtonModule, SaysComponent, FocusWhenShownDirective, PriceDirective, MoreComponent],
   templateUrl: "./position-panel.component.html",
   styleUrls: ["./position-panel.component.scss"]
 })
@@ -142,6 +143,9 @@ export class PositionPanelComponent implements OnChanges {
 
   /** The first entry of a stock that is not held was asked for ("Enter what you hold"). */
   entering = false;
+  /** Under a stock that is not held: the fact first; what entering a holding gives is behind "more". */
+  readonly notHeld = 'Not in this portfolio. Enter what you hold to see how it is doing, how it compares with the market, ' +
+    'and what a bad half-year could cost.';
   /** What that form is, said as its first line, in the words of the purchase forms of "Could add". */
   readonly recordsOnly = 'This records a purchase you have made. Nothing is bought here.';
 

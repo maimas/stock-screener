@@ -272,7 +272,8 @@ describe('PositionPanelComponent, as shown: what can be done with a holding', ()
     fixture.componentInstance.ngOnChanges();
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
-    const buttons = () => Array.from(el.querySelectorAll('button')).map(it => it.textContent?.trim());
+    // What can be done with the holding: not the "more" at the end of a sentence, which opens the rest of that sentence.
+    const buttons = () => Array.from(el.querySelectorAll('button:not(.toggle)')).map(it => it.textContent?.trim());
     const press = (label: string) => {
       (Array.from(el.querySelectorAll('button')).find(it => it.textContent?.trim() === label) as HTMLButtonElement).click();
       fixture.detectChanges();

@@ -1,10 +1,12 @@
-<h4>{{ title }}</h4>
+<!-- With sizes to show, what a size is stands behind "more" at the heading: the lines say it by themselves to who
+     has read it once. Without sizes the sentence is all there is, and it is shown. -->
+<h4>{{ title }}<app-more *ngIf="marked && lines.length > 0" key="details.fits" what="what these sizes are"></app-more></h4>
 <ng-container *ngIf="marked; else unmarked">
   <ng-container *ngIf="lines.length > 0; else worthNothing">
     <ul>
       <li *ngFor="let line of lines">{{ line }}</li>
     </ul>
-    <p class="hint">{{ note }}</p>
+    <p class="hint" appMoreRest="details.fits">{{ note }}</p>
   </ng-container>
   <ng-template #worthNothing>
     <p class="hint">{{ noPortfolio }}</p>

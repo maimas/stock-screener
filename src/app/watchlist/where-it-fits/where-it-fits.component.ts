@@ -1,5 +1,7 @@
 import {Component, Input} from "@angular/core";
 import {NgForOf, NgIf} from "@angular/common";
+import {MoreComponent} from "../more/more.component";
+import {MoreRestDirective} from "../more/more-rest.directive";
 import {FITS_NO_PORTFOLIO, FITS_NOTE, FITS_NOT_MARKED, FITS_TITLE} from "../recommendations";
 
 /**
@@ -10,7 +12,7 @@ import {FITS_NO_PORTFOLIO, FITS_NOTE, FITS_NOT_MARKED, FITS_TITLE} from "../reco
 @Component({
   selector: "app-where-it-fits",
   standalone: true,
-  imports: [NgIf, NgForOf],
+  imports: [NgIf, NgForOf, MoreComponent, MoreRestDirective],
   templateUrl: "./where-it-fits.component.html",
   styleUrls: ["./where-it-fits.component.scss"]
 })

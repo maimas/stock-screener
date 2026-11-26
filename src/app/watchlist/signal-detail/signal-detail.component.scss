@@ -64,38 +64,53 @@
   align-items: start;
 }
 
+// The rule is closed until asked for and reads the same under every stock: across the width, under the rest.
+.the-rule {
+  grid-column: 1 / -1;
+}
+
 @container (min-width: 760px) {
   .sections {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  // Two columns: this stock down the left, and on the right the reader's stake with the rule under it. What is
-  // about the stock is the longest of the three, so the two shorter ones share the other column and no hole is
-  // left under the stake (the rule used to stand under both, across the whole width, a screen further down).
-  .about-stock {
+  // Two columns: this stock down the left (the mark and its risk, then why it dropped), the reader's stake on
+  // the right, beside both.
+  .about-stock,
+  .dropped {
     grid-column: 1;
+  }
+
+  .your-stake {
+    grid-column: 2;
     grid-row: 1 / span 2;
   }
 
-  .the-rule {
-    grid-column: 2;
+  // Opened, the rule's two parts stand side by side.
+  .rule-parts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 48px;
+    align-items: start;
   }
 }
 
-// From 1280px: three columns of 380px or more. In a narrower list (one of two side by side on a wide window is
-// 1,116px) three columns were 280px each, a few words a line, and the buttons of "What you own of it" wrapped.
+// From 1280px: three columns of 380px or more, a column a subject. In a narrower list (one of two side by side
+// on a wide window is 1,116px) three columns were 280px each, a few words a line, and the buttons of "What you
+// own of it" wrapped.
 @container (min-width: 1280px) {
   .sections {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .about-stock {
+  .about-stock,
+  .dropped {
     grid-column: auto;
-    grid-row: auto;
   }
 
-  .the-rule {
+  .your-stake {
     grid-column: auto;
+    grid-row: auto;
   }
 }
 
@@ -138,9 +153,66 @@ p {
   font-weight: 500;
 }
 
-.since {
-  margin-top: 6px;
+// What the mark rests on: a row a fact. The name of the fact stands first, in bold, in a column of its own, so
+// the names read down and the figures read down; a tick stands before a fact that is enough for DIP BUY, a dash
+// before one that is not (never red: red is a loss on this page, and a WATCH is not one).
+.facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 3px 14px;
+  margin: 2px 0 0;
+  max-width: 70ch;
+}
+
+.facts > div {
+  display: contents;
+}
+
+.facts dt {
+  position: relative;
+  padding-left: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+// A fact that is not enough for the mark: a dash. A fact with nothing to judge (since when it has the mark) has
+// no sign before it.
+.facts .unmet dt::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 0.78em;
+  width: 8px;
+  border-top: 2px solid var(--ink-3);
+}
+
+.facts .met dt::before {
+  content: "";
+  position: absolute;
+  top: 0.38em;
+  left: 3px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--gain);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.facts dd {
+  margin: 0;
+}
+
+.facts .needs {
   color: var(--ink-2);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 ul {

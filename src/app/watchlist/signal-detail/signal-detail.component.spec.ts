@@ -1,7 +1,7 @@
 import {Component} from "@angular/core";
 import {TestBed} from "@angular/core/testing";
 import {By} from "@angular/platform-browser";
-import {dropFacts, headlinesLine, resultsSoonLine, SignalDetailComponent, verdictInputs} from "./signal-detail.component";
+import {dropFacts, headlinesLine, resultsSoonLine, SignalDetailComponent, verdictFacts, verdictInputs} from "./signal-detail.component";
 import {computeSignal} from "../signal";
 import {DropNews} from "../drop-news";
 import {Reading} from "../reading";
@@ -17,6 +17,17 @@ function signalOf(below: number, high52: number | undefined = 100) {
   });
   return computeSignal(stock, NOW)!;
 }
+
+describe('verdictFacts (the two facts a mark rests on, as rows)', () => {
+  it('names each fact, gives its figure, and says whether it is enough for DIP BUY', () => {
+    expect(verdictFacts(signalOf(20))).toEqual([
+      {label: 'Growing', value: signalOf(20).growthText, ok: true},
+      {label: 'Dropped', value: '20.0% below its highest price of the past year', needs: 'DIP BUY needs 15% or more', ok: true},
+    ]);
+    expect(verdictFacts(signalOf(9))[1]).toEqual(
+      {label: 'Dropped', value: '9.0% below its highest price of the past year', needs: 'DIP BUY needs 15% or more', ok: false});
+  });
+});
 
 describe('verdictInputs (the two facts a mark rests on, in everyday words)', () => {
   it('says how the business is growing and how far the price has dropped, with what DIP BUY needs', () => {
@@ -244,13 +255,35 @@ describe('SignalDetailComponent: what is about this stock, what is about you, an
     // What is risky about this one stock (how much its price swings, results due soon) stood among the sentences
     // that are the same under every stock, set quiet with them. It is about this stock, so it stands with it.
     expect(groups).toEqual([
-      ['about-stock', ['Why DIP BUY', 'Risk of this stock', 'Why it dropped', 'Context, not part of the mark']],
+      ['about-stock', ['Why DIP BUY', 'Risk of this stock', 'Context, not part of the mark']],
+      ['dropped', ['Why it dropped']],
       ['your-stake', ['Where it fits', 'What you own of it']],
       ['the-rule', ['What the tests say', 'After you buy']],
     ]);
     const risk = Array.from(el.querySelectorAll('.about-stock section')).find(it => it.querySelector('h4')?.textContent === 'Risk of this stock')!;
     expect(risk.querySelectorAll('li').length).withContext('its own lines only').toBe(fixture.debugElement.query(By.directive(SignalDetailComponent)).componentInstance.risks.length);
     expect(el.querySelector('.the-rule .same')?.textContent?.trim()).toBe('The same under every stock marked DIP BUY.');
+  });
+
+  // The owner, of these details: "too much text and not much signal". They opened with a sentence and two bullets
+  // that said the sentence again with its numbers.
+  it('shows what the mark rests on as rows, a name and a figure each, and keeps the sentence behind "more"', () => {
+    TestBed.configureTestingModule({imports: [DetailsWithTheStake], providers: [{provide: ReadingService, useValue: new FakeReadings()}]});
+    const fixture = TestBed.createComponent(DetailsWithTheStake);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    const clean = (it: Element | null) => it?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+    const rows = Array.from(el.querySelectorAll('.about-stock dl.facts > div')).map(row => [row.className, clean(row.querySelector('dt')), clean(row.querySelector('dd'))]);
+    expect(rows).toEqual([
+      ['met', 'Growing (enough for the mark)', 'expected profit per share 0.0%, sales +20.0% on a year ago'],
+      ['met', 'Dropped (enough for the mark)', '20.0% below its highest price of the past year · DIP BUY needs 15% or more'],
+    ]);
+    const lead = el.querySelector('.about-stock .lead') as HTMLElement;
+    expect(lead.hidden).withContext('the sentence that says the same in words is one "more" away').toBeTrue();
+    expect(clean(lead)).toMatch(/^A growing company, 20\.0% below its highest price of the past year/);
+    expect(el.querySelector('.about-stock h4 app-more button')).not.toBeNull();
+    const risks = Array.from(el.querySelectorAll('.about-stock section li app-more'));
+    expect(risks.length).withContext('a risk line shows its first sentence').toBeGreaterThan(0);
   });
 
   it('has no group for the rule where no rule applies: a stock without a mark', () => {

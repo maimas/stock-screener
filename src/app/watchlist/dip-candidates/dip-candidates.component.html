@@ -82,25 +82,30 @@
       </div>
 
       <div class="about">
-        <!-- What the three marks mean, each as it looks in the lists, with how many stocks on the page carry it. -->
+        <!-- The three marks, each as it looks in the lists, with how many stocks on the page carry it: one line of
+             marks and counts. What a mark means is said on the mark itself, where the pointer rests or the Tab key
+             lands, and stays in the page for a screen reader. The owner: "too much text and not much signal": a
+             sentence beside each mark was read once and then stood in the way of the counts every day after. -->
         <dl class="legend">
           <div class="mark">
-            <dt [matTooltip]="folded ? meanings.dipBuy : ''" [attr.tabindex]="folded ? 0 : null"><span class="verdict-pill dip">DIP BUY</span><span class="mark-count">{{ marks.dipBuy }}</span></dt>
-            <dd>{{ meanings.dipBuy }}</dd>
+            <dt [matTooltip]="meanings.dipBuy" matTooltipClass="multiline-tooltip" tabindex="0"><span class="verdict-pill dip">DIP BUY</span><span class="mark-count">{{ marks.dipBuy }}</span></dt>
+            <dd class="visually-hidden">{{ meanings.dipBuy }}</dd>
           </div>
           <div class="mark">
-            <dt [matTooltip]="folded ? meanings.watch : ''" [attr.tabindex]="folded ? 0 : null"><span class="verdict-pill watch">WATCH</span><span class="mark-count">{{ marks.watch }}</span></dt>
-            <dd>{{ meanings.watch }}</dd>
+            <dt [matTooltip]="meanings.watch" matTooltipClass="multiline-tooltip" tabindex="0"><span class="verdict-pill watch">WATCH</span><span class="mark-count">{{ marks.watch }}</span></dt>
+            <dd class="visually-hidden">{{ meanings.watch }}</dd>
           </div>
           <div class="mark">
-            <dt [matTooltip]="folded ? meanings.pass : ''" [attr.tabindex]="folded ? 0 : null"><span class="verdict-pill pass">PASS</span><span class="mark-count">{{ marks.pass }}</span></dt>
-            <dd>{{ meanings.pass }}</dd>
+            <dt [matTooltip]="meanings.pass" matTooltipClass="multiline-tooltip" tabindex="0"><span class="verdict-pill pass">PASS</span><span class="mark-count">{{ marks.pass }}</span></dt>
+            <dd class="visually-hidden">{{ meanings.pass }}</dd>
+          </div>
+          <!-- The stocks without a mark, counted in the same line: outlined, so it does not read as a fourth mark. -->
+          <div class="no-mark" *ngIf="marks.none > 0">
+            <dt [matTooltip]="unmarkedText" matTooltipClass="multiline-tooltip" tabindex="0"><span class="verdict-pill none">no mark</span><span class="mark-count">{{ marks.none }}</span></dt>
+            <dd class="unmarked visually-hidden">{{ unmarkedText }}</dd>
           </div>
         </dl>
-        <p class="note unmarked" *ngIf="marks.none > 0">
-          {{ marks.none }} more {{ marks.none === 1 ? 'has' : 'have' }} no mark: funds, and companies with too little history to judge.
-        </p>
-        <p class="note one-bet" *ngIf="candidates.length > 0 && oneBet">{{ oneBet }}</p>
+        <p class="note one-bet" *ngIf="candidates.length > 0 && oneBet"><app-more key="dip.onebet" [text]="oneBet"></app-more></p>
         <!-- Which of them are tied: a line a group, with the letter its rows carry in the table. -->
         <div class="tied" *ngIf="candidates.length > 0 && groups.groups.length > 0">
           <h3 class="tied-title">{{ tiedTitle }}</h3>
@@ -116,12 +121,27 @@
               <span class="brief">{{ groups.alone.length === 1 ? 'moved with none of the others' : 'each moved with none of the others' }}</span>
             </li>
           </ul>
-          <p class="note"><app-more key="dip.tied" [text]="tiedNote"></app-more></p>
         </div>
-        <p class="note tested" *ngIf="candidates.length > 0"><app-more key="dip.tested" [text]="cardNote"></app-more></p>
-        <!-- The rows can be ordered by any column: said with the other sentences about the table, where a sentence
-             wraps. In the table's own block, which is as wide as its widest line, it made the box as wide as itself. -->
-        <p class="note order-note" *ngIf="candidates.length > 1">{{ orderNote }}</p>
+        <!-- What the mark was worth in the tests, as numbers a reader can compare at a glance: the average and
+             the typical stock with the mark, beside any stock that dropped and the market. It was a sentence of
+             four lines; the sentence, with its limits, is behind "How to read this". -->
+        <div class="tested-figures" *ngIf="candidates.length > 0 && !folded">
+          <h3 class="tested-title">{{ tested.title }}</h3>
+          <dl>
+            <div *ngFor="let it of tested.figures">
+              <dt>{{ it.label }}</dt>
+              <dd>{{ it.value }}</dd>
+            </div>
+          </dl>
+        </div>
+        <!-- How to read the box: what was tested and its limits, what the letters are and are not, and whose an
+             order of the rows is. Behind the box's one control, whole, where sentences wrap (in the table's own
+             block, which is as wide as its widest line, one sentence made the box as wide as itself). -->
+        <app-about key="dip.about" label="How to read this" *ngIf="candidates.length > 0 && !folded">
+          <p class="note tested">{{ cardNote }}</p>
+          <p class="note tied-note" *ngIf="groups.groups.length > 0">{{ tiedNote }}</p>
+          <p class="note order-note" *ngIf="candidates.length > 1">{{ orderNote }}</p>
+        </app-about>
         <p class="note log" *ngIf="trackText">
           {{ trackText }} {{ recorderText }}
           <button type="button" class="link-button" (click)="exportLog.emit()"

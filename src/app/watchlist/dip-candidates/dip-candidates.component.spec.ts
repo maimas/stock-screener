@@ -161,22 +161,56 @@ describe('DipCandidatesComponent: the stocks marked DIP BUY, one to a row', () =
 
   // Folded, the box keeps the three marks with their counts and leaves their sentences out. What a mark means is
   // then one pointer's rest (or one Tab) away, on the mark itself.
-  describe('what a mark means while the box is folded', () => {
+  describe('what a mark means', () => {
+    const MEANINGS = [
+      'The price dropped 15% or more from its highest of the past year while the business keeps growing.',
+      'Growing, but no such drop yet.',
+      'Not growing enough.',
+      '6 more have no mark: funds, and companies with too little history to judge.',
+    ];
     const tips = (folded: boolean) => {
       const {fixture} = shown({folded, candidates: [candidate('AMD')], marks: {dipBuy: 18, watch: 2, pass: 4, none: 6}});
       return fixture.debugElement.queryAll(By.css('.legend dt')).map(it => it.injector.get(MatTooltip).message);
     };
 
     it('is said on the mark itself, where the pointer rests or the Tab key lands', () => {
-      expect(tips(true)).toEqual([
-        'The price dropped 15% or more from its highest of the past year while the business keeps growing.',
-        'Growing, but no such drop yet.',
-        'Not growing enough.',
-      ]);
+      expect(tips(true)).toEqual(MEANINGS);
     });
 
-    it('is not said twice while the box is open: the sentence stands beside the mark', () => {
-      expect(tips(false)).toEqual(['', '', '']);
+    // The owner: "too much text and not much signal". Open, the box showed a sentence beside each mark; it is on
+    // the mark itself now, folded or not, and in the page for a screen reader.
+    it('is said on the mark itself while the box is open too, and no sentence stands beside the marks', () => {
+      const {fixture, el} = shown({folded: false, candidates: [candidate('AMD')], marks: {dipBuy: 18, watch: 2, pass: 4, none: 6}});
+      const marks = fixture.debugElement.queryAll(By.css('.legend dt'));
+      expect(marks.map(it => it.injector.get(MatTooltip).message)).toEqual(MEANINGS);
+      expect(marks.every(it => it.nativeElement.tabIndex === 0)).withContext('each can take the keyboard').toBeTrue();
+      const beside = Array.from(el.querySelectorAll('.legend dd'));
+      expect(beside.length).toBe(4);
+      expect(beside.every(it => it.classList.contains('visually-hidden'))).withContext('for a screen reader, not for the eye').toBeTrue();
+      expect(text(el.querySelector('.legend .no-mark dt'))).withContext('the stocks without a mark are a count in the same line').toBe('no mark6');
+    });
+
+    // The tested result was a sentence of four lines. Its numbers are numbers now; the sentence keeps the limits.
+    it('shows what the mark was worth in the tests as four numbers, the typical stock beside the average', () => {
+      const {el} = shown({candidates: [candidate('AMD')], marks: {dipBuy: 1, watch: 0, pass: 0, none: 0}});
+      const box = el.querySelector('.about .tested-figures')!;
+      expect(text(box.querySelector('h3'))).toMatch(/^In tests on \d+ stocks, over 6 months$/);
+      const figures = Array.from(box.querySelectorAll('dl > div')).map(it => [text(it.querySelector('dt')), text(it.querySelector('dd'))]);
+      expect(figures.map(it => it[0])).toEqual(['DIP BUY, on average', 'DIP BUY, the typical one', 'Any stock that dropped', 'The market']);
+      expect(figures.every(it => /^[+−]\d+\.\d%$/.test(it[1]))).withContext(JSON.stringify(figures)).toBeTrue();
+      const sentence = text(el.querySelector('app-about .tested'));
+      expect(figures.filter(it => sentence.includes(it[1])).length).withContext('the same figures as the sentence behind the control').toBe(4);
+    });
+
+    it('keeps how to read the table behind one control, whole, and out of the folded box', () => {
+      const {el} = shown({candidates: [candidate('AMD'), candidate('ARM')], marks: {dipBuy: 2, watch: 0, pass: 0, none: 0}});
+      const about = el.querySelector('.about app-about')!;
+      expect(text(about.querySelector('button'))).toBe('How to read this');
+      expect((about.querySelector('.about-body') as HTMLElement).hidden).withContext('closed until it is asked for').toBeTrue();
+      expect(about.querySelector('app-more')).withContext('no second "more" inside it').toBeNull();
+      expect(text(about.querySelector('.order-note'))).toContain('the page ranks nothing');
+      TestBed.resetTestingModule();
+      expect(shown({folded: true, candidates: [candidate('AMD'), candidate('ARM')]}).el.querySelector('app-about')).toBeNull();
     });
   });
 
@@ -299,7 +333,8 @@ describe('DipCandidatesComponent: which of the candidates move together', () => 
     const parts = (line: Element) => ['.tied-tag', '.members', '.brief'].map(part => text(line.querySelector(part)));
     expect(Array.from(el.querySelectorAll('.tied li')).map(parts)).toEqual([
       ['A', 'ACME, BOLT', '2 stocks, all Technology'], ['B', 'YARN, ZED', '2 stocks'], ['—', 'SOLO', 'moved with none of the others']]);
-    expect(text(el.querySelector('.tied .note'))).toContain('not a tested reason to pick');
+    expect(el.querySelector('.tied .note')).withContext('the sentence about the letters is not under the list any more').toBeNull();
+    expect(text(el.querySelector('app-about .tied-note'))).withContext('it is behind "How to read this"').toContain('not a tested reason to pick');
   });
 
   it('puts the stocks of a group side by side on a click on "Group", and back in A to Z on the next', () => {

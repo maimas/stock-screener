@@ -20,6 +20,9 @@ describe('WhereItFitsComponent ("Where it fits", in a stock\'s details)', () => 
     expect(Array.from(el.querySelectorAll('li')).map(say)).toEqual(['Brokerage: 20.1% ($2,013)', 'Retirement: you own it; add 8.4% ($840)']);
     expect(say(el.querySelector('p.hint'))).toBe(
       'Its size in each of your portfolios, as a share of what that portfolio is worth. The Portfolio view lists it under "Could add".');
+    // The owner: "too much text and not much signal". The lines are the signal; what a size is, is one "more" away.
+    expect((el.querySelector('p.hint') as HTMLElement).hidden).withContext('behind "more" at the heading').toBeTrue();
+    expect(el.querySelector('h4 app-more button')).not.toBeNull();
   });
 
   it('works out no amount for a stock that is not marked DIP BUY, and says why', () => {
@@ -27,6 +30,8 @@ describe('WhereItFitsComponent ("Where it fits", in a stock\'s details)', () => 
     expect(el.querySelector('ul')).toBeNull();
     expect(say(el.querySelector('p.hint'))).toBe(
       'Only a stock marked DIP BUY gets a size: the tests measured no others, so the app works out no amount for this one.');
+    expect((el.querySelector('p.hint') as HTMLElement).hidden).withContext('all there is to say: shown').toBeFalse();
+    expect(el.querySelector('h4 app-more')).toBeNull();
   });
 
   it('says how to get a size while no portfolio is worth anything', () => {

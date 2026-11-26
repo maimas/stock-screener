@@ -12,6 +12,12 @@ import {DropReadingComponent} from "../drop-reading/drop-reading.component";
 
 type ContextLine = { mark: 'plus' | 'minus' | 'neutral', text: string };
 
+/**
+ * One thing a mark rests on, as a row of the details: its name, its figure, what the mark needs of it (where that
+ * is a number), and whether it is enough. `ok` is left out where there is nothing to judge.
+ */
+export type MarkFact = { label: string, value: string, needs?: string, ok?: boolean };
+
 const NO_VERDICT_TEXT: Record<NoVerdict, string> = {
   'fund': "A fund has no profit of its own, so the mark, which rests on a company's growth, does not apply.",
   'too-new': 'This company is too young for the tested rule, which needs 8 reported quarters and a year of prices. ' +
@@ -68,8 +74,8 @@ export class SignalDetailComponent implements OnChanges {
 
   title = '';
   lead = '';
-  inputs: string[] = [];
-  since = '';
+  /** What the mark rests on, a row a fact; then, for a DIP BUY, since when it has the mark. */
+  facts: MarkFact[] = [];
   tests: readonly string[] = [];
   risks: string[] = [];
   afterBuying: readonly string[] = [];
@@ -108,10 +114,9 @@ export class SignalDetailComponent implements OnChanges {
     this.title = signal ? `Why ${signal.verdict}` : 'No mark';
     this.lead = signal ? signal.headline : NO_VERDICT_TEXT[this.noVerdict];
 
-    this.inputs = signal ? verdictInputs(signal) : [];
-
     const isDipBuy = signal?.verdict === 'DIP BUY';
-    this.since = isDipBuy ? this.sinceText(symbol, stock.quote?.price) : '';
+    const since = isDipBuy ? this.sinceFact(symbol, stock.quote?.price) : undefined;
+    this.facts = signal ? [...verdictFacts(signal), ...(since ? [since] : [])] : [];
     this.tests = isDipBuy ? DIP_BUY_TEST_NOTES : [];
     this.afterBuying = isDipBuy ? AFTER_BUYING_NOTES : [];
     this.risks = [
@@ -139,19 +144,31 @@ export class SignalDetailComponent implements OnChanges {
     return text;
   }
 
-  private sinceText(symbol: string, price?: number): string {
+  trackByLabel(_: number, fact: MarkFact): string {
+    return fact.label;
+  }
+
+  /**
+   * Since when the daily log has this stock as a DIP BUY, and what its price and the market did since: one row
+   * with the mark's two facts. It was two sentences ("First recorded as a DIP BUY today. From tomorrow this line
+   * shows what has happened since.").
+   */
+  private sinceFact(symbol: string, price?: number): MarkFact | undefined {
     const since = this.log && dipBuySince(this.log, symbol, this.today);
     if (!since || !price) {
-      return '';
+      return undefined;
     }
     if (since.day === this.today) {
-      return 'First recorded as a DIP BUY today. From tomorrow this line shows what has happened since.';
+      return {label: 'Marked', value: 'today, for the first time'};
     }
     const days = Math.round((Date.parse(this.today) - Date.parse(since.day)) / 86_400_000);
     const spyNow = this.log!.days[this.today]?.spy;
-    const index = since.spy && spyNow ? `; the market ${signed((spyNow / since.spy - 1) * 100)}% over the same days` : '';
-    return `A DIP BUY since ${logDay(since.day)} (${days} day${days === 1 ? '' : 's'}): the price was ${since.price.toFixed(2)} then, ` +
-      `${signed((price / since.price - 1) * 100)}% since${index}.`;
+    const index = since.spy && spyNow ? `, the market ${signed((spyNow / since.spy - 1) * 100)}%` : '';
+    return {
+      label: 'Marked',
+      value: `${logDay(since.day)}, ${days} day${days === 1 ? '' : 's'} ago at ${since.price.toFixed(2)}: ` +
+        `${signed((price / since.price - 1) * 100)}% since${index}`,
+    };
   }
 
   /** How the analysts' target and EPS estimate have moved since the log's reading from three weeks ago or more. */
@@ -208,6 +225,22 @@ export function verdictInputs(signal: SignalResult): string[] {
     `${signal.growing ? 'Growing' : 'Not growing'}: ${signal.growthText}.`,
     signal.belowHigh === undefined ? 'Its highest price of the past year is not known.'
       : `${signal.belowHigh.toFixed(1)}% below its highest price of the past year (DIP BUY needs ${DIP_PERCENT}% or more).`,
+  ];
+}
+
+/**
+ * The same two facts as rows: the name of each, its figure, what DIP BUY needs of it, and whether it is enough.
+ * A reader sees at a glance which of the two a WATCH or a PASS is short of.
+ */
+export function verdictFacts(signal: SignalResult): MarkFact[] {
+  return [
+    {label: signal.growing ? 'Growing' : 'Not growing', value: signal.growthText, ok: signal.growing},
+    signal.belowHigh === undefined
+      ? {label: 'Dropped', value: 'its highest price of the past year is not known'}
+      : {
+        label: 'Dropped', value: `${signal.belowHigh.toFixed(1)}% below its highest price of the past year`,
+        needs: `DIP BUY needs ${DIP_PERCENT}% or more`, ok: signal.belowHigh >= DIP_PERCENT,
+      },
   ];
 }
 
