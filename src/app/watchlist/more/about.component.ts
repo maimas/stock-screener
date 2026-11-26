@@ -46,10 +46,12 @@ export class AboutComponent implements OnDestroy {
     this.changes.unsubscribe();
   }
 
+  /** Whether the explanations are shown. Read from outside too: a link elsewhere in a box can open them (see `toggle`). */
   get open(): boolean {
     return this.more.isOpen(this.key);
   }
 
+  /** Opens or closes them. Called from outside too, by a link that leads to what is behind the control. */
   toggle(): void {
     this.more.toggle(this.key);
   }

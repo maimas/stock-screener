@@ -5,9 +5,10 @@
 
 // "more" at the end of the first sentence, "less" at the end of the last: a word in the colour of a link, small
 // enough not to compete with the sentence. The word is drawn here (see the component).
+// (Its own padding makes it a bigger thing to hit than the word is; the negative margin gives the line its height back.)
 .toggle {
-  margin-left: 6px;
-  padding: 0 2px;
+  margin: -4px 0 -4px 2px;
+  padding: 4px 6px;
   border: 0;
   border-radius: 2px;
   background: none;

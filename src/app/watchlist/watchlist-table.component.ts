@@ -1560,7 +1560,9 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
       {
         columnName: 'signal',
         // "Mark", the word every sentence on the page uses for DIP BUY, WATCH and PASS (this heading said "Signal").
-        columnDisplayName: 'Mark',
+        // The figure beside the mark (how far the price is below its highest of the past year) had no name in sight,
+        // and "Past year" stood in the same row: the heading names both, in the word of "Dip candidates" and "Could add".
+        columnDisplayName: 'Mark · dropped',
         columnTooltip: 'DIP BUY: the price is ' + DIP_PERCENT + '% or more below its highest of the past year and the business is ' +
           'growing (profit per share on course to grow ' + GROWTH_EPS_PERCENT + '% or more, or sales up ' + GROWTH_REVENUE_PERCENT +
           '% or more on a year ago; see Growth). WATCH: growing, but no such drop yet. PASS: not growing enough. ' +
@@ -1685,7 +1687,8 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
         columnName: 'trend',
         columnDisplayName: 'vs 200D',
         columnTooltip: 'Price vs its 200-day moving average; the arrow shows whether that average is rising or falling. ' +
-          'Context only: it did not improve dip returns out of sample, so the mark does not use it.',
+          'Context only: in tests on stocks it had not seen before, it did not improve the results of stocks that dropped, ' +
+          'so the mark does not use it.',
         template: this.trendCellTemplate,
         templateData: (it: Stock) => trendFor(it),
         sortValue: (it: Stock) => trendFor(it)?.vs200Percent
@@ -1693,9 +1696,9 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
       {
         columnName: 'holders',
         columnDisplayName: 'Holders in Profit',
-        columnTooltip: "Estimated positions cost distribution (like Webull's): where current holders bought over the last year. " +
-          "Dark = bought below today's price (in profit), pale = bought above it. Context only: in the backtests it did not " +
-          'predict dip outcomes, so the mark does not use it.',
+        columnTooltip: 'An estimate of the prices at which today\'s holders bought over the last year. ' +
+          "Dark = bought below today's price (in profit), pale = bought above it. Context only: in the tests it did not " +
+          'tell which of the stocks that dropped did well, so the mark does not use it.',
         template: this.costDistributionCellTemplate,
         templateData: (it: Stock) => costDistributionFor(it),
         sortValue: (it: Stock) => costDistributionFor(it)?.profitRatio
@@ -1704,7 +1707,8 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
         columnName: 'analystRating',
         columnDisplayName: 'Analyst Rating',
         columnTooltip: "The stock's analyst consensus, with the split of ratings from Sell (left) to Strong Buy (right). " +
-          'Sorts by average score; ascending puts the most bullish first. Context only (untestable).',
+          'A click orders the rows by the average rating, the most favourable first. Context only: there is no history of ' +
+          'past ratings to test it on.',
         template: this.analystRecommendationCellTemplate,
         templateData: (it: Stock) => it?.equity?.analysis?.estimate,
         // Provider scale: 1 = Strong Buy … 5 = Sell

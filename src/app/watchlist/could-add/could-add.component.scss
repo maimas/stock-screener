@@ -182,6 +182,21 @@ td.starts {
   border-left: 1px solid var(--line);
 }
 
+// In a box under 1,200px (a window of about 1,100px) the cells stand 8px apart. At 12px a table of twenty rows, one
+// of them an owned stock that the limit holds back ("add 19.0% $2,632 at your limit"), was 27px wider than its
+// box, 33px with rows ticked, and scrolled sideways inside its block.
+@container (max-width: 1199px) {
+  th,
+  td {
+    padding-right: 8px;
+  }
+
+  th.starts,
+  td.starts {
+    padding-left: 8px;
+  }
+}
+
 // The foot of the table while two or more rows are ticked: one button for all of them, under the tick boxes it
 // belongs to, and the form it opens. Not a row to click, and no line under it.
 tfoot td {

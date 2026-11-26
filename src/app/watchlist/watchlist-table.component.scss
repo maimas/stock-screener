@@ -47,14 +47,16 @@
 // starts at the same place in each list, so the lists can be read down the page as one table. The cells live
 // inside the smart table, hence ::ng-deep.
 ::ng-deep .smart-table.short {
-  .mat-column-symbol { width: 13%; }
+  .mat-column-symbol { width: 12%; }
   // "Group" between the stock and its mark. The widths used to add up to the whole table without it, which left
   // it in the page and 0px wide: no letter in sight, and a tab stop on nothing.
   .mat-column-group { width: 6%; }
   .mat-column-signal { width: 14%; }
-  .mat-column-price { width: 9%; }
+  .mat-column-price { width: 8%; }
   .mat-column-growth { width: 21%; }
-  .mat-column-earnings { width: 17%; }
+  // "Next results" was cut in a list of two side by side ("Dec 9 in 13 days · re-check a"): it has the 2% that the
+  // symbol and the price did not need.
+  .mat-column-earnings { width: 19%; }
   .mat-column-volatility { width: 11%; }
   .mat-column-oneYear { width: 9%; }
 }
