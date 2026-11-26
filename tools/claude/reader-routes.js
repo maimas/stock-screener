@@ -157,4 +157,4 @@ function readerRoutes({storage, run = question => runRecipe(recipe, question), a
   };
 }
 
-module.exports = {readerRoutes};
+module.exports = {readerRoutes, installedCheck};

@@ -175,3 +175,21 @@ test('does not remove an ordinary file or a folder that happens to be at the pat
   await assert.rejects(() => listenOn(createReaderService(), folder), /not a socket/);
   assert.ok(fs.existsSync(folder));
 });
+
+test('as it is started, it runs both jobs the app asks for: why a stock fell, and a view of a stock', async () => {
+  const place = socketPath + (process.platform === 'win32' ? '-both' : '.both');
+  const ran = [];
+  const both = createReaderService({available: () => true, run: async recipe => (ran.push(recipe), {ok: true, output: {}})});
+  const usual = socketPath;
+  try {
+    await listenOn(both, place);
+    socketPath = place;
+    assert.equal((await post('/run', {recipe: 'why-it-dropped', prompt: 'a'})).status, 200);
+    assert.equal((await post('/run', {recipe: 'claude-view', prompt: 'b'})).status, 200);
+    assert.deepEqual(ran.map(recipe => recipe.name), ['why-it-dropped', 'claude-view']);
+    assert.deepEqual(ran.map(recipe => recipe.tools), [['WebSearch'], ['WebSearch']], 'each with its own, and only, tool');
+  } finally {
+    socketPath = usual;
+    await stop(both);
+  }
+});

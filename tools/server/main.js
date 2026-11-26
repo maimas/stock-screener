@@ -17,6 +17,7 @@ const {createMongoStorage} = require('../store/storage-mongo');
 const {startDaily} = require('../recorder/daily');
 const {readerRoutes} = require('../claude/reader-routes');
 const {readerClient, askAtMostEvery} = require('../claude/reader-client');
+const {viewRoutes} = require('../claude/view-routes');
 const {createAppServer, connectWithRetry, putBackThenListen} = require('./server');
 
 async function main() {
@@ -34,8 +35,13 @@ async function main() {
   const reader = readerRoutes(asker
     ? {storage, run: asker.run, available: askAtMostEvery(asker.available, 60_000)}
     : {storage, available: () => false, run: async () => ({ok: false, reason: 'not-installed'})});
+  // Claude's view of the stocks of a list: the same reader, asked with its other recipe. It answers before the
+  // reading routes, which take every other address under /claude as their own.
+  const views = viewRoutes(asker
+    ? {storage, run: readerClient({socketPath: READER_SOCKET, recipe: 'claude-view'}).run, available: askAtMostEvery(asker.available, 60_000)}
+    : {storage, available: () => false, run: async () => ({ok: false, reason: 'not-installed'})});
   const server = createAppServer({
-    storage, distDir, providerRoutes: require('../../proxy.conf.json'), routes: [reader],
+    storage, distDir, providerRoutes: require('../../proxy.conf.json'), routes: [views, reader],
   });
   try {
     await putBackThenListen({storage, backupDir: BACKUP_DIR || undefined, server, port: Number(PORT), host: HOST, log: console.log});

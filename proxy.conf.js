@@ -19,10 +19,20 @@ const routes = require('./proxy.conf.json');
 const {createMemoryStorage} = require('./tools/store/storage-memory');
 const {startStore} = require('./tools/store/store-server');
 const {readerRoutes} = require('./tools/claude/reader-routes');
+const {viewRoutes, oneAtATime} = require('./tools/claude/view-routes');
+const {runRecipe} = require('./tools/claude/claude-cli');
+const {recipe: readingRecipe} = require('./tools/claude/why-it-dropped');
+const {recipe: viewRecipe} = require('./tools/claude/claude-view');
 
 const port = Number(process.env.STORE_PORT) || 4301;
 const storage = createMemoryStorage();
-startStore({storage, port, routes: [readerRoutes({storage})], where: 'memory only: nothing survives when this server stops'});
+// Claude Code runs one thing at a time here too: a view of a stock waits while a fall is being read, and the other way round.
+const inTurn = oneAtATime();
+const routesOfClaude = [
+  viewRoutes({storage, run: inTurn(question => runRecipe(viewRecipe, question))}),
+  readerRoutes({storage, run: inTurn(question => runRecipe(readingRecipe, question))}),
+];
+startStore({storage, port, routes: routesOfClaude, where: 'memory only: nothing survives when this server stops'});
 
 const local = {target: `http://127.0.0.1:${port}`, secure: false, logLevel: 'warn'};
 module.exports = {
