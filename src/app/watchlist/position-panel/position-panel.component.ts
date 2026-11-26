@@ -262,7 +262,8 @@ export class PositionPanelComponent implements OnChanges {
 
   /**
    * The holding as figures with their names, a row each: what the sentences below say, without the sentences. The
-   * three half-years of the tests stand together, the bad one first.
+   * three half-years of the tests stand together, the bad one first. The names are the headings of "What you own"
+   * and "Could add" ("Value", "% of total", "Bad case", "Typical", "Good case"): one fact has one name on the page.
    */
   get ownFacts(): OwnFact[] {
     const v = this.row!.view, p = v.position, risk = this.row?.risk, cases = this.row?.cases;
@@ -270,7 +271,7 @@ export class PositionPanelComponent implements OnChanges {
     const facts: OwnFact[] = [
       {label: 'Holding', value: p.day ? `${shares}, bought ${dayText(p.day)} at ${p.price.toFixed(2)}` : `${shares} at an average price of ${p.price.toFixed(2)}`},
       {
-        label: 'Worth now',
+        label: 'Value',
         value: v.value === undefined ? 'no current price: the quote did not load'
           : `${money(v.value)} · ${signedMoney(v.gain)} (${signedPercent(v.gainPercent)})` +
             (v.indexPercent === undefined ? '' : ` · the market ${signedPercent(v.indexPercent)} since then`),
@@ -284,15 +285,15 @@ export class PositionPanelComponent implements OnChanges {
       },
     ];
     if (v.weightPercent !== undefined) {
-      facts.push({label: 'Share', value: `${v.weightPercent.toFixed(1)}% of your portfolio`});
+      facts.push({label: '% of total', value: `${v.weightPercent.toFixed(1)}% of your portfolio`});
     }
     if (risk && cases) {
       const share = risk.ofPortfolioPercent === undefined ? '' : ` · ${risk.ofPortfolioPercent.toFixed(1)}% of your portfolio`;
       const limit = risk.overBudget === undefined ? '' : ` · ${risk.overBudget ? 'over' : 'within'} your limit of ${money(this.budget)}`;
       facts.push(
-        {label: 'Bad half-year', value: `${signedMoney(-risk.loss)} (${signedWholePercent(-cases.lossPercent)})${share}${limit}`, over: !!risk.overBudget},
+        {label: 'Bad case', value: `${signedMoney(-risk.loss)} (${signedWholePercent(-cases.lossPercent)})${share}${limit}`, over: !!risk.overBudget},
         {label: 'Typical', value: `${signedMoney(risk.typical)} (${signedPercent(cases.typicalPercent)})`},
-        {label: 'Good half-year', value: `${signedMoney(risk.gain)} (${signedWholePercent(cases.gainPercent)})`},
+        {label: 'Good case', value: `${signedMoney(risk.gain)} (${signedWholePercent(cases.gainPercent)})`},
       );
     }
     return facts;

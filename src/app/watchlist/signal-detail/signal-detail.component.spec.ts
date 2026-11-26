@@ -299,7 +299,7 @@ describe('SignalDetailComponent: what is about this stock, what is about you, an
     // repeated the row above it. The two figures are rows now; the sentence that says them is behind "more".
     const risk = Array.from(el.querySelectorAll('.about-stock section')).find(it => it.querySelector('h4')?.textContent?.trim() === 'Risk of this stock')!;
     const figures = Array.from(risk.querySelectorAll('dl.mark-facts > div')).map(row => [clean(row.querySelector('dt')), clean(row.querySelector('dd'))]);
-    expect(figures.map(it => it[0])).toEqual(['Price swings', 'Fell a further 20%']);
+    expect(figures.map(it => it[0])).withContext('"Swings": the one name of this fact, in the lists and in "Could add" too').toEqual(['Swings', 'Fell a further 20%']);
     expect(figures[0][1]).toMatch(/^\d+% a year · (calm|volatile)$/);
     expect(figures[1][1]).toMatch(/^.+ such stocks, within 13 weeks of the mark · (calm|volatile) ones: .+$/);
     expect((risk.querySelector('ul') as HTMLElement).hidden).withContext('the sentence is one "more" away').toBeTrue();

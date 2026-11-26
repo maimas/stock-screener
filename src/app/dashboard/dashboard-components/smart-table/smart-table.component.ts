@@ -31,6 +31,9 @@ const TOGGLE_COLUMN = '__toggle';
 const DETAIL_COLUMN = '__detail';
 const WIDE_SCREEN = '(min-width: 700px)';
 
+/** Where a row may stand at the top of the window: under the bar across the top of the page (48px) and a little air. */
+const UNDER_THE_BAR = 64;
+
 @Component({
   selector: "app-smart-table",
   standalone: true,
@@ -198,8 +201,34 @@ export class SmartTableComponent implements OnInit, OnChanges, AfterViewInit, On
     const open = !this.expanded.delete(key);
     if (open) {
       this.expanded.add(key);
+      this.bringIntoView(key);
     }
     this.rowToggled.emit({row, open});
+  }
+
+  /**
+   * A row opened near the foot of the window used to open its details wholly below it: only the row's arrow
+   * turned, and the click read as dead. The page moves just far enough for the details to be in the window, and
+   * never so far that the row itself leaves it (details taller than the window then start under their row).
+   * Only for a row the reader opened here: who opens one from outside (`expand`) scrolls to it themselves.
+   */
+  private bringIntoView(key: string): void {
+    this.zone.runOutsideAngular(() => setTimeout(() => {
+      const detail = Array.from(this.host.nativeElement.querySelectorAll<HTMLElement>('tr.detail-row.open'))
+        .find(it => it.getAttribute('data-detail') === key);
+      if (!detail) {
+        return;
+      }
+      const box = detail.getBoundingClientRect();
+      const below = box.bottom - window.innerHeight;
+      if (below <= 0) {
+        return;
+      }
+      const row = (detail.previousElementSibling as HTMLElement | null)?.getBoundingClientRect() ?? box;
+      const room = row.top - UNDER_THE_BAR;
+      const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      window.scrollBy({top: Math.max(0, Math.min(below + 16, room)), behavior: calm ? 'auto' : 'smooth'});
+    }, 80));
   }
 
   /** How many rows have their details open. */

@@ -10,6 +10,7 @@ import {MatTooltipModule} from "@angular/material/tooltip";
 import {DIP_PERCENT, MarketFear} from "../signal";
 import {CARD_NOTE, FEAR_HIGH_SHORT} from "../evidence";
 import {testedStrip} from "../tested-strip";
+import {FACT_HELP} from "../stock-facts";
 
 /** A stock marked DIP BUY, as this box shows it. */
 export type DipCandidate = {
@@ -89,6 +90,17 @@ export class DipCandidatesComponent implements AfterViewInit, OnDestroy {
   groups: TiedGroups = NO_GROUPS;
   private groupOf = new Map<string, TiedGroup>();
   readonly tiedTitle = TIED_TITLE;
+  /**
+   * What the headings are, at the pointer and on the Tab key: the words "Could add" uses for the same two columns,
+   * and what "within 2 weeks" under "Next results" means for the mark. A review found these headings explained in
+   * every other table and silent here.
+   */
+  readonly help = {
+    dropped: FACT_HELP.dropped,
+    growing: FACT_HELP.growing,
+    results: 'When the company next reports its results, said only when that is within 2 weeks.',
+    soon: 'The company reports its results within 2 weeks: the price may swing, and the report will change the growth numbers this mark rests on.',
+  };
 
   /** What the count of stocks without a mark stands for: on that count, and in the page for a screen reader. */
   get unmarkedText(): string {

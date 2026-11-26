@@ -68,15 +68,15 @@ describe('PositionPanelComponent, in everyday words', () => {
   it('gives the holding as figures with their names, the bad half-year before the typical and the good one', () => {
     expect(panel({shares: 60}).ownFacts.map(it => [it.label, it.value, !!it.over])).toEqual([
       ['Holding', '60 shares at an average price of 100.00', false],
-      ['Worth now', '$5,400 · −$600 (−10.0%)', false],
+      ['Value', '$5,400 · −$600 (−10.0%)', false],
       ['Held', 'no purchase date recorded', false],
-      ['Share', '13.5% of your portfolio', false],
-      ['Bad half-year', '−$2,214 (−41%) · 5.5% of your portfolio · over your limit of $800', true],
+      ['% of total', '13.5% of your portfolio', false],
+      ['Bad case', '−$2,214 (−41%) · 5.5% of your portfolio · over your limit of $800', true],
       ['Typical', '+$130 (+2.4%)', false],
-      ['Good half-year', '+$4,590 (+85%)', false],
+      ['Good case', '+$4,590 (+85%)', false],
     ]);
     expect(panel({shares: 10, marked: false}).ownFacts.map(it => it.label)).withContext('no tested cases for a stock without the mark').toEqual(
-      ['Holding', 'Worth now', 'Held', 'Share']);
+      ['Holding', 'Value', 'Held', '% of total']);
   });
 
   it('gives the typical and the good half-year beside it', () => {

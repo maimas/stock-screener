@@ -44,6 +44,6 @@
   <tr mat-header-row *matHeaderRowDef="rowColumns"></tr>
   <tr mat-row *matRowDef="let row; columns: rowColumns;" class="main-row"
       [class.clickable]="!!detailTemplate" [class.expanded]="isExpanded(row)" (click)="onRowClick(row, $event)"></tr>
-  <tr mat-row *matRowDef="let row; columns: detailColumns" class="detail-row" [class.open]="isExpanded(row)"></tr>
+  <tr mat-row *matRowDef="let row; columns: detailColumns" class="detail-row" [class.open]="isExpanded(row)" [attr.data-detail]="rowKey(row)"></tr>
 </table>
 </div>

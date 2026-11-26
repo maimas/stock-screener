@@ -1,5 +1,10 @@
 import {MoreComponent} from "../more/more.component";
 import {MoreService} from "../more/more.service";
+import {resultsSoonLine} from "../results-soon";
+
+// The sentence lives in a file without a component (results-soon.ts), so that code which is not part of the page
+// can say it too; it is still found here by what imported it from this file before.
+export {resultsSoonLine} from "../results-soon";
 import {MoreRestDirective} from "../more/more-rest.directive";
 import {Component, EventEmitter, HostListener, Input, OnChanges, Output} from "@angular/core";
 import {NgForOf, NgIf} from "@angular/common";
@@ -96,6 +101,8 @@ export class SignalDetailComponent implements OnChanges {
   risks: string[] = [];
   /** The risk of this one stock as figures: how much its price swings, and how often such stocks fell further in the tests. */
   riskFacts: MarkFact[] = [];
+  /** There is something to say under "Risk of this stock": a figure or a line. */
+  hasRisk = false;
   /** The sentence that says those two figures in words: behind "more" while the figures are shown. */
   swings = '';
   /** The other lines about its risk (unlike most tested stocks; results due): each shows its first sentence. */
@@ -145,12 +152,17 @@ export class SignalDetailComponent implements OnChanges {
     // "Risk of this stock" under one DIP BUY and not under the next.
     const swings = isDipBuy && signal?.volatility !== undefined;
     this.swings = !swings ? '' : signal!.volatilityTier ? volatilityNote(signal!.volatilityTier, signal!.volatility!) : VOLATILITY_GROUPS_NOTE;
-    this.riskFacts = swings ? swingFacts(signal!.volatilityTier, signal!.volatility!) : [];
+    this.riskFacts = swings ? swingFacts(signal!.volatilityTier, signal!.volatility!)
+      // Not marked DIP BUY: how much its price swings is a fact about it all the same (the list shows it in its row,
+      // and a review found the details silent on it). How often such stocks fell further was tested for marked
+      // stocks only, so that figure is left out here.
+      : signal?.volatility !== undefined ? [{label: 'Swings', value: `${signal.volatility.toFixed(0)}% a year`, needs: 'tested for stocks marked DIP BUY only'}] : [];
     this.otherRisks = [
       signal?.rareInTests ?? '',
       signal?.earningsInDays !== undefined ? resultsSoonLine(signal.earningsInDays) : '',
     ].filter(it => !!it);
     this.risks = [this.swings, ...this.otherRisks].filter(it => !!it);
+    this.hasRisk = this.risks.length > 0 || this.riskFacts.length > 0;
 
     this.context = [
       ...(signal?.factors ?? []).map(it => ({mark: it.points > 0 ? 'plus' : it.points < 0 ? 'minus' : 'neutral', text: it.reason} as ContextLine)),
@@ -281,13 +293,13 @@ export function swingFacts(tier: 'high' | 'low' | undefined, volatility: number)
   if (!tier) {
     // Neither calm nor volatile: the tests have a figure for each of those groups and none for the stocks between.
     return [
-      {label: 'Price swings', value: `${volatility.toFixed(0)}% a year`, needs: 'between calm and volatile'},
+      {label: 'Swings', value: `${volatility.toFixed(0)}% a year`, needs: 'between calm and volatile'},
       {label: 'Fell a further 20%', value: `${inTen(fell.calm)} calm stocks, within 13 weeks of the mark`, needs: `volatile ones: ${inTen(fell.volatile)}`},
     ];
   }
   const own = tier === 'high' ? fell.volatile : fell.calm, other = tier === 'high' ? fell.calm : fell.volatile;
   return [
-    {label: 'Price swings', value: `${volatility.toFixed(0)}% a year`, needs: tier === 'high' ? 'volatile' : 'calm'},
+    {label: 'Swings', value: `${volatility.toFixed(0)}% a year`, needs: tier === 'high' ? 'volatile' : 'calm'},
     {
       label: 'Fell a further 20%', value: `${inTen(own)} such stocks, within 13 weeks of the mark`,
       needs: `${tier === 'high' ? 'calm' : 'volatile'} ones: ${inTen(other)}`,
@@ -298,18 +310,6 @@ export function swingFacts(tier: 'high' | 'low' | undefined, volatility: number)
 /** $ millions as "$5.00B" or "$640M". */
 function millions(value: number): string {
   return value >= 1000 ? `$${(value / 1000).toFixed(2)}B` : `$${value.toFixed(0)}M`;
-}
-
-/**
- * That the company is about to report its results, and what that does to the mark: said in the page's own words
- * ("reports its results", "mark"), for today, tomorrow or a number of days.
- */
-export function resultsSoonLine(days: number): string {
-  return `Reports its results ${earningsWhen(days)}: the price may swing, and the report will change the growth numbers this mark rests on.`;
-}
-
-function earningsWhen(days: number): string {
-  return days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`;
 }
 
 function logDay(day: string): string {

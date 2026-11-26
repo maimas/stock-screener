@@ -43,15 +43,15 @@
             <th scope="col" [attr.aria-sort]="sortedAs('symbol')">
               <button type="button" class="sort-head up" (click)="sortBy('symbol')">Stock</button></th>
             <th scope="col" class="num" [attr.aria-sort]="sortedAs('dropped')">
-              <button type="button" class="sort-head" (click)="sortBy('dropped')">Dropped</button></th>
+              <button type="button" class="sort-head has-help" (click)="sortBy('dropped')" [matTooltip]="help.dropped" matTooltipClass="multiline-tooltip">Dropped</button></th>
             <th scope="col" [attr.aria-sort]="sortedAs('growing')">
-              <button type="button" class="sort-head" (click)="sortBy('growing')">Growing</button></th>
+              <button type="button" class="sort-head has-help" (click)="sortBy('growing')" [matTooltip]="help.growing" matTooltipClass="multiline-tooltip">Growing</button></th>
             <!-- Which stocks moved together: the same letter, the same group. Left out when the box is folded. -->
             <th scope="col" class="group-head" *ngIf="groups.groups.length > 0 && !folded" [attr.aria-sort]="sortedAs('group')">
               <button type="button" class="sort-head up has-help" (click)="sortBy('group')"
                       [matTooltip]="groupHelp" matTooltipClass="multiline-tooltip">Group</button></th>
             <th scope="col" *ngIf="anyReportsSoon" [attr.aria-sort]="sortedAs('soon')">
-              <button type="button" class="sort-head up" (click)="sortBy('soon')">Next results</button></th>
+              <button type="button" class="sort-head up has-help" (click)="sortBy('soon')" [matTooltip]="help.results" matTooltipClass="multiline-tooltip">Next results</button></th>
           </tr>
           </thead>
           <tbody>
@@ -68,7 +68,7 @@
               <span class="tied-tag" *ngIf="group(c.symbol) as g; else noGroup" [attr.aria-label]="'Group ' + g.letter"><i [class]="'g' + g.index" aria-hidden="true"></i>{{ g.letter }}</span>
               <ng-template #noGroup><span class="tied-tag none" aria-label="In no group">—</span></ng-template>
             </td>
-            <td class="soon" *ngIf="anyReportsSoon">{{ c.earningsSoon ? 'within 2 weeks' : '' }}</td>
+            <td class="soon" *ngIf="anyReportsSoon"><span *ngIf="c.earningsSoon" [matTooltip]="help.soon" matTooltipClass="multiline-tooltip">within 2 weeks</span></td>
           </tr>
           </tbody>
         </table>
