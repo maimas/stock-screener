@@ -106,6 +106,28 @@ function pageAddress(text) {
 }
 
 /**
+ * The pages an answer names that a search of the same run really returned: at most three, each once, under the
+ * title the search gave it. A page the answer made up is not among them, so it is never shown.
+ */
+function returnedSources(named, links) {
+  const returned = new Map();
+  (Array.isArray(links) ? links : []).forEach(link => {
+    const address = pageAddress(link?.url);
+    if (address && !returned.has(address)) {
+      returned.set(address, oneLine(link.title ?? '').slice(0, MAX_TITLE) || address);
+    }
+  });
+  const sources = [];
+  (Array.isArray(named) ? named : []).forEach(source => {
+    const address = pageAddress(source?.url);
+    if (address && returned.has(address) && sources.length < MAX_SOURCES && !sources.some(it => it.url === address)) {
+      sources.push({title: returned.get(address), url: address});
+    }
+  });
+  return sources;
+}
+
+/**
  * The reading the page shows, made from Claude's answer and from the pages its searches returned.
  * `no-answer`: the answer is not one plain sentence about one of the four kinds. `no-source`: it names no page the
  * search returned, so there is nothing to check it against and it is not shown.
@@ -122,24 +144,11 @@ function readingFrom(output, links, now) {
   if (!sentence || sentence.length > MAX_SENTENCE || /https?:\/\//i.test(sentence)) {
     return {ok: false, reason: 'no-answer'};
   }
-  const returned = new Map();
-  (Array.isArray(links) ? links : []).forEach(link => {
-    const address = pageAddress(link?.url);
-    if (address && !returned.has(address)) {
-      returned.set(address, oneLine(link.title ?? '').slice(0, MAX_TITLE) || address);
-    }
-  });
-  const sources = [];
-  (Array.isArray(output.sources) ? output.sources : []).forEach(source => {
-    const address = pageAddress(source?.url);
-    if (address && returned.has(address) && sources.length < MAX_SOURCES && !sources.some(it => it.url === address)) {
-      sources.push({title: returned.get(address), url: address});
-    }
-  });
+  const sources = returnedSources(output.sources, links);
   if (!sources.length) {
     return {ok: false, reason: 'no-source'};
   }
   return {ok: true, reading: {what: /[.!?]$/.test(sentence) ? sentence : `${sentence}.`, about: output.about, sources, readAt}};
 }
 
-module.exports = {recipe, requestFrom, promptFor, readingFrom};
+module.exports = {recipe, requestFrom, promptFor, readingFrom, oneLine, plainName, isDay, returnedSources};

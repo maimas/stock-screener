@@ -29,6 +29,8 @@ COPY tools/store ./tools/store
 COPY tools/server ./tools/server
 COPY tools/recorder ./tools/recorder
 COPY tools/claude ./tools/claude
+# What the tests say, quoted to Claude with a stock's figures: read when asked, so it is never a number typed twice.
+COPY tools/signal-backtest/quoted_figures.json ./tools/signal-backtest/quoted_figures.json
 COPY --from=build /app/dist/material-pro-angular-lite ./dist
 RUN sed -i 's/\r$//' tools/server/entrypoint.sh && chmod +x tools/server/entrypoint.sh \
  && mkdir -p /backups /run/reader /home/node/.claude \
