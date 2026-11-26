@@ -1,0 +1,44 @@
+<div class="editor" role="group" [attr.aria-label]="'Edit the list ' + list.title" (keydown.escape)="done.emit()">
+  <div class="line">
+    <form class="field" (ngSubmit)="submitTitle()">
+      <label [for]="'list-name-' + list.id">Name</label>
+      <input [id]="'list-name-' + list.id" class="name" type="text" name="title" maxlength="40" autocomplete="off" [(ngModel)]="title">
+      <button mat-stroked-button type="submit" [disabled]="!canRename">Rename</button>
+    </form>
+    <div class="order">
+      <button type="button" class="link-button" [disabled]="first" (click)="move.emit(-1)">Move up</button>
+      <button type="button" class="link-button" [disabled]="last" (click)="move.emit(1)">Move down</button>
+      <!-- Asked about in place, the answer that keeps the list first: a slip of a few pixels from "Move down"
+           used to delete the list at once (with an Undo that lasts half a minute). -->
+      <button type="button" class="link-button danger" *ngIf="!asking" (click)="ask()">Delete list</button>
+      <span class="ask" *ngIf="asking" role="group" [attr.aria-label]="'Delete the list ' + list.title + '?'">
+        <span class="question">Delete the list {{ list.title }}?</span>
+        <button mat-stroked-button type="button" class="keep" (click)="asking = false">Keep it</button>
+        <button mat-button type="button" class="danger" (click)="asking = false; removeList.emit()">Delete it</button>
+      </span>
+    </div>
+  </div>
+
+  <div class="line">
+    <span class="label" [id]="'list-stocks-' + list.id">Stocks</span>
+    <ul class="symbols" [attr.aria-labelledby]="'list-stocks-' + list.id">
+      <li *ngFor="let item of list.symbols; trackBy: trackBySymbol">
+        <span>{{ item }}</span>
+        <button type="button" class="remove" (click)="removeSymbol.emit(item)"
+                [attr.aria-label]="'Remove ' + item + ' from ' + list.title">&times;</button>
+      </li>
+      <li class="none" *ngIf="list.symbols.length === 0">none yet</li>
+    </ul>
+  </div>
+
+  <div class="line">
+    <form class="field" (ngSubmit)="submitSymbol()">
+      <label [for]="'list-add-' + list.id">Add a stock</label>
+      <input [id]="'list-add-' + list.id" class="symbol" type="text" name="symbol" maxlength="10" autocomplete="off"
+             autocapitalize="characters" spellcheck="false" placeholder="Symbol" [(ngModel)]="symbol">
+      <button mat-stroked-button type="submit" [disabled]="!symbol.trim() || checking">{{ checking ? 'Checking' : 'Add' }}</button>
+    </form>
+    <span class="problem" *ngIf="problem" role="alert">{{ problem }}</span>
+    <button mat-button type="button" class="done" (click)="done.emit()">Done</button>
+  </div>
+</div>

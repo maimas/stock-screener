@@ -1,0 +1,293 @@
+/* Global styles for the screener: the shared tokens and the browser surfaces no component owns. */
+
+:root {
+  /* Text: cool neutrals matching the template's blue-grey page, each at least 4.5:1 on white and on the tint of an
+     open row (--surface-2): the lightest is 4.76:1 there (it was 4.49:1). */
+  --ink: #1f2a30;
+  --ink-2: #4a5a63;
+  --ink-3: #62717a;
+  --line: #e2e8ec;
+  --line-strong: #b4c0c7;
+  --surface: #ffffff;
+  --surface-2: #f5f9fb;
+
+  /* Meaning: one colour per meaning, used the same way everywhere. */
+  --gain: #1b7f4b;
+  --loss: #c62828;
+  --warn: #a65b00;
+  --link: #1565c0;
+
+  /* Verdicts. */
+  --dip: #0b6e4f;
+  --dip-wash: #f1faf5;
+  --dip-line: #b9e4cf;
+  --watch: #2f6fa3;
+  --pass: #66737a;
+
+  /* The frame: the page behind the boxes, and the bar across the top (white on it is 5.7:1). */
+  --page: #eef5f9;
+  --brand: #1565c0;
+  --brand-ink: #ffffff;
+  --brand-ink-2: #dceafa;
+  --bar-height: 48px;
+
+  /* States: a row just jumped to, selected text. The chosen one of several is filled with --brand. */
+  --flash: #fff6d6;
+  --selected: #cfe6fb;
+
+  /* Type: one family and a fixed scale by role, the same at every window size. The scale is a compact one (the
+     owner asked for a compact page): the steps that carry the hierarchy are the title and the lead, and nothing
+     on the page is smaller than 12px. */
+  --text-lead: 24px;     /* the one line a box is there to say: "To do today: BUY." */
+  --text-title: 22px;    /* a box's title: one line a box, so a clear step costs no room */
+  --text-heading: 16px;  /* a heading inside a box, a list's name */
+  --text-body: 14px;     /* sentences */
+  --text-data: 13px;     /* numbers in tables, controls */
+  --text-meta: 12px;     /* labels, units, where something comes from */
+  --text-micro: 12px;    /* marks and tags */
+  /* About 75 characters of this face to a line of sentences (its "0" is wide: 62ch came to almost 90). */
+  --measure: 56ch;
+}
+
+/* Figures. The page's face (Poppins) has no figures of one width: its "1" is half as wide as its "8", and asking for
+   tabular figures changes nothing, because the face does not hold them. In a column of amounts, set to the right,
+   the digits then did not stand under one another, and "$1,111" looked a third shorter than "$8,888". So every
+   table, and every field a number is typed into, is set in a face that has them: the system's own (Segoe UI on
+   Windows, Roboto or Helvetica elsewhere). Sentences and headings outside tables keep the page's face. */
+:root {
+  --font-figures: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* The page's own face, for sentences that stand inside a table (a stock's details, a form in a row). */
+  --font-text: "Poppins", sans-serif;
+}
+
+table,
+:root .mat-mdc-table .mat-mdc-cell,
+:root .mat-mdc-table .mat-mdc-header-cell,
+input[type="number"],
+input[type="date"] {
+  font-family: var(--font-figures);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The page behind the boxes: the frame paints it, and so does the window while the frame loads.
+   Sentences are set in the regular weight: the template's light weight is too faint to read at these sizes. */
+html body {
+  background: var(--page);
+  font-weight: 400;
+}
+
+/* The template and Material's own buttons remove every focus outline; keyboard users still need to see where they
+   are. `:root` in front makes this rule win over Material's `outline: none`, which is as specific as a bare
+   `:focus-visible` and is loaded later; a component that draws its own focus still wins over this one. */
+:root :focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+/* What the Tab key or a jump within the page brings into view stops clear of the bar across the top. */
+html {
+  scroll-padding-top: calc(var(--bar-height) + 12px);
+}
+
+::selection {
+  background: var(--selected);
+  color: var(--ink);
+}
+
+/* Sentences never end on a line of one short word. */
+p,
+li,
+dd {
+  text-wrap: pretty;
+}
+
+/* Tooltips that carry sentences: wider than Material's 200px, left-aligned, line breaks kept. */
+.multiline-tooltip .mdc-tooltip__surface {
+  max-width: 420px;
+  padding: 8px 10px;
+  white-space: pre-line;
+  text-align: left;
+  font-size: var(--text-meta);
+  line-height: 1.5;
+}
+
+.cost-tooltip .mdc-tooltip__surface {
+  max-width: 380px;
+  white-space: pre-line;
+  text-align: left;
+}
+
+/* The app's marks (DIP BUY, WATCH, PASS): one look wherever a mark is shown, in the lists and where they are explained. */
+.verdict-pill {
+  display: inline-block;
+  padding: 0 8px;
+  border-radius: 9px;
+  color: #fff;
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.verdict-pill.dip {
+  background: var(--dip);
+}
+
+.verdict-pill.watch {
+  background: var(--watch);
+}
+
+.verdict-pill.pass {
+  background: var(--pass);
+}
+
+/* No mark (a fund, too new, no data): outlined, so it does not read as a fourth verdict. */
+.verdict-pill.none {
+  color: var(--ink-2);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+/* A verb of the plan ("KEEP", "SELL SOME"), on the plan card and beside each stock you own: a plain word when it
+   only says where things stand, a filled mark when the step asks for something. */
+.plan-verb {
+  font-size: var(--text-meta);
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.plan-verb.asks {
+  display: inline-block;
+  padding: 0 8px;
+  border-radius: 9px;
+  background: var(--ink-2);
+  font-size: var(--text-micro);
+  letter-spacing: 0.3px;
+  line-height: 18px;
+  color: #fff;
+}
+
+.plan-verb.asks.buy {
+  background: var(--dip);
+}
+
+.plan-verb.asks.missing,
+.plan-verb.asks.setup,
+.plan-verb.asks.trim,
+.plan-verb.asks.reserve {
+  background: var(--warn);
+}
+
+/* Tighter boxes on a phone, where the template's 24px wastes a fifth of the width. */
+@media (max-width: 699px) {
+  .mat-mdc-card .mat-mdc-card-content {
+    padding: 16px;
+  }
+}
+
+/* The lists show which column their rows follow as "What you own" does: a small triangle after the heading,
+   pointing down for the biggest first and up for the smallest (or A) first. Material's own arrow is not drawn:
+   two tables on one page had two different marks for the same thing. On the way to a click, a paler triangle
+   shows which way that column would go first. */
+.smart-table .mat-sort-header-arrow {
+  display: none;
+}
+
+.smart-table th.mat-sort-header:not(.mat-sort-header-disabled) .mat-sort-header-content::after {
+  content: "";
+  flex: none;
+  margin-left: 4px;
+  border: 4px solid transparent;
+}
+
+.smart-table th.mat-sort-header[aria-sort="ascending"]:not(.mat-sort-header-disabled) .mat-sort-header-content::after {
+  border-bottom-color: currentColor;
+  transform: translateY(-2px);
+}
+
+.smart-table th.mat-sort-header[aria-sort="descending"]:not(.mat-sort-header-disabled) .mat-sort-header-content::after {
+  border-top-color: currentColor;
+  transform: translateY(2px);
+}
+
+.smart-table th.mat-sort-header:not(.mat-sort-header-disabled):not([aria-sort="ascending"]):not([aria-sort="descending"]):hover .mat-sort-header-content::after {
+  border-top-color: var(--ink-3);
+  transform: translateY(2px);
+}
+
+.smart-table th.mat-sort-header.starts-up:not(.mat-sort-header-disabled):not([aria-sort="ascending"]):not([aria-sort="descending"]):hover .mat-sort-header-content::after {
+  border-top-color: transparent;
+  border-bottom-color: var(--ink-3);
+  transform: translateY(-2px);
+}
+
+/* The group a stock moves with: a letter with a dot of the group's colour in front of it, the same in every table
+   of the page. The letter says which group; the dot lets the eye find the rows of one group. Three colours that
+   stay apart for every pair, also for a reader who does not tell red from green, and none of them the green, red
+   or amber that mean something on this page; a fourth group and those after it wear grey. */
+.tied-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.tied-tag.none {
+  font-weight: 400;
+  color: var(--ink-3);
+}
+
+.tied-tag > i {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ink-3);
+}
+
+.tied-tag > i.g0 {
+  background: #6a4ce2;
+}
+
+.tied-tag > i.g1 {
+  background: #f2a600;
+}
+
+.tied-tag > i.g2 {
+  background: #ee7fac;
+}
+
+/* A way past a long table for the Tab key ("Skip the table of 17 stocks"): out of sight until it has the
+   keyboard, then a small link in place. The pointer never meets it. */
+.skip-over {
+  position: absolute;
+  left: -10000px;
+}
+
+.skip-over:focus {
+  position: static;
+  display: inline-block;
+  margin: 4px 0;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--link);
+  font-size: var(--text-data);
+}
+
+/* A form's own button ("Record this purchase", "Save", "Add list"): the one main action of the form, filled, so
+   that it is told at a glance from "Cancel" beside it and from the outlined buttons that only open something.
+   While it cannot be pressed it stays as quiet as it was. */
+form button[type="submit"].mat-mdc-outlined-button:not(:disabled) {
+  --mdc-outlined-button-label-text-color: var(--brand-ink);
+  --mdc-outlined-button-outline-color: var(--brand);
+  --mat-mdc-button-persistent-ripple-color: var(--brand-ink);
+  background-color: var(--brand);
+  border-color: var(--brand);
+  color: var(--brand-ink);
+}

@@ -1,0 +1,229 @@
+:host {
+  display: block;
+  // The details stand in a row of a list's table and would take the table's face for figures: they are sentences,
+  // the longest on the Watchlist, and are set in the page's face like every other paragraph.
+  font-family: var(--font-text);
+  outline: none;   // it takes the keyboard on a click inside it, so that Esc closes it: nothing to show for that
+  color: var(--ink);
+  font-size: var(--text-body);
+  font-weight: 400;
+  line-height: 1.55;
+  white-space: normal;
+}
+
+// Which company this is: one line across the top of the details, before the columns. The name is set like a
+// heading; its sector and industry are quieter.
+.head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+  padding-top: 12px;
+}
+
+.company {
+  margin: 0;
+  max-width: none;
+  font-size: var(--text-body);
+  color: var(--ink-2);
+}
+
+// The way back to the view these details were opened from, and "Close these details" at their foot: links, like
+// every other one in the details.
+.back,
+.close {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.company .name {
+  font-size: var(--text-heading);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+// A headline or a web address can be one very long word: it breaks rather than run into the next column.
+:host {
+  overflow-wrap: anywhere;
+}
+
+// Three groups, by what they are about: this stock, the reader's stake in it, and the rule. One under the other
+// in a narrow list (a phone); the first two side by side with the rule under them in a list of middling width;
+// all three side by side in a list on a desktop window. The list's own box is measured (the table it sits in sets
+// itself up as the container), not the window: a list can have the whole window or a part of it.
+.sections {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: 48px;
+  align-items: start;
+}
+
+@container (min-width: 760px) {
+  .sections {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  // Two columns: this stock down the left, and on the right the reader's stake with the rule under it. What is
+  // about the stock is the longest of the three, so the two shorter ones share the other column and no hole is
+  // left under the stake (the rule used to stand under both, across the whole width, a screen further down).
+  .about-stock {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+
+  .the-rule {
+    grid-column: 2;
+  }
+}
+
+// From 1280px: three columns of 380px or more. In a narrower list (one of two side by side on a wide window is
+// 1,116px) three columns were 280px each, a few words a line, and the buttons of "What you own of it" wrapped.
+@container (min-width: 1280px) {
+  .sections {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .about-stock {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .the-rule {
+    grid-column: auto;
+  }
+}
+
+section {
+  break-inside: avoid;
+  padding-top: 16px;
+}
+
+// What holds for every stock with this mark: the same sentences under each of them. Quieter than what is about
+// this stock, a size smaller and not in the full ink; its headings keep theirs, so it can still be found.
+.the-rule {
+  font-size: var(--text-data);
+  color: var(--ink-2);
+}
+
+// The line that says so, over the group.
+.the-rule .same {
+  margin: 16px 0 -8px;
+  font-size: var(--text-meta);
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+// A section's heading is what the eye jumps between in three columns of sentences: it is set in the full ink and
+// in bold, never fainter than the text under it, with more room above it than below.
+h4 {
+  margin: 0 0 4px;
+  font-size: var(--text-data);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+p {
+  margin: 0 0 6px;
+  max-width: 70ch;
+}
+
+.lead {
+  font-weight: 500;
+}
+
+.since {
+  margin-top: 6px;
+  color: var(--ink-2);
+}
+
+ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+li {
+  margin: 3px 0;
+  max-width: 70ch;
+}
+
+// Untested context keeps its +/- reading from the old tooltip, as a marker rather than a colour wash.
+.context {
+  padding-left: 0;
+  list-style: none;
+}
+
+.context li {
+  position: relative;
+  padding-left: 18px;
+}
+
+.context-key {
+  margin: 0 0 4px;
+  font-size: var(--text-meta);
+  color: var(--ink-2);
+}
+
+.context li::before {
+  content: '·';
+  position: absolute;
+  left: 4px;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+// A figure that speaks for the stock is marked "+", one that speaks against it "−": the marker says which way
+// it points, in the quiet ink of every marker here. Green and red would read as a point awarded by the tests,
+// under a heading that says these are not part of the mark.
+.context li.plus::before {
+  content: '+';
+  left: 2px;
+}
+
+.context li.minus::before {
+  content: '−';
+  left: 2px;
+}
+
+a {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: rgba(21, 101, 192, 0.35);
+}
+
+a:hover {
+  text-decoration-color: currentColor;
+}
+
+.source,
+.hint,
+.disclaimer {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.hint {
+  margin-top: 6px;
+}
+
+// The foot: the one link out of the app, under everything the app itself says about the stock, and beside it
+// the way to close the details from there.
+.outside {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+  margin: 16px 0 0;
+  max-width: none;
+}
+
+.disclaimer {
+  margin: 6px 0 0;
+}

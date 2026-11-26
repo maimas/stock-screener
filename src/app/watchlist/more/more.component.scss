@@ -1,0 +1,37 @@
+// In the line of the sentence it belongs to.
+:host {
+  display: inline;
+}
+
+// "more" at the end of the first sentence, "less" at the end of the last: a word in the colour of a link, small
+// enough not to compete with the sentence. The word is drawn here (see the component).
+.toggle {
+  margin-left: 6px;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 2px;
+  background: none;
+  font: inherit;
+  font-size: var(--text-meta);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--link);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.toggle::after {
+  content: "more";
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.toggle[aria-expanded="true"]::after {
+  content: "less";
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
+}

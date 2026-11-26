@@ -1,0 +1,42 @@
+.container {
+  gap: 8px;
+  min-width: 150px;
+  max-width: 150px;
+  white-space: nowrap;
+}
+
+// The word wears the colour of its side (green for a buy, red for a sell, grey for a hold): set on the element.
+.consensus {
+  font-size: var(--text-meta);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+// A hairline around the bar: its palest part is close to the white of the row.
+.ratings {
+  flex: none;
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+// A hairline of the row's white between the parts: two counts side by side read as one number ("6 11" as "611").
+.rating + .rating {
+  box-shadow: inset 2px 0 0 var(--surface);
+}
+
+.rating {
+  min-width: 10px;
+  padding: 0 3px;
+  font-size: var(--text-meta);
+  font-weight: 500;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+
+.no-data {
+  color: var(--ink-3);
+  text-align: center;
+}

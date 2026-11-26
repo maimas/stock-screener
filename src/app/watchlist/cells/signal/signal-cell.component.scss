@@ -1,0 +1,21 @@
+// The mark itself (.verdict-pill) is styled once for the whole app, in styles.scss.
+.container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 104px;
+  white-space: nowrap;
+}
+
+.below {
+  font-size: var(--text-meta);
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.earnings-flag {
+  width: 14px;
+  height: 14px;
+  font-size: 14px;
+  color: var(--warn);
+}

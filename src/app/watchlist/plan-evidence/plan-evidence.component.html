@@ -1,0 +1,54 @@
+<mat-card class="evidence" id="plan-evidence" tabindex="-1">
+  <mat-card-content>
+    <h2 class="title">How the plan was tested</h2>
+    <!-- The plan as a whole first, across the box and by itself: opened, its account is long, and in one list with
+         the reasons below it moved them from column to column. -->
+    <dl class="the-plan">
+      <div class="reason">
+        <dt class="plan-verb">THE PLAN</dt>
+        <dd>
+          <!-- A paragraph that begins with what it is about ("How many:", "Selling early:") has those words set
+               stronger: a run of paragraphs could not be skimmed. No word is changed. -->
+          <!-- The first paragraph says what the plan is; "more" at its end opens how it did, and is remembered.
+               "less" stands again at the end of the last paragraph, where a reader of the whole account ends. -->
+          <ng-container *ngFor="let block of blocks; trackBy: trackByIndex; let first = first; let last = last">
+            <p *ngIf="block.text as part" [class.lead]="first" [appMoreRest]="first ? '' : 'evidence.plan'"><strong class="about" *ngIf="leadIn(part) as about">{{ about }}</strong>{{ rest(part) }}<app-more *ngIf="first || last" key="evidence.plan" (click)="closedFromEnd($event)"></app-more></p>
+            <!-- The like figures of one test, each once: across to compare the ways, down to compare one figure. -->
+            <table *ngIf="block.table as table" class="figures" appMoreRest="evidence.plan">
+              <caption>{{ table.caption }}</caption>
+              <thead>
+              <tr>
+                <th scope="col" *ngFor="let column of table.columns; trackBy: trackByIndex; let what = first" [class.num]="!what">{{ column }}</th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr *ngFor="let row of table.rows; trackBy: trackByIndex">
+                <th scope="row">{{ row.label }}</th>
+                <td class="num" *ngFor="let cell of row.cells; trackBy: trackByIndex">{{ cell }}</td>
+              </tr>
+              </tbody>
+              <!-- What the plan does not offer, under a line across the table that says why. -->
+              <tbody class="apart" *ngIf="table.apart as apart">
+              <tr>
+                <th scope="rowgroup" [attr.colspan]="table.columns.length">{{ apart.title }}</th>
+              </tr>
+              <tr *ngFor="let row of apart.rows; trackBy: trackByIndex">
+                <th scope="row">{{ row.label }}</th>
+                <td class="num" *ngFor="let cell of row.cells; trackBy: trackByIndex">{{ cell }}</td>
+              </tr>
+              </tbody>
+            </table>
+          </ng-container>
+        </dd>
+      </div>
+    </dl>
+    <!-- Then each step of today's plan under its own verb, in the plan's order: across the box and then down. A
+         verb stays with its text, and each keeps its place when another is opened. -->
+    <dl class="reasons" *ngIf="reasons.length > 0">
+      <div class="reason" *ngFor="let reason of reasons; trackBy: trackByVerb">
+        <dt class="plan-verb">{{ reason.verb }}</dt>
+        <dd><app-more [key]="'evidence.' + reason.verb" [text]="reason.why"></app-more></dd>
+      </div>
+    </dl>
+  </mat-card-content>
+</mat-card>

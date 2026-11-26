@@ -1,0 +1,271 @@
+<mat-card class="positions">
+  <mat-card-content>
+    <!-- The title, then which portfolio: the one being shown is filled in. What is done to the list of portfolios
+         itself (a new one, another name, taking one away) is rare, so it stands apart at the end of the line. -->
+    <div class="header">
+      <h2 class="title">{{ title }}</h2>
+      <div class="books">
+        <div class="names" role="group" aria-label="Portfolios">
+          <button type="button" class="name" *ngFor="let p of book.portfolios; trackBy: trackById"
+                  [class.shown]="p.id === book.active" [attr.aria-pressed]="p.id === book.active"
+                  (click)="selectPortfolio.emit(p.id)">{{ p.name }}<span class="todo" *ngIf="toDoText(p.id) as todo"> · {{ todo }}</span></button>
+        </div>
+        <div class="manage">
+          <ng-container *ngIf="naming === 'none'">
+            <button type="button" class="link-button" data-opens="new" (click)="startNaming('new')">New portfolio</button>
+            <button type="button" class="link-button" data-opens="rename" (click)="startNaming('rename')">Rename</button>
+            <button type="button" class="link-button danger" data-opens="delete" [attr.aria-label]="'Delete the portfolio ' + activeName"
+                    (click)="naming = 'delete'">Delete</button>
+          </ng-container>
+          <!-- Deleting a portfolio takes every holding of an account with it, and the way back (Undo in the notice)
+               is gone at the next change. So this one act is asked about once, in place, naming what goes; the
+               keyboard starts on the answer that keeps it. -->
+          <div class="ask" role="group" aria-label="Delete this portfolio?" *ngIf="naming === 'delete'" (keydown.escape)="closeNaming()">
+            <span class="question">{{ deleteQuestion }}</span>
+            <button type="button" class="link-button" appFocusWhenShown (click)="closeNaming()">Keep it</button>
+            <button type="button" class="link-button danger" (click)="confirmDelete()">Delete it</button>
+          </div>
+          <ng-container *ngIf="naming === 'new' || naming === 'rename'">
+            <form class="name-form" (ngSubmit)="submitName()" (keydown.escape)="closeNaming()">
+              <label class="visually-hidden" for="portfolio-name">{{ naming === 'new' ? 'Name of the new portfolio' : 'New name for ' + activeName }}</label>
+              <input #nameInput id="portfolio-name" type="text" name="name" maxlength="40" autocomplete="off"
+                     [placeholder]="naming === 'new' ? 'Name, e.g. the account' : ''" [(ngModel)]="nameDraft">
+              <button mat-stroked-button type="submit" [disabled]="!nameDraft.trim()">{{ naming === 'new' ? 'Add' : 'Save' }}</button>
+              <button mat-button type="button" (click)="closeNaming()">Cancel</button>
+            </form>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+
+    <p class="notice" *ngIf="notice" role="status">
+      {{ notice.text }}
+      <button type="button" class="link-button" *ngIf="notice.undo" (click)="undo.emit()">Undo</button>
+    </p>
+
+    <!-- Today for the portfolio chosen: the plan, and the numbers it works from. In the page they come in that
+         order, as they are seen (and so the Tab key and a screen reader go through them in it): on a wide box the
+         plan stands on the left, right under the portfolio's name, with the numbers beside it; in a narrow one
+         the numbers stand under the plan. -->
+    <div class="today">
+      <!-- Today's plan for this portfolio, as lines: handed in by the page. -->
+      <div class="plan-lines"><ng-content></ng-content></div>
+
+      <!-- The fields, with what each comes to under them. -->
+      <div class="figures">
+        <div class="settings">
+          <!-- What each field is shows at the pointer and also while the field has the keyboard: above the field,
+               since under it stand the sentences that say what the number just typed comes to. -->
+          <label appTipOnFocus [matTooltip]="cashTooltip" matTooltipPosition="above" matTooltipClass="multiline-tooltip">
+            <span>{{ cashLabel }}</span>
+            <span class="field"><span class="unit">$</span>
+              <input #cash type="number" name="cash" min="0" step="any" inputmode="decimal" autocomplete="off"
+                     [value]="cashValue" (change)="setCash(cash)" [disabled]="savedIn === 'checking'"
+                     [attr.aria-describedby]="problem ? 'settings-problem' : null"></span>
+          </label>
+          <label appTipOnFocus [matTooltip]="limitTooltip" matTooltipPosition="above"
+                 matTooltipClass="multiline-tooltip">
+            <span>{{ limitLabel }}</span>
+            <span class="field">
+              <input #budget type="number" name="limit" min="0" max="100" step="any" inputmode="decimal" autocomplete="off" [placeholder]="startingLimit"
+                     [value]="portfolio.lossBudgetPercent ?? ''" (change)="setBudget(budget)" [disabled]="savedIn === 'checking'"
+                     [attr.aria-describedby]="problem ? 'settings-problem' : null"><span class="unit">%</span></span>
+          </label>
+          <!-- A second limit of the user's own: the share of the portfolio to keep in cash. Empty until they enter one. -->
+          <label appTipOnFocus [matTooltip]="keepTooltip" matTooltipPosition="above" matTooltipClass="multiline-tooltip">
+            <span>{{ keepLabel }}</span>
+            <span class="field">
+              <input #keep type="number" name="keep" min="0" max="100" step="any" inputmode="decimal" autocomplete="off"
+                     [value]="portfolio.reservePercent ?? ''" (change)="setKeep(keep)" [disabled]="savedIn === 'checking'"
+                     [attr.aria-describedby]="problem ? 'settings-problem' : null"><span class="unit">%</span></span>
+          </label>
+          <!-- A level of the user's own for taking a profit: there only while the take-profit test offers one. -->
+          <label *ngIf="profitLevels.length > 0" appTipOnFocus [matTooltip]="profitTooltip" matTooltipPosition="above" matTooltipClass="multiline-tooltip">
+            <span>{{ profitLabel }}</span>
+            <span class="field">
+              <select #profit name="profit" (change)="setProfit(profit)" [disabled]="savedIn === 'checking'">
+                <option value="" [selected]="profitLevel === undefined">no level</option>
+                <option *ngFor="let level of profitLevels" [value]="level" [selected]="profitLevel === level">+{{ level }}%</option>
+              </select></span>
+          </label>
+        </div>
+        <!-- An entry that was not taken: what was there stays, and this line says why. -->
+        <p class="problem" id="settings-problem" *ngIf="problem" role="alert">{{ problem }}</p>
+        <!-- The sentences come in the order of the fields over them: cash, the limit, the share kept, the level. -->
+        <!-- What the portfolio is worth with this cash, and how much of it the cash is. -->
+        <p class="budget worth" *ngIf="cashText">{{ cashText }}</p>
+        <p class="budget" *ngIf="limitText">{{ limitText }}</p>
+        <!-- What the share to keep outside stocks is in dollars, and whether the cash covers it. -->
+        <p class="budget reserve" *ngIf="reserveText"><app-more key="plan.reserve" [text]="reserveText"></app-more></p>
+        <!-- While a level for taking a profit is picked: what that level did in the test, both sides. -->
+        <p class="budget profit" *ngIf="profitText"><app-more key="plan.profit" [text]="profitText"></app-more></p>
+      </div>
+    </div>
+
+    <!-- What the portfolio holds, a stock a row; the "Plan" column says what the plan says about each. The headline
+         is one sentence, with its two figures (what it is all worth, and the result so far) set stronger. -->
+    <div class="own">
+      <h3 class="own-title">{{ ownTitle }}</h3>
+      <span class="headline" *ngIf="hasPositions">{{ summary.count }}<ng-container *ngIf="summary.worth && !loading"> · worth <strong>{{ summary.worth }}</strong> · <strong [class]="summary.tone">{{ summary.result }}</strong> since bought</ng-container></span>
+      <!-- Which columns the table shows: the same choice, in the same words, as above the lists. -->
+      <mat-button-toggle-group class="columns" *ngIf="hasPositions && !loading" [value]="allColumns ? 'all' : 'key'"
+                               (change)="showColumns($event.value === 'all')" aria-label="Columns of this table">
+        <mat-button-toggle value="key" matTooltip="What the plan says about each stock, how it stands, and what a half-year could do to it">Key columns</mat-button-toggle>
+        <mat-button-toggle value="all" matTooltip="Also how each stock was bought, its mark, and the button that removes it">All columns</mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+    <!-- What the same money would have made in the market: read with the headline, so it stands right under it. -->
+    <ng-container *ngIf="!loading">
+      <p class="note market" *ngFor="let line of marketLines" [class.early]="saysTooEarly(line)"><app-says [text]="line"></app-says></p>
+    </ng-container>
+
+    <!-- The table, and beside it (where the box has room for both) what its two "case" columns are. In a box too
+         narrow for both, and when every column is shown, that explanation goes under the table. -->
+    <ng-container *ngIf="hasPositions; else empty">
+    <!-- While the first prices are arriving the table would be worked out from the stocks priced so far: a worth, a
+         "% of total" adding to 100 among them, a bad case for one stock. Nothing is said from half the prices: the
+         box waits, in the words the plan and "Could add" use. (Not during a reload: the old prices stay then.) -->
+    <p class="empty working" *ngIf="loading" aria-busy="true" [style.min-height.px]="waitingHeight">Working it out from today's prices.</p>
+    <div class="holdings" *ngIf="!loading">
+    <div class="holdings-main">
+    <div class="table-scroll">
+      <a class="skip-over" href="" (click)="skipTable($event)">Skip the table of {{ view.rows.length }} {{ view.rows.length === 1 ? 'holding' : 'holdings' }}</a>
+      <table [class.every]="allColumns">
+        <caption class="visually-hidden">What {{ activeName }} holds: a stock a row, with what the plan says about it</caption>
+        <thead>
+        <tr>
+          <!-- Three groups, read left to right: what the plan says and how far along it is; how the stock stands;
+               what a half-year could do to it. A wider gap sets each group off. With "All columns" a fourth group
+               follows, how the stock was bought, and the button that removes it. -->
+          <!-- Each heading is a button: a click orders the rows by its column, a second click turns them around. -->
+          <th scope="col" [attr.aria-sort]="sortedAs('symbol')">
+            <button type="button" class="sort up" (click)="sortBy('symbol')">Stock</button></th>
+          <!-- Which of the holdings move together: the same letters as in the lists and in "Could add". -->
+          <th scope="col" class="group-head" appTipOnFocus *ngIf="hasGroups" [attr.aria-sort]="groupSortedAs" [matTooltip]="groupHelp" matTooltipClass="multiline-tooltip">
+            <button type="button" class="sort up" (click)="sortByGroup()">Group</button></th>
+          <th scope="col" appTipOnFocus [attr.aria-sort]="sortedAs('plan')" [matTooltip]="planColumnTooltip" matTooltipClass="multiline-tooltip">
+            <button type="button" class="sort up" (click)="sortBy('plan')">Plan</button></th>
+          <th scope="col" appTipOnFocus *ngIf="hasDates" [attr.aria-sort]="sortedAs('held')" [matTooltip]="heldColumnTooltip" matTooltipClass="multiline-tooltip">
+            <button type="button" class="sort" (click)="sortBy('held')">Held</button></th>
+          <th scope="col" appTipOnFocus class="num group" [attr.aria-sort]="sortedAs('value')" matTooltip="What your shares are worth at today's price.">
+            <button type="button" class="sort" (click)="sortBy('value')">Value</button></th>
+          <th scope="col" appTipOnFocus class="num" [attr.aria-sort]="sortedAs('weight')" matTooltip="How much of this portfolio is in this stock.">
+            <button type="button" class="sort" (click)="sortBy('weight')">% of total</button></th>
+          <th scope="col" appTipOnFocus class="num" [attr.aria-sort]="sortedAs('result')" matTooltip="What you have gained or lost on it since you bought: in dollars, then as a part of what you paid. A click orders the rows by the dollars.">
+            <button type="button" class="sort" (click)="sortBy('result')">Result</button></th>
+          <th scope="col" appTipOnFocus class="num" *ngIf="hasDates" [attr.aria-sort]="sortedAs('market')"
+              matTooltip="What the market (the S&amp;P 500, an index of 500 large US companies) did since you bought.">
+            <button type="button" class="sort" (click)="sortBy('market')">Market since</button></th>
+          <th scope="col" appTipOnFocus class="num group" [attr.aria-sort]="sortedAs('bad')" matTooltip="What a bad half-year could cost. Where an amount comes from shows when you point at it, and in the details of its stock.">
+            <button type="button" class="sort" (click)="sortBy('bad')">Bad case</button></th>
+          <th scope="col" appTipOnFocus class="num" [attr.aria-sort]="sortedAs('good')" matTooltip="What a good half-year could add. Where an amount comes from shows when you point at it, and in the details of its stock.">
+            <button type="button" class="sort" (click)="sortBy('good')">Good case</button></th>
+          <th scope="col" class="num group" *ngIf="allColumns" [attr.aria-sort]="sortedAs('shares')">
+            <button type="button" class="sort" (click)="sortBy('shares')">Shares</button></th>
+          <th scope="col" appTipOnFocus class="num" *ngIf="allColumns" [attr.aria-sort]="sortedAs('paid')" matTooltip="The average price you paid for one share.">
+            <button type="button" class="sort" (click)="sortBy('paid')">Price paid</button></th>
+          <th scope="col" appTipOnFocus class="num" *ngIf="allColumns" [attr.aria-sort]="sortedAs('now')" matTooltip="Today's price of one share.">
+            <button type="button" class="sort" (click)="sortBy('now')">Price now</button></th>
+          <th scope="col" *ngIf="hasDates && allColumns" [attr.aria-sort]="sortedAs('bought')">
+            <button type="button" class="sort" (click)="sortBy('bought')">Bought</button></th>
+          <th scope="col" *ngIf="allColumns"><span class="visually-hidden">Actions</span></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr *ngFor="let row of rows; trackBy: trackBySymbol">
+          <th scope="row">
+            <!-- The company's name shows when the symbol is pointed at. Reached with the keyboard, it also says what
+                 the cells of its row say to a pointer (the plan's sentence, where the two cases come from): a cell
+                 cannot take the keyboard, and the stock is the row's one tab stop. -->
+            <button type="button" class="link-button symbol" (click)="open.emit(row.symbol)"
+                    (focus)="onStockFocus(row, $event)" (blur)="onStockBlur()"
+                    [attr.aria-label]="'Open details for ' + row.symbol" [matTooltip]="stockTip(row)"
+                    matTooltipPosition="above" matTooltipClass="multiline-tooltip">{{ row.symbol }}</button>
+            <!-- The stock's mark, drawn as it is in the lists. -->
+            <span [class]="'verdict verdict-pill ' + markClass(row)" *ngIf="row.verdict && allColumns">{{ row.verdict }}</span>
+          </th>
+          <td class="group-cell" *ngIf="hasGroups" [matTooltip]="groupTipOf(row.symbol)" matTooltipClass="multiline-tooltip">
+            <span class="tied-tag" *ngIf="group(row.symbol) as g; else noGroup" [attr.aria-label]="'Group ' + g.letter"><i [class]="'g' + g.index" aria-hidden="true"></i>{{ g.letter }}</span>
+            <ng-template #noGroup><span class="tied-tag none" aria-label="In no group">—</span></ng-template>
+          </td>
+          <td class="plan" [matTooltip]="planTooltip(row)" matTooltipClass="multiline-tooltip">
+            <ng-container *ngIf="planOf(row) as plan; else noPlan">
+              <span [class]="'plan-verb ' + plan.kind" [class.asks]="planAsks(row)">{{ plan.verb }}</span>
+              <span class="plan-note" [class.buy]="noteIsPurchase(row)" *ngIf="planNote(row) as note">{{ note }}</span>
+              <!-- The stock is up to the level the user set for taking a profit: a report beside the plan's own word. -->
+              <span class="plan-note level" *ngIf="levelNote(row) as level">{{ level }}</span>
+            </ng-container>
+            <ng-template #noPlan><span class="no-plan">—</span></ng-template>
+          </td>
+          <!-- How long it has been held: a few words, with what is unusual about it on a line of its own. -->
+          <td class="held" *ngIf="hasDates" [class.past]="pastTheTests(row)">
+            <span class="held-weeks">{{ held(row) }}</span>
+            <span class="held-note" *ngIf="heldNote(row) as note">{{ note }}</span>
+          </td>
+          <td class="num group">{{ money(row.view.value) }}</td>
+          <td class="num">{{ weight(row) }}</td>
+          <td [class]="'num ' + gainClass(row.view.gainPercent)">
+            {{ signedMoney(row.view.gain) }}<span class="sub percent" *ngIf="row.view.gainPercent !== undefined"> {{ signedPercent(row.view.gainPercent) }}</span>
+          </td>
+          <td class="num" *ngIf="hasDates">{{ signedPercent(row.view.indexPercent) }}</td>
+          <td class="num group" [class.over]="row.risk?.overBudget" [matTooltip]="badCaseTooltip(row)" matTooltipClass="multiline-tooltip">
+            {{ badCase(row) }}<span class="sub" *ngIf="row.risk?.overBudget"> over your limit</span>
+          </td>
+          <td class="num" [matTooltip]="goodCaseTooltip(row)" matTooltipClass="multiline-tooltip">{{ goodCase(row) }}</td>
+          <td class="num group" *ngIf="allColumns">{{ shareCount(row.view.position.shares) }}</td>
+          <td class="num" *ngIf="allColumns">{{ row.view.position.price.toFixed(2) }}</td>
+          <td class="num" *ngIf="allColumns">{{ row.view.price === undefined ? '—' : row.view.price.toFixed(2) }}</td>
+          <td *ngIf="hasDates && allColumns">{{ day(row) }}</td>
+          <td class="row-actions" *ngIf="allColumns">
+            <button mat-icon-button type="button" (click)="remove.emit(row.symbol)"
+                    [attr.aria-label]="'Remove ' + row.symbol + ' from what you own'" matTooltip="Remove">
+              <mat-icon>close</mat-icon>
+            </button>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+      <!-- What a word of the "Plan" column means shows when it is pointed at, and in the heading's explanation: the
+           owner had it removed from under the table, where it repeated what the pointer shows. -->
+      <!-- What to do after acting on the plan, under the table: the next step of the same reader, not a footnote. -->
+      <p class="note how">{{ howToChange }}</p>
+    </div>
+      <!-- One column for one thought, top to bottom: what the two "case" columns are; how much the stocks move
+           together, which is why the cases may all come true at once; and what they then add up to. -->
+      <div class="notes-about">
+        <p class="note"><app-more key="own.cases" [text]="casesNote"></app-more></p>
+        <p class="note moving" *ngIf="together"><app-more key="own.together" [text]="together"></app-more></p>
+        <div class="together" *ngIf="togetherLines.length > 0">
+          <p class="note strong" *ngFor="let line of togetherLines"><app-says [text]="line"></app-says></p>
+        </div>
+        <!-- What the letters of the column "Group" are: said in sight, where the other columns are explained. -->
+        <p class="note" *ngIf="hasGroups"><app-more key="own.groups" [text]="groupNote"></app-more></p>
+        <p class="note" *ngIf="spreadText">{{ spreadText }}</p>
+        <p class="note" *ngIf="undatedText">{{ undatedText }}</p>
+        <p class="note warn" *ngIf="unpricedText">{{ unpricedText }}</p>
+      </div>
+    </div>
+    </ng-container>
+    <ng-template #empty>
+      <!-- In a browser that has not seen the page, the portfolios are in the database and take a
+           moment to arrive: until then the box says that it is looking, not that there is nothing. -->
+      <p class="empty" *ngIf="savedIn === 'checking'; else nothingYet" aria-busy="true">Looking for your portfolios on this computer.</p>
+      <ng-template #nothingYet>
+        <p class="empty">
+          Nothing in this portfolio yet. Open a stock on the Watchlist and enter what you hold. Each one then gets a row
+          here: how it is doing, how it compares with the market, and what a bad or a good half-year could mean for it.
+        </p>
+      </ng-template>
+    </ng-template>
+
+    <p class="note saved" [class.warn]="savedIn === 'browser' || savedIn === 'memory'">
+      {{ savedText }}
+      <button type="button" class="link-button" (click)="exportBook.emit()"
+              matTooltip="Saves all your portfolios as one file: a backup, or the way to move them to another computer.">Export</button>
+      <button type="button" class="link-button" (click)="file.click()"
+              matTooltip="Replaces all portfolios with the ones in an exported file. You can undo it.">Import</button>
+      <input #file type="file" accept="application/json,.json" hidden (change)="readImport(file)">
+    </p>
+  </mat-card-content>
+</mat-card>

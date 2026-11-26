@@ -1,0 +1,8 @@
+// Above 2: bold, not red. High debt made no difference in tests, so it is not set in the colour of a loss.
+.high {
+  font-weight: 600;
+}
+
+.no-data {
+  color: var(--ink-3);
+}

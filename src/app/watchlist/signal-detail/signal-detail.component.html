@@ -1,0 +1,87 @@
+<!-- Which company this is, in words: its name, then its sector and its industry. When the details were opened
+     from another view, the way back to it stands at the end of that line. -->
+<div class="head" *ngIf="company.length > 0 || back">
+  <p class="company" *ngIf="company.length > 0">
+    <ng-container *ngFor="let part of company; let first = first"><ng-container *ngIf="!first"> · </ng-container><span [class.name]="first && named">{{ part }}</span></ng-container>
+  </p>
+  <button type="button" class="back" *ngIf="back" (click)="goBack.emit()">{{ back }}</button>
+</div>
+<!-- Three groups, by what they are about, side by side where there is room: this stock; the reader's stake in it;
+     and the rule, which reads the same under every stock with this mark and so comes last and is set quieter. -->
+<div class="sections">
+  <div class="group about-stock">
+    <section>
+      <h4>{{ title }}</h4>
+      <p class="lead"><app-more key="details.lead" [text]="lead"></app-more></p>
+      <ul *ngIf="inputs.length">
+        <li *ngFor="let line of inputs; trackBy: trackByText">{{ line }}</li>
+      </ul>
+      <p class="since" *ngIf="since">{{ since }}</p>
+    </section>
+
+    <!-- What is risky about this one stock: how much its price swings, that it is unlike most tested ones, that its
+         results are due. Its own lines, so with the stock and in the full ink. -->
+    <section *ngIf="risks.length">
+      <h4>Risk of this stock</h4>
+      <ul>
+        <li *ngFor="let line of risks; trackBy: trackByText">{{ line }}</li>
+      </ul>
+    </section>
+
+    <section *ngIf="fall">
+      <h4>Why it dropped</h4>
+      <p>{{ fall }}</p>
+      <!-- The headlines are shown until the Claude Code on this computer was asked to read the news; then its reading is. -->
+      <app-drop-reading [symbol]="symbol" [name]="name" [drop]="news?.drop">
+        <p *ngIf="headlinesIntro">{{ headlinesIntro }}</p>
+        <ul *ngIf="headlines.length">
+          <li *ngFor="let h of headlines">
+            <a *ngIf="h.link; else plainTitle" [href]="h.link" target="_blank" rel="noopener noreferrer">{{ h.title }}</a>
+            <ng-template #plainTitle>{{ h.title }}</ng-template>
+            <span class="source" *ngIf="h.source"> {{ h.source }}<ng-container *ngIf="h.date">, {{ day(h.date) }}</ng-container></span>
+          </li>
+        </ul>
+        <p class="hint" *ngIf="headlines.length">A one-off scare and a change in the business look the same on a chart. The headlines are there to tell them apart.</p>
+      </app-drop-reading>
+    </section>
+
+    <section *ngIf="context.length">
+      <h4>Context, not part of the mark<app-more key="details.context" what="the context that is not part of the mark"></app-more></h4>
+      <!-- The markers in front of the lines are drawn, not written: said once in words, for the eye and for a
+           screen reader. -->
+      <p class="context-key" appMoreRest="details.context">A line marked + speaks for the stock, one marked − against it; the others do neither.</p>
+      <ul class="context" appMoreRest="details.context">
+        <li *ngFor="let line of context" [class]="line.mark">{{ line.text }}</li>
+      </ul>
+    </section>
+  </div>
+
+  <!-- How much of it fits each portfolio and "What you own of it", supplied by the page. -->
+  <div class="group your-stake">
+    <ng-content></ng-content>
+  </div>
+
+  <div class="group the-rule" *ngIf="tests.length || afterBuying.length">
+    <!-- Said once, so that who opens several stocks in a row knows this part can be skipped the second time. -->
+    <p class="same">The same under every stock marked DIP BUY.<app-more key="details.rule" what="what the tests say, and what to do after you buy"></app-more></p>
+    <section *ngIf="tests.length" appMoreRest="details.rule">
+      <h4>What the tests say</h4>
+      <ul>
+        <li *ngFor="let line of tests; trackBy: trackByText">{{ line }}</li>
+      </ul>
+    </section>
+
+    <section *ngIf="afterBuying.length" appMoreRest="details.rule">
+      <h4>After you buy</h4>
+      <ul>
+        <li *ngFor="let line of afterBuying; trackBy: trackByText">{{ line }}</li>
+      </ul>
+    </section>
+  </div>
+</div>
+<!-- The foot of the details: the one link out of the app, and a way to close the details from where the reading ends. -->
+<p class="outside">
+  <a class="more" *ngIf="moreUrl" [href]="moreUrl" target="_blank" rel="noopener noreferrer">More about {{ symbol }} on MSN Money (opens in a new tab)</a>
+  <button type="button" class="close" (click)="closeDetails.emit()">Close these details</button>
+</p>
+<p class="disclaimer">A summary of the data and of past tests, not financial advice.</p>

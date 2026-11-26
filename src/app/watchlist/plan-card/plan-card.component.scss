@@ -1,0 +1,226 @@
+// The plainest part of the page: what there is to do today, then a verb, the stocks with their amounts and one
+// short line a step. It has no box of its own: it sits in the portfolio's box, which also says where in it.
+:host {
+  display: block;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+// The plan in one sentence, before its lines: the answer to "what do I do today". It is what the box is opened
+// for, so it is the largest line in it.
+.count {
+  margin: 0;
+  font-size: var(--text-lead);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+// A verb in the lead, in the colour of its mark in the lines under it (.plan-verb.asks in styles.scss): buying is
+// the green of the DIP BUY mark; what has to be put right first is the amber of a warning; the rest stay in ink.
+.lead-verb.buy {
+  color: var(--dip);
+}
+
+.lead-verb.missing,
+.lead-verb.setup,
+.lead-verb.trim,
+.lead-verb.reserve {
+  color: var(--warn);
+}
+
+.steps {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+// The verb has a column of its own, so the verbs can be read straight down.
+.step {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 2px 16px;
+  align-items: baseline;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+}
+
+// The verb's cell is as tall as a row of stocks, so the verb lines up with them. The verb itself is styled once
+// for the whole app (.plan-verb in styles.scss): a plain word, or a filled mark when the step asks for something,
+// so what the line above names ("To do today: SELL SOME, BUY") are the filled ones.
+.verb {
+  line-height: 24px;
+}
+
+.what {
+  min-width: 0;
+}
+
+.items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-height: 30px;
+  padding: 3px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: var(--surface);
+  font: inherit;
+  font-size: var(--text-data);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 150ms ease-out, background-color 150ms ease-out;
+}
+
+.item:hover {
+  border-color: var(--ink-3);
+  background: var(--surface-2);
+}
+
+.item:focus-visible,
+.more:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
+}
+
+.symbol {
+  font-weight: 600;
+}
+
+.label {
+  color: var(--ink-2);
+}
+
+.text {
+  margin: 0;
+  font-size: var(--text-body);
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+// The line about what changed since the last day: the one line that differs from day to day. On a day something
+// changed it is set firmer, so that it is seen under a lead that reads the same as yesterday; on a day nothing
+// changed it steps back.
+.step.changed .text {
+  font-weight: 600;
+}
+
+.step.unchanged .text {
+  color: var(--ink-2);
+}
+
+// The name of the "Could add" box inside a line's sentence: a jump to that box. It reads as part of the sentence,
+// underlined like the card's other link.
+.jump {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.jump:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
+}
+
+// The other link on the card: to how the plan was tested, at the bottom of the page.
+.more {
+  margin-left: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  min-height: 24px;
+  font: inherit;
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+// Said in place of the count and the lines: while prices are arriving, or when the plan has no step at all.
+.empty {
+  margin: 0 0 10px;
+  font-size: var(--text-body);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+// How the plan did in tests, with the market beside it: said as plainly as the steps above it, not in small print.
+.record {
+  margin: 4px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: var(--text-data);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+@media (max-width: 699px) {
+  .step {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .verb {
+    line-height: 1.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item {
+    transition: none;
+  }
+}
+
+// While the first prices arrive: the room the headline and three lines will take, so the box does not grow under
+// the reader when the plan comes.
+.empty.waiting {
+  min-height: 190px;
+}
+
+// In place of the plan when it cannot be worked out: in the amber of what has to be put right first, and with the
+// room the plan would take.
+.instead {
+  min-height: 190px;
+}
+
+.instead p {
+  margin: 0 0 10px;
+  max-width: var(--measure);
+  font-size: var(--text-body);
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--warn);
+}
+
+.again {
+  height: 30px;
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  font: inherit;
+  font-size: var(--text-data);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.again:hover {
+  background: var(--surface-2);
+}
+
+.again:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
+}

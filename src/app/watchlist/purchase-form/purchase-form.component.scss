@@ -1,0 +1,144 @@
+// A purchase recorded in the row of a table: the fields and the two buttons on one line where there is room, then
+// the box about the cash and what the numbers come to. It reads like the forms in a stock's details (position-panel):
+// the same fields, the same sizes.
+:host {
+  display: block;
+  padding: 10px 0 12px 44px;
+  font-variant-numeric: tabular-nums;
+}
+
+p {
+  margin: 0 0 6px;
+  max-width: var(--measure);
+  white-space: normal;
+}
+
+// What the form is, before anything else in it: in the full ink.
+.what {
+  margin-bottom: 2px;
+  font-size: var(--text-data);
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.intro {
+  font-size: var(--text-meta);
+  color: var(--ink-2);
+}
+
+.line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 16px;
+  margin-bottom: 8px;
+}
+
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--text-meta);
+  color: var(--ink-2);
+}
+
+input {
+  width: 124px;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  font: inherit;
+  font-size: var(--text-data);
+  color: var(--ink);
+}
+
+input[type="date"] {
+  width: 148px;
+}
+
+input:hover {
+  border-color: var(--ink-3);
+}
+
+input:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 0;
+  border-color: var(--link);
+}
+
+// The field the problem is in: a red edge, with the sentence under the form saying what is wrong.
+input[aria-invalid="true"] {
+  border-color: var(--loss);
+  box-shadow: inset 0 0 0 1px var(--loss);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.actions button {
+  height: 34px;
+}
+
+label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: var(--text-data);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+label.check input {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  accent-color: var(--link);
+  cursor: pointer;
+}
+
+// What the purchase comes to: the answer the form is for, so in the full ink. Without height while it is empty.
+.result {
+  font-size: var(--text-data);
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.result:empty,
+.caution:empty {
+  margin: 0;
+}
+
+// Something to check before saving: the orange of a warning, not the red of a refusal.
+.caution {
+  font-size: var(--text-data);
+  color: var(--warn);
+}
+
+.problem {
+  font-size: var(--text-data);
+  color: var(--loss);
+}
+
+@media (max-width: 699px) {
+  :host {
+    padding-left: 0;
+  }
+}
+
+// The form stands in a table's row and would take the table's face for figures: its sentences are in the page's
+// face, like every other sentence (the fields keep the figures' face).
+:host {
+  font-family: var(--font-text);
+}

@@ -1,0 +1,613 @@
+:host {
+  display: block;
+}
+
+.candidates {
+  margin-bottom: 24px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-title);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+// The title with, at the end of its line, the choice between the whole box and the least of it.
+.head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 16px;
+}
+
+.head .fold {
+  margin-left: auto;
+  font-size: var(--text-meta);
+}
+
+// ---- Folded: the least that is still useful day to day ----
+// The three marks with their counts, how fearful the market is, and the stocks with how far each dropped. What
+// the marks mean, the sentences and the other two columns are left out; the page makes the box a narrow strip.
+.folded .market.index,
+.folded .market .fear-label ~ span,
+.folded .legend dd,
+.folded .about .note,
+.folded .note.how,
+.folded thead th:nth-child(n + 3),
+.folded tbody td:nth-child(n + 3) {
+  display: none;
+}
+
+.folded .body {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+// The two columns that are left take the strip's whole width and no more: "Dropped" is now the last column, so it
+// needs no room after it, and nothing scrolls sideways.
+.folded table {
+  width: 100%;
+}
+
+.folded th:nth-child(2),
+.folded td:nth-child(2) {
+  padding-right: 8px;
+}
+
+// The marks come first, as a line of their own; the stocks under them.
+.folded .about {
+  order: -1;
+}
+
+.folded .legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.folded .mark {
+  display: block;
+}
+
+// Where the box is as wide as a window (no pane beside the lists), the folded box is one short strip: the marks
+// and the fear line. The stocks themselves are in the lists right under it.
+@container (min-width: 700px) {
+  .folded .stocks {
+    display: none;
+  }
+
+  .folded .body {
+    margin-top: 6px;
+  }
+}
+
+// Where the market stands: two quiet lines under the title.
+.market {
+  margin: 8px 0 0;
+  max-width: var(--measure);
+  font-size: var(--text-body);
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+.market + .market {
+  margin-top: 2px;
+}
+
+.fear-label {
+  font-weight: 500;
+  color: var(--ink);
+  cursor: help;
+  border-bottom: 1px dotted var(--ink-3);
+}
+
+.fear-label.high {
+  color: var(--dip);
+}
+
+// The stocks and what is said about them stand side by side when the box is wide enough for both, and one under
+// the other when it is not: the box may be a pane beside the lists or the whole width of a narrow window. However
+// wide the box, the two stay next to each other: what is said about the stocks is read with them in view.
+// The box is measured, not the window: the same box is 480px wide in one layout and 900px in another.
+mat-card-content {
+  container-type: inline-size;
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 20px 40px;
+  max-width: 1080px;
+  margin-top: 16px;
+}
+
+// Side by side, the table takes the width it needs and the sentences take the rest: with two equal halves the
+// table did not fit its half in the 900px pane.
+@container (min-width: 720px) {
+  .body {
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+}
+
+// A box as wide as a window holds the stocks in two tables: the two of them and the sentences beside them need
+// more room than one table did.
+@container (min-width: 1200px) {
+  .body {
+    max-width: 1400px;
+  }
+}
+
+// On a very narrow screen the table can be wider than its box: it then scrolls by itself and the page does not.
+.stocks {
+  overflow-x: auto;
+}
+
+// One table, or two halves side by side where the box is as wide as a window.
+.tables {
+  display: flex;
+  align-items: flex-start;
+  gap: 0 40px;
+}
+
+// How the table is used, right under it and a size quieter than the notes beside it.
+.note.how {
+  margin-top: 8px;
+  font-size: var(--text-data);
+}
+
+
+// The table hugs its content, so each number stays close to the stock it belongs to.
+table {
+  border-collapse: collapse;
+  font-size: var(--text-data);
+  white-space: nowrap;
+}
+
+th,
+td {
+  padding: 5px 24px 5px 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  font-weight: 400;
+}
+
+th:last-child,
+td:last-child {
+  padding-right: 8px;
+}
+
+thead th {
+  padding-top: 0;
+  border-bottom-color: var(--line-strong);
+  font-size: var(--text-meta);
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+tbody tr:last-child th,
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.num {
+  text-align: right;
+}
+
+// A row is one thing to click: it shows that under the pointer.
+tbody tr {
+  cursor: pointer;
+  transition: background-color 120ms ease-out;
+}
+
+tbody tr:hover {
+  background: var(--surface-2);
+}
+
+// The stock's name is the row's one tab stop. It reads as a link, like a stock's name everywhere on the page.
+.symbol {
+  min-width: 48px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 500;
+  color: var(--link);
+  text-align: left;
+  cursor: pointer;
+}
+
+tbody tr:hover .symbol,
+.symbol:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+// A quiet marker for a stock you hold, as in the lists.
+.held {
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 9px;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  font-size: var(--text-micro);
+  line-height: 17px;
+  color: var(--ink-2);
+}
+
+.new-mark {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: var(--dip);
+  font-size: var(--text-micro);
+  font-weight: 600;
+  line-height: 18px;
+  color: #fff;
+}
+
+.soon {
+  color: var(--warn);
+}
+
+// What the three marks mean: the mark as it looks in the lists, how many stocks carry it, and one line each.
+.legend {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  max-width: var(--measure);
+  font-size: var(--text-body);
+  line-height: 1.6;
+}
+
+.mark {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 0 16px;
+  align-items: baseline;
+}
+
+.mark dt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mark-count {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.mark dd {
+  margin: 0;
+  color: var(--ink-2);
+}
+
+// Sentences: a size and a width that read easily, a paragraph a thought.
+.note {
+  margin: 10px 0 0;
+  max-width: var(--measure);
+  font-size: var(--text-body);
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+// Said in place of the table, so it starts where the table would.
+.note.empty {
+  margin-top: 0;
+}
+
+// Darker than the notes around it, not bolder: three lines of bold shout.
+.note.one-bet {
+  color: var(--ink);
+}
+
+.note.log {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+// A background job that needs a look: stopped by a check, or left a note.
+.note.attention {
+  color: var(--warn);
+}
+
+.link-button {
+  min-height: 24px;
+  margin-left: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+// While the first prices are arriving: a few rows the size of the table's, so the box does not jump when it comes.
+.loading {
+  display: grid;
+  gap: 10px;
+  max-width: 360px;
+  margin-top: 16px;
+}
+
+.skeleton {
+  height: 20px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--line) 25%, var(--surface-2) 50%, var(--line) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+// On a phone the columns stand closer and "within 2 weeks" takes two lines, so the table fits the screen; a mark's
+// meaning goes under the mark.
+@media (max-width: 699px) {
+  th,
+  td {
+    padding-right: 12px;
+  }
+
+  .soon {
+    min-width: 56px;
+    white-space: normal;
+    line-height: 1.3;
+  }
+
+  .mark {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mark dt {
+    justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  tbody tr {
+    transition: none;
+  }
+
+  .skeleton {
+    animation: none;
+  }
+}
+
+// No price arrived: the sentence in the amber of what has to be put right first, and the way on under it.
+.failed p {
+  margin: 0 0 10px;
+  max-width: var(--measure);
+  font-size: var(--text-body);
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--warn);
+}
+
+.failed .again {
+  height: 30px;
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  font: inherit;
+  font-size: var(--text-data);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.failed .again:hover {
+  background: var(--surface-2);
+}
+
+.failed .again:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
+}
+
+// ---- Which of the candidates move together ----
+// A group is a letter with a dot of the group's colour in front of it: the letter says which group, the dot lets
+// the eye find its rows. Three colours that stay apart for every pair, also for a reader who does not tell red
+// from green (checked with the palette validator), and none of them the green, red or amber that mean something
+// on this page. A fourth group and those after it wear grey: the letter is what tells them apart.
+.group {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-data);
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.group.none {
+  font-weight: 400;
+  color: var(--ink-3);
+}
+
+.dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ink-3);
+}
+
+.dot.g0 {
+  background: #6a4ce2;
+}
+
+.dot.g1 {
+  background: #f2a600;
+}
+
+.dot.g2 {
+  background: #ee7fac;
+}
+
+.group-head .has-help {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+// The list of groups under the sentence that says they are nearer to one bet.
+.tied {
+  margin-top: 12px;
+}
+
+.tied-title {
+  margin: 0 0 4px;
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.tied ul {
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.tied li {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  column-gap: 8px;
+  padding: 3px 0;
+  font-size: var(--text-data);
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.tied .brief {
+  grid-column: 2;
+  font-size: var(--text-meta);
+  color: var(--ink-2);
+}
+
+// "Group", the one heading that orders the rows of this table (by group, and back to A to Z): a button that looks
+// like the heading it is, with the small triangle of the page's other tables while the rows follow it.
+.sort-group {
+  position: relative;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.sort-group:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+.sort-group::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 4px);
+  margin-top: -6px;
+  border: 4px solid transparent;
+}
+
+.sort-group[aria-pressed="true"] {
+  color: var(--ink);
+}
+
+.sort-group[aria-pressed="true"]::after {
+  border-bottom-color: currentColor;
+}
+
+.sort-group:hover:not([aria-pressed="true"])::after {
+  border-bottom-color: var(--ink-3);
+}
+
+// A heading of the table: a button that looks like the heading it is, with the page's small triangle after it
+// while the rows follow its column (down for the biggest first, up for the smallest or A first), and a paler one
+// under the pointer for the way a click would order them.
+.sort-head {
+  position: relative;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.sort-head.has-help {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+.sort-head:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+.sort-head::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 4px);
+  border: 4px solid transparent;
+}
+
+th.num .sort-head::after {
+  left: auto;
+  right: calc(100% + 4px);
+}
+
+th[aria-sort] .sort-head {
+  color: var(--ink);
+}
+
+th[aria-sort="ascending"] .sort-head::after {
+  margin-top: -6px;
+  border-bottom-color: currentColor;
+}
+
+th[aria-sort="descending"] .sort-head::after {
+  margin-top: -2px;
+  border-top-color: currentColor;
+}
+
+th:not([aria-sort]) .sort-head:hover::after,
+th:not([aria-sort]) .sort-head:focus-visible::after {
+  margin-top: -2px;
+  border-top-color: var(--ink-3);
+}
+
+th:not([aria-sort]) .sort-head.up:hover::after,
+th:not([aria-sort]) .sort-head.up:focus-visible::after {
+  margin-top: -6px;
+  border-top-color: transparent;
+  border-bottom-color: var(--ink-3);
+}

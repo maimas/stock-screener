@@ -1,0 +1,14 @@
+<div fxLayout="column" fxLayoutAlign="center" class="container" [matTooltip]="tooltip">
+  <ng-container *ngIf="hasRange; else noRange">
+    <div fxLayout="column" fxLayoutAlign="center" class="range-bar">
+      <div class="price-indicator" [style.left.%]="currentPricePosition"></div>
+    </div>
+    <div fxLayout="row" fxLayoutAlign="space-between">
+      <div class="range-price-left">{{ format(minPrice) }}</div>
+      <div class="range-price-right">{{ format(maxPrice) }}</div>
+    </div>
+  </ng-container>
+  <ng-template #noRange>
+    <div class="no-data">—</div>
+  </ng-template>
+</div>

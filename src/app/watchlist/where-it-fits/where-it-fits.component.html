@@ -1,0 +1,15 @@
+<h4>{{ title }}</h4>
+<ng-container *ngIf="marked; else unmarked">
+  <ng-container *ngIf="lines.length > 0; else worthNothing">
+    <ul>
+      <li *ngFor="let line of lines">{{ line }}</li>
+    </ul>
+    <p class="hint">{{ note }}</p>
+  </ng-container>
+  <ng-template #worthNothing>
+    <p class="hint">{{ noPortfolio }}</p>
+  </ng-template>
+</ng-container>
+<ng-template #unmarked>
+  <p class="hint">{{ notMarked }}</p>
+</ng-template>

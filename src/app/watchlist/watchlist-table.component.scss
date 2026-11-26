@@ -1,0 +1,446 @@
+// A quiet action that reads as a link ("Edit list").
+.link-button {
+  margin-left: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+// The heading of the lists, with the one control that is about all of them right beside it: at the far end of a
+// wide window the control was more than a thousand pixels from the heading it belongs to.
+.lists-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 32px 0 12px;
+}
+
+.lists-title {
+  margin: 0;
+  font-size: var(--text-title);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+// Material's toggle is 48px tall: too loud for a choice of columns. The label lives inside the toggle, hence ::ng-deep.
+.columns {
+  font-size: var(--text-data);
+}
+
+.columns ::ng-deep .mat-button-toggle-label-content {
+  padding: 0 12px;
+  line-height: 30px;
+}
+
+.list {
+  margin-bottom: 24px;
+}
+
+// The key columns of every list on one grid (the table fixes its layout where its box has room for it): "Price"
+// starts at the same place in each list, so the lists can be read down the page as one table. The cells live
+// inside the smart table, hence ::ng-deep.
+::ng-deep .smart-table.short {
+  .mat-column-symbol { width: 13%; }
+  // "Group" between the stock and its mark. The widths used to add up to the whole table without it, which left
+  // it in the page and 0px wide: no letter in sight, and a tab stop on nothing.
+  .mat-column-group { width: 6%; }
+  .mat-column-signal { width: 14%; }
+  .mat-column-price { width: 9%; }
+  .mat-column-growth { width: 21%; }
+  .mat-column-earnings { width: 17%; }
+  .mat-column-volatility { width: 11%; }
+  .mat-column-oneYear { width: 9%; }
+}
+
+// With every column shown a list is wider than any window and scrolls sideways. There each column has a least
+// width, the widest it is in any list, so that it starts at the same place in every list and can be read down the
+// page here too (a column was as wide as its own list's content: "Price" stood at 195px in one list and at 251px
+// in the next). A cell with more in it than this still gets the room it needs.
+::ng-deep .smart-table:not(.short) {
+  .mat-column-symbol { min-width: 116px; }
+  .mat-column-group { min-width: 64px; }
+  .mat-column-signal { min-width: 144px; }
+  .mat-column-price { min-width: 70px; }
+  .mat-column-growth { min-width: 244px; }
+  .mat-column-earnings { min-width: 230px; }
+  .mat-column-52wRange { min-width: 138px; }
+  .mat-column-volatility { min-width: 108px; }
+  .mat-column-projection { min-width: 124px; }
+  .mat-column-dayChange { min-width: 74px; }
+  .mat-column-dividend { min-width: 92px; }
+  .mat-column-dayRange { min-width: 120px; }
+  .mat-column-trend { min-width: 100px; }
+  .mat-column-holders { min-width: 198px; }
+  .mat-column-analystRating { min-width: 170px; }
+  .mat-column-ownership { min-width: 130px; }
+  .mat-column-oneWeek { min-width: 80px; }
+  .mat-column-oneMonth { min-width: 78px; }
+  .mat-column-threeMonths { min-width: 76px; }
+  .mat-column-sixMonths { min-width: 76px; }
+  .mat-column-oneYear { min-width: 94px; }
+  .mat-column-eps-ttm { min-width: 98px; }
+  .mat-column-pe-ttm { min-width: 98px; }
+  .mat-column-pe-forward { min-width: 86px; }
+  .mat-column-debtToEquity { min-width: 110px; }
+}
+
+// In a list's heading line, after what the list is made of: close to the name, also on a very wide screen.
+.link-button.edit-list {
+  min-height: 28px;
+  margin-left: 0;
+  font-size: var(--text-data);
+}
+
+.held-hint {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.placeholder button + button {
+  margin-left: 8px;
+}
+
+// At the end of the line of "Your lists": making a list is not a way of looking at them, so it stands apart from the
+// choice of columns. Its buttons are as low as that choice (32px), so the line stays one quiet line.
+.new-list {
+  margin-left: auto;
+}
+
+.new-list button {
+  height: 32px;
+}
+
+// A label that is read out and not seen (the field of "Find a stock" says what it is in its placeholder).
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+// A list that got the keyboard from the link before the one above it: no ring around the whole list.
+.lists > section.list:focus {
+  outline: none;
+}
+
+// Not one price arrived: one line above the lists, in the amber of what has to be put right first, with the way on.
+.lists-failed {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 0 0 12px;
+}
+
+.lists-failed p {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: 500;
+  color: var(--warn);
+}
+
+// In a stock's details: which portfolio its forms record into. The portfolios as small buttons, the chosen one
+// filled, like the row of portfolios on the other view and a size smaller.
+.record-in {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 2px;
+}
+
+.record-in-label {
+  font-size: var(--text-meta);
+  color: var(--ink-2);
+}
+
+.record-in .name {
+  min-height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  font: inherit;
+  font-size: var(--text-meta);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.record-in .name.shown {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--brand-ink);
+  font-weight: 500;
+}
+
+.record-in .name:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
+}
+
+// "Find a stock", after the choice of columns: one low field, as low as that choice, and what is said when nothing
+// in the lists fits what was typed.
+.find {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: var(--text-data);
+}
+
+.find input {
+  width: 200px;
+  max-width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  font: inherit;
+  font-size: var(--text-data);
+  color: var(--ink);
+}
+
+.find input::placeholder {
+  color: var(--ink-3);
+  opacity: 1;
+}
+
+.find input:hover {
+  border-color: var(--ink-3);
+}
+
+.find input:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 0;
+  border-color: var(--link);
+}
+
+.find-problem {
+  color: var(--warn);
+}
+
+// Which other stocks fitted what was typed: information, not a fault, so in the quiet grey.
+.find-note {
+  color: var(--ink-2);
+}
+
+.new-list-form {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: var(--text-data);
+  color: var(--ink-2);
+}
+
+.new-list-form input {
+  width: 240px;
+  max-width: 100%;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  font: inherit;
+  font-size: var(--text-data);
+  color: var(--ink);
+}
+
+.new-list-form input:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 0;
+  border-color: var(--link);
+}
+
+// A list that is still loading, or failed to: same footprint as the real table, so the page does not jump.
+.placeholder {
+  padding: 20px 24px;
+  background: var(--surface);
+  border-radius: 4px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+  color: var(--ink-2);
+  font-size: var(--text-data);
+}
+
+.placeholder-title {
+  margin: 0 0 12px;
+  font-size: var(--text-heading);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+.placeholder p {
+  margin: 0 0 12px;
+}
+
+.skeleton-row {
+  background: linear-gradient(90deg, var(--line) 25%, var(--surface-2) 50%, var(--line) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton-row {
+  height: 20px;
+  margin: 14px 0;
+  border-radius: 4px;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.not-meaningful {
+  color: var(--ink-3);
+  font-style: italic;
+}
+
+// Row flash after selecting a dip candidate; the row lives inside the smart table, hence ::ng-deep.
+::ng-deep tr.row-highlight td {
+  background-color: var(--flash) !important;
+  transition: background-color 0.3s;
+}
+
+@media (max-width: 699px) {
+  .lists-bar {
+    margin-top: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-row {
+    animation: none;
+  }
+}
+
+// The page's two views. The one the address does not ask for stays in the page, hidden, so its open rows and its
+// editor are still there when it is shown again. `hidden` has to win over whatever layout these wrappers are given.
+.view-portfolio[hidden],
+.view-watchlist[hidden] {
+  display: none !important;
+}
+
+// ---- The two views on a wide window ----
+// Each view is one column until the window is wide enough for two things side by side. The page is made for a
+// browser window that fills a large monitor: what belongs together is then on screen together.
+
+// Portfolio, from 2500px: the plan and what you own on the left, with how the plan was tested right under it, and
+// what could be added on the right, down the side of both. The two share the window evenly: the holdings with their
+// key columns and the notes beside them need about 1,180px, and a row of "Could add" has up to fourteen cells (the
+// stock, what its mark rests on, the plan's numbers, the context, what you own that is like it, "Add"), which
+// need about 1,190px. In a narrower window the two stand one under the other, each as wide as the window. The two
+// columns end where they end: the shorter one leaves its room at the bottom of the page, never a hole in the
+// middle of the first screen.
+@media (min-width: 2500px) {
+  .view-portfolio {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    align-items: start;
+    column-gap: 24px;
+  }
+
+  .view-portfolio > app-could-add {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  // Under both, as wide as the window: in the left half only it was a column of text 1,400px tall beside an empty
+  // half of the page.
+  .view-portfolio > app-plan-evidence {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+// Watchlist, from 1800px: the stocks marked DIP BUY in a pane on the left that stays in view under the bar, and the
+// lists on the right. A click on a candidate opens its row in the lists beside it, with the candidates still there
+// to go on to the next one.
+@media (min-width: 1800px) {
+  .view-watchlist {
+    display: grid;
+    grid-template-columns: 480px minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "candidates bar"
+      "candidates lists";
+    align-items: start;
+    column-gap: 24px;
+  }
+
+  .view-watchlist > app-dip-candidates {
+    grid-area: candidates;
+    position: sticky;
+    top: calc(var(--bar-height) + 24px);
+    // On a screen too short for the whole pane, the pane scrolls by itself instead of being cut off at the bottom.
+    max-height: calc(100vh - var(--bar-height) - 48px);
+    overflow-y: auto;
+  }
+
+  .view-watchlist > .lists-bar {
+    grid-area: bar;
+    margin-top: 0;
+  }
+
+  .view-watchlist > .lists {
+    grid-area: lists;
+  }
+}
+
+// From 2300px the pane is wide enough for the candidates and what is said about them side by side.
+@media (min-width: 2300px) {
+  .view-watchlist {
+    grid-template-columns: 900px minmax(0, 1fr);
+  }
+}
+
+// ---- The pane folded ("Show less" in "Dip candidates") ----
+// Folded, the pane is a strip as wide as its two columns (a stock, how far it dropped): the lists get the rest.
+@media (min-width: 1800px) {
+  .view-watchlist.pane-folded {
+    grid-template-columns: 232px minmax(0, 1fr);
+  }
+}
+
+// With the pane folded, a wide window has room for two lists side by side while they show their key columns, and
+// most of the Watchlist is on one screen. With every column shown a list needs the whole width, so the lists stay
+// one under the other.
+//
+// The lists differ in length, and a grid lines its rows up across both columns: a short list beside a long one
+// left a hole under it. So the grid has many low rows (4px: `GRID_ROW_PX` in fills-column.directive.ts says the
+// same) and each list takes as many of them as it is tall (`appFillsColumn` measures it); the page says which
+// column a list is in (`columnOfList`), and "dense" sets each list at the first free place of its column. The
+// lists of a column then stand one right under the other, the same gap between them all the way down.
+@media (min-width: 2480px) {
+  .view-watchlist.pane-folded.key-columns > .lists {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 4px;
+    grid-auto-flow: row dense;
+    column-gap: 24px;
+    align-items: start;
+  }
+
+  // The gap under a list is part of the rows it takes.
+  .view-watchlist.pane-folded.key-columns > .lists > .list {
+    margin-bottom: 0;
+  }
+}
+
+// "How the plan was tested" while the first prices arrive: in the page, keeping its room, and out of sight. The
+// boxes over it are still growing then; shown, it would be read in one place and found in another.
+app-plan-evidence.arriving {
+  visibility: hidden;
+}

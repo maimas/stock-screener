@@ -1,0 +1,18 @@
+<!-- One line: the word the ratings come to, then how many analysts gave each rating. -->
+<div fxLayout="row" fxLayoutAlign="start center" class="container" [matTooltip]="tooltip">
+  <ng-container *ngIf="segments.length > 0; else noRatings">
+    <div class="consensus" [style.color]="consensusColor">{{ consensus }}</div>
+    <div fxLayout="row" fxLayoutAlign="center stretch" fxFlex class="ratings">
+      <div *ngFor="let segment of segments; trackBy: trackByLabel"
+           [matTooltip]="segment.label + ': ' + segment.count + ' (' + segment.percent + '%)'"
+           [fxFlex]="segment.percent"
+           [style.background-color]="segment.color"
+           [style.color]="segment.textColor"
+           class="rating">{{ segment.count }}
+      </div>
+    </div>
+  </ng-container>
+  <ng-template #noRatings>
+    <div class="no-data">—</div>
+  </ng-template>
+</div>

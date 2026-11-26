@@ -1,0 +1,250 @@
+// The frame fills the window: the bar stays at the top while the page scrolls under it.
+:host {
+  display: block;
+  min-height: 100vh;
+  background: var(--page);
+}
+
+.app-bar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px 24px;
+  min-height: var(--bar-height);
+  padding: 0 24px;
+  background: var(--brand);
+  color: var(--brand-ink);
+  box-shadow: 0 1px 4px rgba(15, 40, 80, 0.28);
+}
+
+// The app's name is the page's one top heading; it is sized as a bar title, not as a headline.
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.1px;
+  color: inherit;
+  white-space: nowrap;
+}
+
+.brand mat-icon {
+  opacity: 0.92;
+}
+
+// The two views, as tabs in the bar: the one being shown is underlined in white, the other is a tint of it.
+.views {
+  display: flex;
+  align-self: stretch;
+  gap: 4px;
+  margin-right: auto;
+}
+
+.views a {
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border-bottom: 3px solid transparent;
+  // The space the underline takes below is given back above, so the word stays in the middle of the bar.
+  border-top: 3px solid transparent;
+  font-size: var(--text-body);
+  font-weight: 500;
+  color: var(--brand-ink-2);
+  text-decoration: none;
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+
+.views a:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--brand-ink);
+}
+
+.views a.chosen {
+  border-bottom-color: var(--brand-ink);
+  color: var(--brand-ink);
+}
+
+.views a:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -4px;
+}
+
+.prices {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  font-size: var(--text-data);
+  font-variant-numeric: tabular-nums;
+}
+
+// A reload that failed: full white and a sign, on the bar's blue (an orange would not be readable on it). Without
+// room of its own while it is empty.
+.failed {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.failed:empty {
+  display: none;
+}
+
+.failed mat-icon {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+}
+
+// Secondary text on the blue bar is a tint of white, not a grey.
+.as-of {
+  color: var(--brand-ink-2);
+  white-space: nowrap;
+}
+
+.reload {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 14px 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
+  background: transparent;
+  font: inherit;
+  font-weight: 500;
+  color: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms ease-out, border-color 150ms ease-out;
+}
+
+.reload:hover {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.reload:active {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+// The page's focus ring is the bar's own blue: on the bar it has to be white to be seen.
+.reload:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.reload:disabled {
+  border-color: rgba(255, 255, 255, 0.4);
+  cursor: progress;
+}
+
+.reload mat-icon {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+}
+
+.reload.loading mat-icon {
+  animation: turn 900ms linear infinite;
+}
+
+@keyframes turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.page {
+  display: block;
+  padding: 24px;
+}
+
+// The page takes the keyboard from "Skip to the page": it is a place to go on from, not a thing to mark.
+.page:focus {
+  outline: none;
+}
+
+// "Skip to the page": out of sight until the Tab key reaches it, then over the bar's left end.
+.skip {
+  position: fixed;
+  top: 6px;
+  left: 8px;
+  z-index: 4;
+  padding: 6px 12px;
+  border-radius: 4px;
+  background: var(--surface);
+  font-size: var(--text-data);
+  font-weight: 500;
+  color: var(--link);
+  transform: translateY(-200%);
+}
+
+.skip:focus {
+  transform: none;
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+// A phone has room for the name, the two views and a round button: the time is left out, and the button keeps
+// its words for a screen reader only.
+@media (max-width: 699px) {
+  .app-bar {
+    gap: 8px;
+    padding: 0 14px;
+  }
+
+  .brand {
+    font-size: 15px;
+  }
+
+  .brand mat-icon,
+  .as-of {
+    display: none;
+  }
+
+  .views {
+    gap: 0;
+  }
+
+  .views a {
+    padding: 0 8px;
+  }
+
+  .reload {
+    padding: 0 6px;
+  }
+
+  .reload span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .page {
+    padding: 14px;
+  }
+}
+
+// Without motion the words "Loading prices" on the button still say what is going on.
+@media (prefers-reduced-motion: reduce) {
+  .reload,
+  .views a {
+    transition: none;
+  }
+
+  .reload.loading mat-icon {
+    animation: none;
+  }
+}

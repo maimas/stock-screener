@@ -1,0 +1,9 @@
+<div matTooltip="{{tooltip}}"
+     matTooltipClass="mat-tooltip"
+     class="container">
+  <div [style.color]="epsSurpriseColor">
+    <span>  {{ epsSurprise }}%</span>
+    <mat-icon *ngFor="let miss of missesInARow" fontIcon="trending_down"></mat-icon>
+  </div>
+</div>
+<!--<div>{{ price.toFixed(2) }}</div>-->

@@ -1,0 +1,19 @@
+<div fxLayout="column" fxLayoutAlign="center stretch" class="container"
+     [matTooltip]="tooltip" matTooltipClass="multiline-tooltip">
+  <ng-container *ngIf="hasData; else noData">
+    <div class="ownership-label">{{ institutionsPercent }}%</div>
+    <div fxLayout="row" fxLayoutAlign="center stretch" class="ratings">
+      <div [fxFlex]="institutionsPercent"
+           [style.background-color]="'var(--watch)'"
+           class="ownership-bar">
+      </div>
+      <div [fxFlex]="othersPercent"
+           [style.background-color]="'var(--line-strong)'"
+           class="ownership-bar">
+      </div>
+    </div>
+  </ng-container>
+  <ng-template #noData>
+    <div class="no-data">—</div>
+  </ng-template>
+</div>

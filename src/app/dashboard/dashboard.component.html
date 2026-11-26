@@ -1,0 +1,3 @@
+<!-- One page for both addresses: only which of its two views is shown follows the address. -->
+<app-watchlist-table [shows]="(shows$ | async) ?? 'portfolio'" [stock]="(stock$ | async) ?? undefined"
+                     (go)="go($event)" (stockShown)="stockShown($event)"></app-watchlist-table>

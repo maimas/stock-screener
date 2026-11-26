@@ -1,0 +1,64 @@
+# See http://help.github.com/ignore-files/ for more about ignoring files.
+
+# Compiled output
+/dist
+/tmp
+/out-tsc
+/bazel-out
+
+# Node
+/node_modules
+npm-debug.log
+yarn-error.log
+
+# IDEs and editors
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/*
+
+# Miscellaneous
+/.angular/cache
+.sass-cache/
+/connect.lock
+/coverage
+/libpeerconnection.log
+testem.log
+/typings
+
+# System files
+.DS_Store
+Thumbs.db
+# Crash dumps Git Bash leaves behind on Windows
+*.stackdump
+
+# The data folder the app used before it moved to a database: your own records, personal. Keep it out of git.
+/data
+
+# Settings of this computer (the time zone, a port, the data folder): never committed.
+.env
+.env.*
+
+# Compiled Python, left behind when a backtest script is run.
+__pycache__/
+
+# Local state of the Impeccable design tool: its cache and review snapshots, which name paths on this computer.
+# The product brief it reads, PRODUCT.md, is tracked.
+/.impeccable/
+
+# Settings of the Claude Code on this computer (permissions you granted, notes): this computer's own.
+.claude/
+
+# The working files of the plan-and-review runs: notes about this computer and its owner.
+.superpowers/

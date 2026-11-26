@@ -1,0 +1,85 @@
+// Sits inside a section of a stock's details and reads like the text around it (signal-detail.component.scss):
+// the same measure, the same list and link, the same quiet grey for what is secondary.
+:host {
+  display: block;
+}
+
+p {
+  margin: 0 0 6px;
+  max-width: 70ch;
+}
+
+ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+li {
+  margin: 3px 0;
+  max-width: 70ch;
+}
+
+a {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: rgba(21, 101, 192, 0.35);
+}
+
+a:hover {
+  text-decoration-color: currentColor;
+}
+
+.source,
+.by,
+.busy,
+.failed {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+// Who read it, when, and that it is not tested: the tooltip says what "not tested" means.
+.by {
+  margin-top: 6px;
+}
+
+.line {
+  cursor: help;
+}
+
+.line:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+// A second, quiet action: it looks like the links around it, not like the button that started the reading.
+.again {
+  padding: 4px 0;
+  white-space: nowrap;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.again:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+.busy,
+.failed {
+  margin-top: 8px;
+}
+
+// What went wrong is said in the darker grey, so it is not missed, but not in red: nothing is lost.
+.failed {
+  color: var(--ink-2);
+}
+
+.ask {
+  margin-top: 8px;
+}

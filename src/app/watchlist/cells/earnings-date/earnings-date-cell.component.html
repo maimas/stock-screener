@@ -1,0 +1,5 @@
+<div class="container" [class.soon]="isSoon" [class.reported]="showReported" [class.missed]="missed"
+     [matTooltip]="tooltip" matTooltipClass="multiline-tooltip">
+  <div class="date">{{ dateText }}</div>
+  <div class="days" *ngIf="subText">{{ subText }}</div>
+</div>

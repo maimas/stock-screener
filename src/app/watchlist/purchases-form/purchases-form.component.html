@@ -1,0 +1,47 @@
+<form (ngSubmit)="submit()" (keydown.escape)="cancel.emit()" (input)="changed()" (change)="touched = true" novalidate>
+  <p class="what">{{ what }}</p>
+  <p class="intro">{{ intro }}</p>
+  <!-- A line a stock: its shares, the price paid, and what the two come to. -->
+  <table class="lines">
+    <thead>
+    <tr>
+      <th scope="col">Stock</th>
+      <th scope="col">Shares bought</th>
+      <th scope="col">Price paid</th>
+      <th scope="col" class="num">That is</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr *ngFor="let row of rows; let i = index; trackBy: trackBySymbol">
+      <th scope="row">{{ row.symbol }}</th>
+      <td><input #sharesField type="number" [name]="'shares-' + i" min="0" step="any" inputmode="decimal" autocomplete="off"
+                 [attr.aria-label]="'Shares bought of ' + row.symbol" [(ngModel)]="row.shares"
+                 [attr.aria-invalid]="wrong(row, 'shares')" [attr.aria-describedby]="shownProblem ? 'purchases-problem' : null"></td>
+      <td><input type="number" [name]="'paid-' + i" min="0" step="any" inputmode="decimal" autocomplete="off" appPrice
+                 [attr.aria-label]="'Price paid for ' + row.symbol" [(ngModel)]="row.paid"
+                 [attr.aria-invalid]="wrong(row, 'paid')" [attr.aria-describedby]="shownProblem ? 'purchases-problem' : null"></td>
+      <td class="num cost">{{ costOf(row) }}</td>
+    </tr>
+    </tbody>
+  </table>
+  <div class="line">
+    <label>
+      <span>Bought on (optional)</span>
+      <input type="date" name="day" [max]="today" [(ngModel)]="day">
+    </label>
+  </div>
+  <label class="check" *ngIf="cash !== undefined">
+    <input type="checkbox" name="paidFromCash" [(ngModel)]="viaCash" (change)="cashChosen = true">
+    <span>{{ cashLabel }}</span>
+  </label>
+  <!-- Kept in the page while empty, so that a screen reader reads out what appears in them. -->
+  <p class="result" role="status">{{ result }}</p>
+  <p class="caution" role="status">{{ caution }}</p>
+  <p class="caution kept" role="status">{{ keptNote }}</p>
+  <p class="problem" id="purchases-problem" *ngIf="shownProblem" role="alert">{{ shownProblem }}</p>
+  <!-- The buttons come last, as in the form for one purchase and in a stock's details. -->
+  <div class="actions">
+    <button mat-stroked-button type="submit">Record these purchases</button>
+    <button mat-button type="button" (click)="cancel.emit()">Cancel</button>
+  </div>
+</form>

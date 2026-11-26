@@ -1,0 +1,134 @@
+<mat-card class="candidates" [class.folded]="folded">
+  <mat-card-content>
+    <!-- The title, and the choice between the whole box and the least of it: folded, the box is a narrow strip and
+         the lists beside it get the room. -->
+    <div class="head">
+      <h2 class="title">Dip candidates</h2>
+      <button type="button" class="link-button fold" [attr.aria-expanded]="!folded" (click)="foldedChange.emit(!folded)"
+              [matTooltip]="folded ? 'Show what the marks mean, the growth figures and how such stocks did in tests' : 'Fold this box to the marks and the stocks, so the lists get the room'">{{ folded ? 'Show more' : 'Show less: more room for the lists' }}</button>
+    </div>
+
+    <!-- Where the market stands: two quiet lines under the title. -->
+    <p class="market index" *ngIf="indexLine">{{ indexLine }}.</p>
+    <p class="market" *ngIf="fear">
+      <span class="fear-label" [class.high]="fear.high" tabindex="0"
+            [matTooltip]="fear.text" matTooltipClass="multiline-tooltip">{{ fear.label }}</span><span *ngIf="fear.high">: {{ fearHighShort }}.</span>
+    </p>
+
+    <!-- No price arrived at all: said here too, as in the lists, with the way on. The grey bars used to stay for good. -->
+    <div class="failed" *ngIf="!loaded && instead" role="status">
+      <p>{{ instead }}</p>
+      <button type="button" class="again" (click)="retry.emit()">Try again</button>
+    </div>
+    <div class="loading" *ngIf="!loaded && !instead" aria-busy="true" aria-label="Loading dip candidates">
+      <span class="skeleton" *ngFor="let _ of placeholders"></span>
+    </div>
+
+    <!-- The stocks on one side, what the marks mean and how such stocks did on the other; one under the other when narrow. -->
+    <div class="body" *ngIf="loaded">
+      <div class="stocks">
+        <!-- A row a stock, A to Z: no order among them has passed a test. A click anywhere on a row opens the stock.
+             One table, or, where the box is as wide as a window, two halves side by side: read down the first, then
+             down the second. -->
+        <div class="tables" *ngIf="candidates.length > 0; else none">
+        <table *ngFor="let part of tables; let first = first">
+          <caption class="visually-hidden">{{ first ? 'The stocks marked DIP BUY' : 'The stocks marked DIP BUY, continued' }}</caption>
+          <thead>
+          <tr>
+            <!-- Every heading is a button: a click orders the rows by its column, a second click turns them round
+                 (the owner: "all tables must have sortable columns"). The table starts A to Z; the page itself
+                 ranks nothing. -->
+            <th scope="col" [attr.aria-sort]="sortedAs('symbol')">
+              <button type="button" class="sort-head up" (click)="sortBy('symbol')">Stock</button></th>
+            <th scope="col" class="num" [attr.aria-sort]="sortedAs('dropped')">
+              <button type="button" class="sort-head" (click)="sortBy('dropped')">Dropped</button></th>
+            <th scope="col" [attr.aria-sort]="sortedAs('growing')">
+              <button type="button" class="sort-head" (click)="sortBy('growing')">Growing</button></th>
+            <!-- Which stocks moved together: the same letter, the same group. Left out when the box is folded. -->
+            <th scope="col" class="group-head" *ngIf="groups.groups.length > 0 && !folded" [attr.aria-sort]="sortedAs('group')">
+              <button type="button" class="sort-head up has-help" (click)="sortBy('group')"
+                      [matTooltip]="groupHelp" matTooltipClass="multiline-tooltip">Group</button></th>
+            <th scope="col" *ngIf="anyReportsSoon" [attr.aria-sort]="sortedAs('soon')">
+              <button type="button" class="sort-head up" (click)="sortBy('soon')">Next results</button></th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr *ngFor="let c of part; trackBy: trackBySymbol" (click)="open.emit(c.symbol)">
+            <th scope="row">
+              <button type="button" class="symbol" [attr.aria-label]="'Open details for ' + c.symbol"
+                      [matTooltip]="tipOf(c)" matTooltipClass="multiline-tooltip">{{ c.symbol }}</button>
+              <span class="held" *ngIf="c.held" [attr.aria-label]="c.heldIn || 'You hold this'">held</span>
+              <span class="new-mark" *ngIf="c.isNew" aria-label="Marked DIP BUY today">new</span>
+            </th>
+            <td class="num">{{ dropText(c) }}</td>
+            <td>{{ c.growthText }}</td>
+            <td class="group-cell" *ngIf="groups.groups.length > 0 && !folded" [matTooltip]="groupTipOf(c.symbol)" matTooltipClass="multiline-tooltip">
+              <span class="tied-tag" *ngIf="group(c.symbol) as g; else noGroup" [attr.aria-label]="'Group ' + g.letter"><i [class]="'g' + g.index" aria-hidden="true"></i>{{ g.letter }}</span>
+              <ng-template #noGroup><span class="tied-tag none" aria-label="In no group">—</span></ng-template>
+            </td>
+            <td class="soon" *ngIf="anyReportsSoon">{{ c.earningsSoon ? 'within 2 weeks' : '' }}</td>
+          </tr>
+          </tbody>
+        </table>
+        </div>
+        <!-- How the table is used, said where the table is: not as the opening of a paragraph about tests. -->
+        <p class="note how" *ngIf="candidates.length > 0">Click a stock for its details.</p>
+        <ng-template #none>
+          <p class="note empty">
+            Nothing is marked DIP BUY right now: no growing company in your lists has dropped {{ dipPercent }}% or more from its
+            highest price of the past year.
+          </p>
+        </ng-template>
+      </div>
+
+      <div class="about">
+        <!-- What the three marks mean, each as it looks in the lists, with how many stocks on the page carry it. -->
+        <dl class="legend">
+          <div class="mark">
+            <dt [matTooltip]="folded ? meanings.dipBuy : ''" [attr.tabindex]="folded ? 0 : null"><span class="verdict-pill dip">DIP BUY</span><span class="mark-count">{{ marks.dipBuy }}</span></dt>
+            <dd>{{ meanings.dipBuy }}</dd>
+          </div>
+          <div class="mark">
+            <dt [matTooltip]="folded ? meanings.watch : ''" [attr.tabindex]="folded ? 0 : null"><span class="verdict-pill watch">WATCH</span><span class="mark-count">{{ marks.watch }}</span></dt>
+            <dd>{{ meanings.watch }}</dd>
+          </div>
+          <div class="mark">
+            <dt [matTooltip]="folded ? meanings.pass : ''" [attr.tabindex]="folded ? 0 : null"><span class="verdict-pill pass">PASS</span><span class="mark-count">{{ marks.pass }}</span></dt>
+            <dd>{{ meanings.pass }}</dd>
+          </div>
+        </dl>
+        <p class="note unmarked" *ngIf="marks.none > 0">
+          {{ marks.none }} more {{ marks.none === 1 ? 'has' : 'have' }} no mark: funds, and companies with too little history to judge.
+        </p>
+        <p class="note one-bet" *ngIf="candidates.length > 0 && oneBet">{{ oneBet }}</p>
+        <!-- Which of them are tied: a line a group, with the letter its rows carry in the table. -->
+        <div class="tied" *ngIf="candidates.length > 0 && groups.groups.length > 0">
+          <h3 class="tied-title">{{ tiedTitle }}</h3>
+          <ul>
+            <li *ngFor="let g of groups.groups; trackBy: trackByLetter">
+              <span class="tied-tag"><i [class]="'g' + g.index" aria-hidden="true"></i>{{ g.letter }}</span>
+              <span class="members">{{ g.symbols.join(', ') }}</span>
+              <span class="brief">{{ briefOf(g) }}</span>
+            </li>
+            <li *ngIf="groups.alone.length > 0">
+              <span class="tied-tag none">—</span>
+              <span class="members">{{ groups.alone.join(', ') }}</span>
+              <span class="brief">{{ groups.alone.length === 1 ? 'moved with none of the others' : 'each moved with none of the others' }}</span>
+            </li>
+          </ul>
+          <p class="note"><app-more key="dip.tied" [text]="tiedNote"></app-more></p>
+        </div>
+        <p class="note tested" *ngIf="candidates.length > 0"><app-more key="dip.tested" [text]="cardNote"></app-more></p>
+        <!-- The rows can be ordered by any column: said with the other sentences about the table, where a sentence
+             wraps. In the table's own block, which is as wide as its widest line, it made the box as wide as itself. -->
+        <p class="note order-note" *ngIf="candidates.length > 1">{{ orderNote }}</p>
+        <p class="note log" *ngIf="trackText">
+          {{ trackText }} {{ recorderText }}
+          <button type="button" class="link-button" (click)="exportLog.emit()"
+                  matTooltip="Saves the daily log as a file: a backup, and the history needed to test analyst targets later.">Export log</button>
+        </p>
+        <p class="note attention" *ngIf="evidenceText" role="status">{{ evidenceText }}</p>
+      </div>
+    </div>
+  </mat-card-content>
+</mat-card>

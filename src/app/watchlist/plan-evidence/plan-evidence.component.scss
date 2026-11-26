@@ -1,0 +1,192 @@
+// The evidence behind the plan, in one place at the bottom of the page.
+:host {
+  display: block;
+}
+
+// Jumped to from the plan's last line: it stops clear of the bar across the top, which the page sees to for
+// everything that is scrolled to (`scroll-padding-top` in styles.scss).
+mat-card {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.title {
+  margin: 0 0 12px;
+  font-size: var(--text-title);
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+dl {
+  margin: 0;
+}
+
+// A verb, then what was tested about it, at a width that reads easily.
+.reason {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 0 16px;
+  padding-bottom: 14px;
+}
+
+// The same verbs as on the plan card, set the same way (.plan-verb in styles.scss); here only their line.
+dt {
+  line-height: 1.85;
+}
+
+dd {
+  margin: 0;
+  max-width: var(--measure);
+  font-size: var(--text-body);
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+// The plan as a whole stands across the box, by itself, with a line under it. Opened, its account is a run of
+// short paragraphs and three small tables: they go in as many columns as fit, three at most, all of them beside
+// the one heading at their left. (In one list with the reasons below, the account ran on under no heading, and
+// opening or closing it moved every reason from column to column.)
+.the-plan {
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+// Its columns are the columns of the reasons under it: as many of them at every width (a reason takes 520px at
+// least and stands 48px from the next, so a column of text here takes 400px and stands 48px and a heading's width
+// from the next), and each starts where the text of the reason under it starts. Capped at three measures, the
+// account ended at about half of a wide box, over reasons that used all of it.
+.the-plan dd {
+  max-width: none;
+  columns: 3 400px;
+  column-gap: 168px;
+}
+
+// A paragraph or a table is never split between two columns. A paragraph keeps to the width that reads easily; a
+// table may take the whole of its column, so that the names of its columns need two lines and not four.
+.the-plan dd > p,
+.the-plan dd > table {
+  break-inside: avoid;
+}
+
+.the-plan dd > p {
+  max-width: var(--measure);
+}
+
+.the-plan dd > table {
+  max-width: min(100%, 640px);
+}
+
+// The paragraph that says what a table shows stays with it: not at the foot of one column with its table at the
+// head of the next.
+.the-plan dd > p:has(+ table) {
+  break-after: avoid;
+}
+
+// A paragraph a thought. The first says what the plan is; the rest is how it did.
+.the-plan dd > p {
+  margin: 0 0 8px;
+}
+
+.the-plan dd > p.lead {
+  color: var(--ink);
+}
+
+// What a paragraph is about, where it begins by saying so: in the full ink and a step stronger, so that the eye
+// can go from one to the next down the column.
+dd p .about {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+// The like figures of one test, each once: across to compare the ways of doing a thing, down to compare one
+// figure. Small, in the type of the page's other numbers, the figures at the right of their columns.
+table.figures {
+  width: 100%;
+  margin: 4px 0 14px;
+  border-collapse: collapse;
+}
+
+table.figures caption {
+  caption-side: top;
+  padding-bottom: 4px;
+  text-align: left;
+  font-size: var(--text-meta);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+table.figures th,
+table.figures td {
+  padding: 4px 0 4px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: bottom;
+  font-family: var(--font-figures);
+  font-size: var(--text-data);
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+table.figures th:first-child {
+  padding-left: 0;
+}
+
+// The names of the columns: quiet, and on two lines where a name is long, so that what a row is stays on one.
+table.figures thead th {
+  border-bottom-color: var(--line-strong);
+  font-family: var(--font-text);
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+table.figures .num {
+  text-align: right;
+}
+
+table.figures tbody th,
+table.figures td {
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+// What the plan does not offer: under a line across the table that says why, and a step quieter.
+table.figures tbody.apart tr:first-child th {
+  padding-top: 10px;
+  font-family: var(--font-text);
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  white-space: normal;
+}
+
+table.figures tbody.apart th[scope="row"],
+table.figures tbody.apart td {
+  color: var(--ink-2);
+}
+
+// The reasons of today's steps: side by side where the box has room, three at most, in the plan's order across
+// and then down. Each keeps its place: opening one makes its own row taller and moves nothing sideways. (They ran
+// in balanced columns before, and opening one re-flowed them all.)
+.reasons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, max(520px, (100% - 96px) / 3)), 1fr));
+  gap: 0 48px;
+  align-items: start;
+}
+
+@media (max-width: 699px) {
+  .reason {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px 0;
+  }
+
+  // Five columns in the width of a phone: less room between them, and what a row is may take two lines.
+  table.figures th,
+  table.figures td {
+    padding-left: 8px;
+  }
+
+  table.figures tbody th {
+    white-space: normal;
+  }
+}

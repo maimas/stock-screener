@@ -1,0 +1,14 @@
+.container {
+  min-width: 100px;
+}
+
+mat-icon {
+  width: 15px;
+  height: 15px;
+  font-size: 15px;
+  margin: 0;
+}
+
+::ng-deep .mat-tooltip {
+  white-space: pre-line; // Allow line break
+}

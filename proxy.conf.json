@@ -1,0 +1,47 @@
+{
+  "/api": {
+    "target": "https://quotes-gw.webullfintech.com",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug",
+    "pathRewrite": {
+      "^/api": "/api"
+    }
+  },
+  "/contentservices-finance.financedataservice": {
+    "target": "https://services.bingapis.com",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug",
+    "pathRewrite": {
+      "^/contentservices-finance.financedataservice": "/contentservices-finance.financedataservice"
+    }
+  },
+  "/contentservices-finance.csautosuggest": {
+    "target": "https://services.bingapis.com",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug",
+    "pathRewrite": {
+      "^/contentservices-finance.csautosuggest": "/contentservices-finance.csautosuggest"
+    }
+  },
+  "/service": {
+    "target": "https://assets.msn.com",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug",
+    "pathRewrite": {
+      "^/service": "/service"
+    }
+  },
+  "/gnews": {
+    "target": "https://news.google.com",
+    "secure": true,
+    "changeOrigin": true,
+    "logLevel": "debug",
+    "pathRewrite": {
+      "^/gnews": ""
+    }
+  }
+}

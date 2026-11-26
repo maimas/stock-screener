@@ -1,0 +1,16 @@
+<div class="container" [matTooltip]="tooltip" matTooltipClass="multiline-tooltip">
+  <ng-container *ngIf="hasTargets; else noTargets">
+    <!-- An analyst's target is an opinion nothing on this page was tested on: set plainly, never in the green of a gain. -->
+    <div class="upside">{{ formatPercent(medianPercent) }}</div>
+    <div class="range-bar">
+      <div class="target-range"
+           [style.left.%]="rangeStartPosition"
+           [style.width.%]="rangeWidth"></div>
+      <div class="median-indicator" [style.left.%]="medianPosition"></div>
+      <div class="price-indicator" [style.left.%]="pricePosition"></div>
+    </div>
+  </ng-container>
+  <ng-template #noTargets>
+    <div class="no-data">—</div>
+  </ng-template>
+</div>

@@ -1,0 +1,36 @@
+<!-- What there is to do today, by name, then a line a step. The box around these lines is the portfolio's (positions-card). -->
+<!-- The lead. Each verb in it wears the colour of its mark in the lines under it; the sentence reads as before. -->
+<p class="count" *ngIf="!loading && !empty"><ng-container *ngIf="leadVerbs.length > 0; else nothingToDo">To do today: <ng-container *ngFor="let verb of leadVerbs; let last = last"><span [class]="'lead-verb ' + verb.kind">{{ verb.verb }}</span>{{ last ? '.' : ', ' }}</ng-container></ng-container><ng-template #nothingToDo>{{ headline }}</ng-template></p>
+
+<ol class="steps" *ngIf="shownSteps.length > 0">
+  <li *ngFor="let step of shownSteps; trackBy: trackByKind" [class]="'step ' + step.kind"
+      [class.changed]="newsOf(step) === 'changed'" [class.unchanged]="newsOf(step) === 'unchanged'">
+    <span class="verb"><span [class]="'plan-verb ' + step.kind" [class.asks]="asks(step)">{{ step.verb }}</span></span>
+    <div class="what">
+      <span class="items" *ngIf="step.items.length > 0">
+        <button type="button" class="item" *ngFor="let item of step.items; trackBy: trackBySymbol"
+                (click)="open.emit(item.symbol)" [attr.aria-label]="'Open details for ' + item.symbol">
+          <span class="symbol">{{ item.symbol }}</span><span class="label" *ngIf="item.label">{{ item.label }}</span>
+        </button>
+      </span>
+      <!-- Where the sentence names the "Could add" box, the name is the way there: a jump, nothing opens. -->
+      <p class="text" *ngIf="boxNamedIn(step) as part; else plain">{{ part.before }}<button type="button" class="jump" (click)="couldAdd.emit()">{{ part.name }}</button>{{ part.after }}</p>
+      <ng-template #plain><p class="text">{{ step.text }}</p></ng-template>
+    </div>
+  </li>
+</ol>
+
+<p class="empty waiting" *ngIf="loading && !instead" aria-busy="true">Working it out from today's prices.</p>
+<!-- In place of the plan when it cannot be worked out: said here, where the plan is looked for, with the way on. -->
+<div class="instead" *ngIf="instead" role="alert">
+  <p>{{ instead }}</p>
+  <button type="button" class="again" (click)="retry.emit()">Try again</button>
+</div>
+<p class="empty" *ngIf="empty">
+  Nothing to do today: this portfolio is empty, and no stock on the page has dropped while its business keeps growing.
+</p>
+
+<p class="record">
+  {{ record }}
+  <button type="button" class="more" (click)="showTests()">How it was tested</button>
+</p>

@@ -1,0 +1,152 @@
+// The box the table scrolls sideways in. It is also what the open details measure themselves against: they are as
+// wide as this box, whether the table has the whole window or one of two columns of lists.
+.table-scroll {
+  container-type: inline-size;
+  overflow-x: auto;
+  background: var(--surface);
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+}
+
+// A row is one line tall (every cell of the key columns is one line), so the rows are low: Material's own are
+// 52px and its headings 56px. With thirty stocks over seven lists, the height of a row decides how much is seen
+// without scrolling. A cell that needs two lines (some of "All columns") makes its row as tall as it needs.
+.smart-table {
+  --mat-table-row-item-container-height: 36px;
+  --mat-table-header-container-height: 36px;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+
+// A table that shows a short choice of its columns (".short") has room for all of them in a wide box:
+// there its columns keep the widths the page gives them, whatever stands in the cells, so that several such tables
+// one under the other share one grid and a column can be read straight down the page. With every column shown, or
+// in a narrow box, a column is as wide as its content and the table scrolls sideways.
+// A short choice of columns is read as a table of one line a row: its cells stand a little closer than Material's
+// 16px each side, which lets two such tables stand side by side on a wide window.
+// (The cell of the button that opens a row has its own spacing, further down.)
+.smart-table.short .mat-mdc-cell:not(.toggle-cell),
+.smart-table.short .mat-mdc-header-cell:not(.toggle-cell) {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+// With every column shown the table is wider than any window and scrolls sideways under its two pinned columns:
+// there the cells stand closer still, so that less of the table is out of sight at a time.
+.smart-table:not(.short) .mat-mdc-cell:not(.toggle-cell),
+.smart-table:not(.short) .mat-mdc-header-cell:not(.toggle-cell) {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+// From 1100px (two lists side by side on a wide window are 1116px each): in a narrower box the widest cells
+// ("Profit +44.3% ✓ Sales +379.3% ✓") would not fit their share.
+@container (min-width: 1100px) {
+  .smart-table.short {
+    table-layout: fixed;
+  }
+}
+
+th.mat-mdc-header-cell {
+  font-size: var(--text-meta);
+  font-weight: 500;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+// A header that explains itself on hover: dotted underline instead of an icon in every column.
+.has-help {
+  border-bottom: 1px dotted var(--ink-3);
+  cursor: help;
+}
+
+// Pinned columns need an opaque background and a hint of separation while scrolling.
+.mat-mdc-table-sticky {
+  background: var(--surface);
+}
+
+// A pinned column casts a shadow only while columns are out of sight on its side: the shadow is the sign that the
+// table goes on there. (It used to be there always, faintly, and said nothing.)
+.cut-left .mat-mdc-table-sticky-border-elem-left {
+  box-shadow: 8px 0 8px -6px rgba(0, 0, 0, 0.3);
+}
+
+.cut-right .mat-mdc-table-sticky-border-elem-right {
+  box-shadow: -8px 0 8px -6px rgba(0, 0, 0, 0.3);
+}
+
+.main-row.clickable {
+  cursor: pointer;
+}
+
+// A row jumped to from elsewhere on the page stops clear of the bar across the top: the page itself sees to that
+// for everything (`scroll-padding-top` in styles.scss), so a row needs no margin of its own for it.
+
+.main-row:hover .mat-mdc-cell,
+.main-row.expanded .mat-mdc-cell {
+  background: var(--surface-2);
+}
+
+.main-row.expanded .mat-mdc-cell {
+  border-bottom-color: transparent;
+}
+
+.toggle-cell {
+  width: 48px;
+  padding: 0 4px;
+  text-align: center;
+}
+
+// Material's icon button is 48px and would make every row that tall: here it is 32px, which is still an easy
+// thing to hit, and the row can be as low as its one line of text allows.
+.toggle {
+  --mdc-icon-button-state-layer-size: 32px;
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+  color: var(--ink-3);
+}
+
+.main-row:hover .toggle,
+.main-row.expanded .toggle {
+  color: var(--ink);
+}
+
+// The details live in a second row per stock; closed rows take no space.
+.detail-row {
+  height: 0;
+}
+
+.detail-row .detail-cell {
+  padding: 0;
+  border-bottom-width: 0;
+}
+
+.detail-row.open .detail-cell {
+  background: var(--surface-2);
+  border-bottom-width: 1px;
+}
+
+// Keep the details in view while the wide table scrolls sideways.
+.detail {
+  position: sticky;
+  left: 0;
+  box-sizing: border-box;
+  width: min(1320px, 100cqw);
+  padding: 0 16px 20px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 699px) {
+  .detail {
+    padding: 4px 12px 16px;
+  }
+}

@@ -1,0 +1,20 @@
+<div class="container" [matTooltip]="tooltip" matTooltipClass="cost-tooltip">
+  <ng-container *ngIf="distribution; else noData">
+    <svg [attr.width]="width" [attr.height]="height" [attr.viewBox]="'0 0 ' + width + ' ' + height"
+         role="img" [attr.aria-label]="profitText + ', ' + costText">
+      <rect *ngFor="let bar of bars; trackBy: trackByIndex"
+            [attr.x]="bar.x" [attr.y]="bar.y"
+            [attr.width]="barWidth()" [attr.height]="bar.height"
+            [class.profit]="bar.inProfit" [class.loss]="!bar.inProfit"></rect>
+      <line class="cost-line" [attr.x1]="costX" [attr.x2]="costX" y1="0" [attr.y2]="height"></line>
+      <line class="price-line" [attr.x1]="priceX" [attr.x2]="priceX" y1="0" [attr.y2]="height"></line>
+    </svg>
+    <div class="labels">
+      <mat-icon class="warn-icon" *ngIf="isUnderwater" aria-hidden="false" aria-label="Most holders underwater">warning</mat-icon>
+      <span class="profit-text">{{ profitText }}</span>
+    </div>
+  </ng-container>
+  <ng-template #noData>
+    <span class="no-data">—</span>
+  </ng-template>
+</div>

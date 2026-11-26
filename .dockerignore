@@ -1,0 +1,25 @@
+# Never in an image: what you record, the repository's history, settings files
+data
+.git
+.env
+.env.*
+# Built again inside the image
+node_modules
+dist
+.angular
+# Tools of editors and of Claude Code
+.idea
+.vscode
+.claude
+.impeccable
+.superpowers
+# Not part of the running app: the backtests and their downloads, the checks, the scheduling, the documents
+tools/signal-backtest
+tools/evidence
+tools/schedule
+tools/check
+# The tests: nothing the app runs requires one, and the older ones hold example values
+tools/**/*.test.js
+tools/**/*.contract.js
+docs
+*.stackdump

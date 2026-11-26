@@ -1,0 +1,63 @@
+mat-card {
+  margin-bottom: 0;
+  border-radius: 4px 4px 0 0;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+// A list's heading band is two short lines: it does not need the page's full box padding above and below them.
+:host .mat-mdc-card .mat-mdc-card-content,
+:host .mat-mdc-card-content {
+  padding: 14px 24px 10px;
+}
+
+.heading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+}
+
+// A list's name: a heading inside "Your lists", so a size under that title.
+.title {
+  margin: 0;
+  font-size: var(--text-heading);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.2px;
+  color: var(--ink);
+}
+
+// What the list is made of, in words: the sector split is worth a glance, not a coloured band.
+.sectors {
+  font-size: var(--text-data);
+  color: var(--ink-2);
+}
+
+// The averages wrap like words: every period stays in view on a phone, with nothing to scroll sideways.
+.changes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 18px;
+  margin-top: 8px;
+  font-size: var(--text-data);
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+.change {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.period {
+  color: var(--ink-3);
+}
+
+app-percent-change-cell {
+  display: inline-block;
+  font-weight: 500;
+}

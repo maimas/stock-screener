@@ -1,0 +1,6 @@
+<!-- The stock's name is part of its row: a click on it opens the row's details, like a click anywhere else on the row.
+     The stock's page at the data source is linked from inside those details. -->
+<div [matTooltip]="tip" matTooltipClass="multiline-tooltip">
+  <span class="symbol">{{ symbol }}</span>
+  <span class="held" *ngIf="held" [attr.aria-label]="heldIn || 'You hold this'">held</span>
+</div>

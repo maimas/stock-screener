@@ -1,0 +1,282 @@
+<!--
+  The page has two views of the same prices. Both are in the page all the time; the address says which one is
+  shown (/portfolio or /watchlist) and the other is only hidden, so nothing is loaded again on a switch and an
+  open row is still open when its view comes back.
+-->
+
+<!-- The portfolio's view: what you own and what to do about it, what could be added, and how the plan was tested. -->
+<div class="view-portfolio" [hidden]="shows !== 'portfolio'">
+<!-- One box for the portfolio being shown: its cash and limit, today's plan for it as lines, and what it holds. -->
+<app-positions-card [book]="book" [portfolio]="portfolio" [view]="positions" [together]="positionsTogether"
+                    [plan]="working || planTrouble ? noSteps : plan" [toDo]="working || planTrouble ? nothingYet : toDo"
+                    [loading]="working && !noPrices" [unvalued]="noPrices" [savedIn]="savedIn" [notice]="notice"
+                    [names]="companyNames" [tied]="tied" [allColumns]="view === 'all'" (allColumnsChange)="setView($event ? 'all' : 'decision')"
+                    (settings)="saveSettings($event)" (open)="showStock($event)" (remove)="removePosition($event)"
+                    (undo)="undoChange()" (selectPortfolio)="selectPortfolio($event)" (addPortfolio)="addPortfolio($event)"
+                    (renamePortfolio)="renamePortfolio($event)" (removePortfolio)="removePortfolio()"
+                    (exportBook)="exportBook()" (importBook)="importBook($event)">
+  <app-plan-card [steps]="plan" [loading]="working || !!planTrouble" [instead]="planTrouble" (retry)="retry()"
+                 (open)="showStock($event)" (tests)="showPlanTests()" (couldAdd)="showCouldAdd()"></app-plan-card>
+</app-positions-card>
+
+<!-- The stocks marked DIP BUY that this portfolio does not hold, each with its size as a share of the portfolio.
+     The plan's BUY line jumps here: the box can be named and can take the keyboard without being a tab stop. -->
+<app-could-add id="could-add" tabindex="-1" [recommendations]="recommendations" [reading]="reading" [portfolio]="shownName" [marked]="marks.dipBuy"
+               [fresh]="newlyMarked" [loading]="working" [instead]="noPrices ? noPricesShort : ''" (open)="showStock($event)"
+               [additions]="additions" [sizing]="sizing" [cash]="portfolio.cash" [names]="couldAddNames" [facts]="couldAddFacts"
+               [prices]="couldAddPrices" [positions]="portfolio.positions" [today]="today" (trade)="recordTrade($event, true)" (trades)="recordTrades($event)"
+               [portfolioId]="shownId" [tied]="tied" [unpriced]="unpricedHeld" [keep]="positions.reserve?.dollars"></app-could-add>
+
+<!-- Not shown while the first prices arrive: the boxes over it are still growing then, and it stood in the first
+     screen for a few seconds and dropped hundreds of pixels when they were done. -->
+<app-plan-evidence [steps]="plan" [loading]="working" [class.arriving]="working"></app-plan-evidence>
+</div>
+
+<!-- The watchlist's view: what is marked, and your lists with each stock's details. -->
+<div class="view-watchlist" [hidden]="shows !== 'watchlist'"
+     [class.pane-folded]="paneFolded" [class.key-columns]="view === 'decision'">
+
+<!-- The stocks marked DIP BUY, with where the market stands and what the three marks mean. It can be folded to
+     the least of it, a narrow strip, so that the lists get the room. -->
+<app-dip-candidates [candidates]="candidates" [marks]="marks" [loaded]="loaded" [indexLine]="indexLine" [fear]="fear"
+                    [oneBet]="oneBet" [tied]="tiedCandidates" [trackText]="trackText" [recorderText]="recorderText" [evidenceText]="evidenceText"
+                    [folded]="paneFolded" (foldedChange)="foldPane($event)" [instead]="noPrices ? noPricesShort : ''" (retry)="loadAll()"
+                    (open)="showStock($event)" (exportLog)="exportLog()">
+</app-dip-candidates>
+
+<!-- The lists and the one control that is about all of them: which columns their tables show. -->
+<div class="lists-bar">
+  <h2 class="lists-title">Your lists</h2>
+  <mat-button-toggle-group class="columns" [value]="view" (change)="setView($event.value)" aria-label="Columns shown in the lists">
+    <mat-button-toggle value="decision" matTooltip="What a mark rests on, and the context most worth a glance">Key columns</mat-button-toggle>
+    <mat-button-toggle value="all" matTooltip="Every column, including context the marks do not use">All columns</mat-button-toggle>
+  </mat-button-toggle-group>
+  <!-- A stock is found by its symbol or its company's name: Enter opens its row. A native list of the stocks in the
+       lists offers them while typing. -->
+  <form class="find" role="search" (ngSubmit)="findStock()">
+    <label class="visually-hidden" for="find-stock">Find a stock in your lists, by its symbol or its company's name</label>
+    <input id="find-stock" type="search" name="find" autocomplete="off" spellcheck="false" maxlength="40"
+           placeholder="Find a stock   /" list="find-stock-options" aria-describedby="find-stock-problem"
+           [(ngModel)]="findText" (input)="findProblem = ''; findNote = ''">
+    <datalist id="find-stock-options">
+      <option *ngFor="let it of findable; trackBy: trackBySymbolOf" [value]="it.symbol">{{ it.name }}</option>
+    </datalist>
+    <span class="find-problem" id="find-stock-problem" role="status">{{ findProblem }}</span>
+    <span class="find-note" role="status">{{ findNote }}</span>
+  </form>
+  <!-- With the details of two or more stocks open (each stock opened from the plan stays open): one click closes
+       them all. They could only be closed one by one, each at its own foot. -->
+  <button type="button" class="link-button close-all" *ngIf="openDetails > 1" (click)="closeAllDetails()">Close all {{ openDetails }} open details</button>
+  <!-- At the top, beside the title of the lists: a new list is added first, right under it. -->
+  <div class="new-list">
+    <button mat-stroked-button type="button" *ngIf="newListTitle === undefined; else newListForm" (click)="newListTitle = ''">New list</button>
+    <ng-template #newListForm>
+      <form class="new-list-form" (ngSubmit)="addNewList()" (keydown.escape)="cancelNewList()">
+        <label for="new-list-name">Name of the new list</label>
+        <input id="new-list-name" type="text" name="title" maxlength="40" autocomplete="off" appFocusWhenShown [(ngModel)]="newListTitle">
+        <button mat-stroked-button type="submit" [disabled]="!newListTitle?.trim()">Add list</button>
+        <button mat-button type="button" (click)="cancelNewList()">Cancel</button>
+      </form>
+    </ng-template>
+  </div>
+</div>
+
+<!-- The lists, one after the other. Where the window has room for two tables side by side (the pane folded, key
+     columns), they stand in two columns: each list directly under the one above it in its column, whatever the
+     length of the list beside it, so no hole is left under a short list. -->
+<!-- Not one price arrived: said once for all the lists, with one "Try again". It used to be said in every list,
+     six alerts with six buttons on a day the data source was down. -->
+<div class="lists">
+<!-- In the lists' own column, across it: placed before the lists it landed in the pane's column, at its foot. -->
+<div class="lists-failed" *ngIf="noPrices" role="alert">
+  <p>{{ noPricesShort }}</p>
+  <button mat-stroked-button type="button" (click)="loadAll()">Try again</button>
+</div>
+<section class="list" *ngFor="let watchList of shownLists; trackBy: trackByList; let i = index" [ngSwitch]="watchList.state ?? 'loading'"
+         appFillsColumn [style.grid-column]="columnOfList(i)">
+  <div class="placeholder" *ngSwitchCase="'loading'" aria-busy="true">
+    <h3 class="placeholder-title">{{ watchList.title }}</h3>
+    <div class="skeleton-row" *ngFor="let _ of watchList.symbols"></div>
+  </div>
+
+  <!-- One list failed while others loaded: said in that list, with its own "Try again". When none loaded, the
+       line above the lists says it once and the list keeps only its name. -->
+  <div class="placeholder" *ngSwitchCase="'error'" [attr.role]="noPrices ? null : 'alert'">
+    <h3 class="placeholder-title">{{ watchList.title }}</h3>
+    <ng-container *ngIf="!noPrices">
+      <p>These prices could not be loaded: the data source did not answer.</p>
+      <button mat-stroked-button type="button" (click)="loadList(watchList)">Try again</button>
+    </ng-container>
+    <button mat-button type="button" *ngIf="watchList !== heldOutside" (click)="toggleListEditor(watchList.id)">Edit list</button>
+  </div>
+
+  <div class="placeholder" *ngSwitchCase="'empty'">
+    <h3 class="placeholder-title">{{ watchList.title }}</h3>
+    <p>No stocks in this list yet.</p>
+    <button mat-stroked-button type="button" *ngIf="editingListId !== watchList.id" (click)="toggleListEditor(watchList.id)">Edit list</button>
+  </div>
+
+  <app-sector-distribution-widget *ngSwitchDefault [stocks]="watchList.dataSource.data" [name]="watchList.title"
+                                  [showChanges]="view === 'all'">
+    <button type="button" class="link-button edit-list" *ngIf="watchList !== heldOutside; else heldHint" [attr.data-edits]="watchList.id"
+            [attr.aria-expanded]="editingListId === watchList.id" (click)="toggleListEditor(watchList.id)"
+            (keydown.escape)="editingListId === watchList.id && closeListEditor(watchList.id)">
+      {{ editingListId === watchList.id ? 'Close editing' : 'Edit list' }}
+    </button>
+    <ng-template #heldHint>
+      <span class="held-hint">Stocks you hold that are in none of your lists. Add one to a list with "Edit list".</span>
+    </ng-template>
+  </app-sector-distribution-widget>
+
+  <ng-container *ngIf="watchList !== heldOutside && editingListId === watchList.id">
+    <app-list-editor *ngIf="listDef(watchList.id) as def"
+                     [list]="def" [first]="i === 0" [last]="i === watchLists.length - 1"
+                     [checking]="checkingListId === watchList.id"
+                     [problem]="listProblem?.listId === watchList.id ? listProblem!.text : ''"
+                     (addSymbol)="addSymbol(watchList.id, $event)" (removeSymbol)="removeSymbol(watchList.id, $event)"
+                     (rename)="renameList(watchList.id, $event)" (move)="moveList(watchList.id, $event)"
+                     (removeList)="removeList(watchList.id)" (done)="closeListEditor(watchList.id)">
+    </app-list-editor>
+  </ng-container>
+
+  <!-- A way past a list for the Tab key (each row is a stop): out of sight until it has the keyboard. -->
+  <a class="skip-over" href="" *ngIf="watchList.state === 'ready' && i < shownLists.length - 1" (click)="skipList($event, i)">Skip the list {{ watchList.title }}</a>
+  <app-smart-table *ngIf="watchList.state === 'ready'"
+                   [tableDefinition]="tableDefinition"
+                   [dataSource]="watchList.dataSource"
+                   [visibleColumns]="visibleColumns"
+                   [detailTemplate]="detailTemplate"
+                   [rowKey]="symbolOf"
+                   [rowLabel]="symbolOf" [rowTip]="rowTipOf" [label]="watchList.title" (rowToggled)="rowToggled($event)"
+                   [defaultSortColumn]="listSort.active"
+                   [defaultSortDirection]="listSort.direction" (sorted)="sortLists($event)">
+  </app-smart-table>
+</section>
+</div>
+
+</div>
+
+
+<ng-template #detailTemplate let-row="row">
+  <app-signal-detail [stock]="row" [noVerdict]="noVerdictFor(row)" [news]="newsFor(row)" [log]="log" [today]="today"
+                     [back]="backFrom(symbolOf(row))" (goBack)="backToPlan()" (closeDetails)="closeStock(row)">
+    <!-- The reader's stake in the stock: how much of it fits each portfolio, then what the shown one holds of it. -->
+    <app-where-it-fits [lines]="fitsOf(row)" [marked]="isMarked(row)"></app-where-it-fits>
+    <!-- Which portfolio the forms under it are about is chosen here, where they stand: the Watchlist used to follow
+         whichever portfolio the other view showed (the owner: "mapping to a random portfolio is odd"). -->
+    <div class="record-in" *ngIf="book.portfolios.length > 1" role="group" aria-label="Portfolio that what you record goes into">
+      <span class="record-in-label">Record in</span>
+      <button type="button" class="name" *ngFor="let p of book.portfolios; trackBy: trackByPortfolio"
+              [class.shown]="p.id === book.active" [attr.aria-pressed]="p.id === book.active"
+              (click)="selectPortfolio(p.id)">{{ p.name }}</button>
+    </div>
+    <app-position-panel [stock]="row" [row]="positionOf(row)" [cases]="casesOf(row)" [budget]="positions.budget"
+                        [today]="today" [portfolio]="book.portfolios.length > 1 ? shownName : ''" [cash]="portfolio.cash"
+                        [keep]="positions.reserve?.dollars"
+                        (save)="savePosition($event)" (remove)="removePosition($event)" (trade)="recordTrade($event)">
+    </app-position-panel>
+  </app-signal-detail>
+</ng-template>
+
+<ng-template #priceCellTemplate let-templateData="templateData">
+  <app-price-cell [price]="templateData"></app-price-cell>
+</ng-template>
+
+<ng-template #peCellTemplate let-templateData="templateData">
+  <span *ngIf="templateData > maxMeaningfulPe; else peValue" class="not-meaningful"
+        matTooltip="Not meaningful: P/E {{ templateData.toFixed(0) }}. Earnings are too small for the ratio to say much about valuation.">n/m</span>
+  <ng-template #peValue>
+    <app-price-cell [price]="templateData" colorMode="negativeOnly"></app-price-cell>
+  </ng-template>
+</ng-template>
+
+<ng-template #growthCellTemplate let-templateData="templateData">
+  <app-growth-cell [growth]="templateData"></app-growth-cell>
+</ng-template>
+
+<ng-template #volatilityCellTemplate let-templateData="templateData">
+  <app-volatility-cell [volatility]="templateData.volatility" [tier]="templateData.tier"></app-volatility-cell>
+</ng-template>
+
+<ng-template #neutralPercentCellTemplate let-templateData="templateData">
+  <app-percent-change-cell [percent]="templateData" [neutral]="true"></app-percent-change-cell>
+</ng-template>
+
+<!-- A price change over a period: signed, one decimal, green for a rise and red for a fall. The owner asked for
+     the colours back (2026-11-26) after they had been taken out as "context no mark uses". -->
+<ng-template #plainPercentCellTemplate let-templateData="templateData">
+  <app-percent-change-cell [percent]="templateData" [digits]="1"></app-percent-change-cell>
+</ng-template>
+
+<!-- The group a stock moves with: its letter and a dot of the group's colour; a dash for a stock in no group. -->
+<ng-template #groupCellTemplate let-templateData="templateData">
+  <span class="tied-tag" *ngIf="templateData.letter; else noGroup" [attr.aria-label]="'Group ' + templateData.letter"
+        [matTooltip]="templateData.tip" matTooltipClass="multiline-tooltip"><i [class]="'g' + templateData.index" aria-hidden="true"></i>{{ templateData.letter }}</span>
+  <ng-template #noGroup><span class="tied-tag none" aria-label="In no group" [matTooltip]="templateData.tip">—</span></ng-template>
+</ng-template>
+
+<ng-template #symbolCellTemplate let-templateData="templateData">
+  <app-symbol-cell [attr.data-symbol]="templateData.quote.symbol"
+                   [id]="templateData.instrumentId"
+                   [symbol]="templateData.quote.symbol"
+                   [held]="isHeld(templateData)" [heldIn]="heldWhere(templateData)"
+                   [sector]="symbolTooltip(templateData)">
+  </app-symbol-cell>
+</ng-template>
+
+<ng-template #dayRangeCellTemplate let-templateData="templateData">
+  <app-price-range [price]="templateData.price"
+                   [minPrice]="templateData.minPrice"
+                   [maxPrice]="templateData.maxPrice"
+                   rangeLabel="day">
+  </app-price-range>
+</ng-template>
+
+<ng-template #range52wCellTemplate let-templateData="templateData">
+  <app-price-range [price]="templateData.price"
+                   [minPrice]="templateData.minPrice"
+                   [maxPrice]="templateData.maxPrice"
+                   rangeLabel="past-year">
+  </app-price-range>
+</ng-template>
+
+<ng-template #projectionRangeCellTemplate let-templateData="templateData">
+  <app-projection-range [price]="templateData.price"
+                        [minPrice]="templateData.minPrice"
+                        [medianPrice]="templateData.medianPrice"
+                        [maxPrice]="templateData.maxPrice"
+                        [numberOfTargets]="templateData.numberOfTargets">
+  </app-projection-range>
+</ng-template>
+
+<ng-template #analystRecommendationCellTemplate let-templateData="templateData">
+  <app-analyst-recommendation [estimate]="templateData"></app-analyst-recommendation>
+</ng-template>
+
+<ng-template #ownershipCellTemplate let-templateData="templateData">
+  <app-ownership [ownership]="templateData"></app-ownership>
+</ng-template>
+
+<ng-template #signalCellTemplate let-templateData="templateData">
+  <app-signal-cell [signal]="templateData.signal" [noVerdict]="templateData.noVerdict"></app-signal-cell>
+</ng-template>
+
+<ng-template #earningsDateCellTemplate let-templateData="templateData">
+  <app-earnings-date-cell [date]="templateData.date" [days]="templateData.days"
+                          [reported]="templateData.reported"></app-earnings-date-cell>
+</ng-template>
+
+<ng-template #debtEquityCellTemplate let-templateData="templateData">
+  <app-debt-equity-cell [value]="templateData.value"
+                        [industryValue]="templateData.industryValue"
+                        [industry]="templateData.industry">
+  </app-debt-equity-cell>
+</ng-template>
+
+<ng-template #costDistributionCellTemplate let-templateData="templateData">
+  <app-cost-distribution-cell [distribution]="templateData"></app-cost-distribution-cell>
+</ng-template>
+
+<ng-template #trendCellTemplate let-templateData="templateData">
+  <app-trend-cell [trend]="templateData"></app-trend-cell>
+</ng-template>

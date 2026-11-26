@@ -1,0 +1,172 @@
+// Several purchases recorded at once, at the foot of the table of "Could add": a line a stock, then one day, one
+// box about the cash and what it all comes to. It reads like the form for one purchase (purchase-form): the same
+// fields, the same sizes, the same order of sentences.
+:host {
+  display: block;
+  padding: 10px 0 12px 44px;
+  font-variant-numeric: tabular-nums;
+}
+
+p {
+  margin: 0 0 6px;
+  max-width: var(--measure);
+  white-space: normal;
+}
+
+.what {
+  margin-bottom: 2px;
+  font-size: var(--text-data);
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.intro {
+  font-size: var(--text-meta);
+  color: var(--ink-2);
+}
+
+// The lines: a small table of its own, as wide as its fields need.
+.lines {
+  margin: 4px 0 10px;
+  border-collapse: collapse;
+  font-size: var(--text-data);
+}
+
+.lines th,
+.lines td {
+  padding: 3px 12px 3px 0;
+  border: 0;
+  text-align: left;
+  font-weight: 400;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.lines thead th {
+  padding-bottom: 2px;
+  font-size: var(--text-meta);
+  color: var(--ink-2);
+}
+
+.lines tbody th {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.lines .num {
+  min-width: 72px;
+  text-align: right;
+}
+
+.lines .cost {
+  color: var(--ink-2);
+}
+
+input {
+  width: 124px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  font: inherit;
+  font-size: var(--text-data);
+  color: var(--ink);
+}
+
+input[type="date"] {
+  width: 148px;
+  height: 34px;
+}
+
+input:hover {
+  border-color: var(--ink-3);
+}
+
+input:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 0;
+  border-color: var(--link);
+}
+
+// The field the problem is in: a red edge, with the sentence under the form saying what is wrong.
+input[aria-invalid="true"] {
+  border-color: var(--loss);
+  box-shadow: inset 0 0 0 1px var(--loss);
+}
+
+.line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 16px;
+  margin-bottom: 8px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--text-meta);
+  color: var(--ink-2);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.actions button {
+  height: 34px;
+}
+
+label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: var(--text-data);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+label.check input {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  accent-color: var(--link);
+  cursor: pointer;
+}
+
+.result {
+  font-size: var(--text-data);
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.result:empty,
+.caution:empty {
+  margin: 0;
+}
+
+.caution {
+  font-size: var(--text-data);
+  color: var(--warn);
+}
+
+.problem {
+  font-size: var(--text-data);
+  color: var(--loss);
+}
+
+@media (max-width: 699px) {
+  :host {
+    padding-left: 0;
+  }
+}
+
+// Its sentences in the page's face, as in the form for one purchase.
+:host {
+  font-family: var(--font-text);
+}

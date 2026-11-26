@@ -1,0 +1,9 @@
+# Only for a computer where Mongo will not start on a folder of the computer:
+#   docker compose -f compose.yaml -f compose.volume.yaml up -d
+# The database then lives in a Docker volume. The daily copy still goes to the folder.
+services:
+  mongo:
+    volumes: !override
+      - screener-db:/data/db
+volumes:
+  screener-db: {}

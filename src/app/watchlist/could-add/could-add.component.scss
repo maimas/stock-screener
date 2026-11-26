@@ -1,0 +1,799 @@
+// One box on the portfolio's view, beside the plan on a wide window and under it on a narrow one. It reads like the
+// candidates table on the Watchlist (dip-candidates): the same type scale, the same quiet table, the same link.
+:host {
+  display: block;
+}
+
+.could-add {
+  margin-bottom: 24px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-title);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+// Sentences: a size and a width that read easily, a paragraph a thought.
+.lead,
+.hint,
+.note,
+.sell,
+.empty {
+  margin: 10px 0 0;
+  max-width: var(--measure);
+  font-size: var(--text-body);
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+.lead {
+  margin-top: 8px;
+}
+
+// What to do in this box, said in full ink: the sentences of it that ask for something. That the plan says to
+// sell some of a stock is one of them; that it asks to sell nothing stands among the notes and is as quiet as they.
+.hint,
+.sell {
+  color: var(--ink);
+}
+
+.about .sell {
+  color: var(--ink-2);
+}
+
+// Under the sell side: one box, for the money those sales would free to be split with the cash. The words are part
+// of what is clicked, and the row is tall enough to hit without aiming. The box stands over the tick boxes of the
+// table and its words over the names of the stocks: it is one more thing to tick, of the same kind.
+.count-sold {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 28px;
+  margin-top: 2px;
+  padding-left: 6px;
+  font-size: var(--text-body);
+  line-height: 1.6;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+// The table and what is said about it. The box is measured, not the window: beside the plan on a very wide window
+// the box is narrow and the two stand one under the other; where the box has the window's whole width they stand
+// side by side, the table as wide as it needs and the sentences in what is left. That halves the height of the box,
+// and the example is read with the row it explains in view.
+mat-card-content {
+  container-type: inline-size;
+}
+
+// From 1620px: the table with all its columns is about 1,130px, and the sentences beside it need 430px or more.
+@container (min-width: 1620px) {
+  .body {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    column-gap: 56px;
+    align-items: start;
+  }
+
+  // The first heading on the right starts level with the table's own headings.
+  .about > :first-child {
+    margin-top: 14px;
+  }
+}
+
+// The table may be wider than a phone: it scrolls inside the box, the page never does. `position: relative` keeps
+// the table's hidden caption inside this box; without it the caption would be placed against the page and widen it.
+.table-scroll {
+  position: relative;
+  margin-top: 14px;
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  font-size: var(--text-data);
+}
+
+// A row has up to fourteen cells (the group's letter and, while something is ticked, the amount of cash came after
+// the first twelve): they stand 12px apart, which still sets one number off from the next, and lets every column
+// stand in the box beside the plan on a full-width window with rows ticked. At 16px the last column was cut there.
+th,
+td {
+  padding: 6px 12px 6px 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  font-weight: 400;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+
+th:last-child,
+td:last-child {
+  padding-right: 8px;
+}
+
+thead th {
+  padding-top: 0;
+  border-bottom-color: var(--line-strong);
+  font-size: var(--text-meta);
+  font-weight: 500;
+  color: var(--ink-2);
+  vertical-align: bottom;
+}
+
+// A heading three times as wide as what stands under it ("Holders in profit" over "38%") is set in two lines: the
+// column is then as wide as its cells need, and every column of the table fits the box beside the plan.
+thead th.two-lines > span,
+thead th.two-lines > .sort-head {
+  display: inline-block;
+  max-width: 68px;
+  white-space: normal;
+  line-height: 1.25;
+}
+
+tbody tr:last-child th,
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.num {
+  text-align: right;
+}
+
+// The heading over the rows of the stocks that are owned: set like the table's own headings, with room above it,
+// and not a thing to click.
+tbody tr.group {
+  cursor: default;
+}
+
+tbody tr.group:hover {
+  background: none;
+}
+
+// The purchase being entered, under its row: part of that row, so the two share one tint and no line parts them.
+// It is a form, not a row to click.
+tbody tr.buying,
+tbody tr.form-row,
+tbody tr.form-row:hover {
+  background: var(--surface-2);
+}
+
+tbody tr.buying > th,
+tbody tr.buying > td {
+  border-bottom-color: transparent;
+}
+
+tbody tr.form-row {
+  cursor: default;
+}
+
+tbody tr.form-row > td {
+  padding: 0;
+  white-space: normal;
+}
+
+// A row holds four kinds of fact: what the mark rests on, what the plan gives the stock, context no test could use,
+// and what the portfolio holds that is like it. Each of the last three starts at a hairline, so that "Analyst
+// target" does not read as one more of the plan's numbers.
+th.starts,
+td.starts {
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+
+// The foot of the table while two or more rows are ticked: one button for all of them, under the tick boxes it
+// belongs to, and the form it opens. Not a row to click, and no line under it.
+tfoot td {
+  padding: 10px 0 4px 44px;
+  border-bottom: 0;
+  white-space: normal;
+}
+
+tfoot tr.open td {
+  background: var(--surface-2);
+}
+
+tfoot app-purchases-form {
+  padding-left: 0;
+}
+
+// The column of a ticked row's amount is as wide empty as filled ("— nothing to split" is its widest), so the
+// first tick moves no column after it.
+td.cash {
+  min-width: 18ch;
+}
+
+// A ticked row has one figure to act on, what the money would buy of the stock: it is the row's strong figure,
+// and the size beside it, which is for that stock added alone, steps back to the weight of the row's other numbers.
+tr.ticked td.cash .share {
+  font-weight: 600;
+}
+
+tr.ticked td.size .share {
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
+// No price arrived: in the amber of what has to be put right first, as in the plan's box.
+.empty.instead {
+  font-weight: 500;
+  color: var(--warn);
+}
+
+// The form for the ticked stocks opens at the foot of the table and is brought into view: not flush with the
+// window's lower edge.
+tfoot {
+  scroll-margin-bottom: 24px;
+}
+
+// What stands under the table, when the link before the table sent the keyboard there: no ring around it all.
+.about:focus {
+  outline: none;
+}
+
+// While the first prices arrive: room for a dozen rows, so that what stands under the box does not jump far when
+// the table comes.
+.empty.waiting {
+  min-height: 480px;
+}
+
+// "Add", at the end of a row: a small quiet button, low enough to leave the row one line tall. Quiet, because a
+// column of blue buttons was the loudest thing in the box, ahead of the tick boxes the box is about; it turns
+// blue under the pointer and while its form is open.
+.act {
+  width: 1%;
+  padding-right: 8px;
+  text-align: right;
+  cursor: default;
+}
+
+.add {
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  font: inherit;
+  font-size: var(--text-meta);
+  font-weight: 500;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.add:hover,
+.add[aria-expanded="true"] {
+  border-color: var(--link);
+  color: var(--link);
+}
+
+.add:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+.group th {
+  padding-top: 14px;
+  border-bottom: 1px solid var(--line-strong);
+  font-size: var(--text-meta);
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+// A row is tinted under the pointer, which helps the eye across its twelve cells. It is not a thing to click: its
+// name, its tick box and its "Add" are.
+tbody tr {
+  transition: background-color 120ms ease-out;
+}
+
+tbody tr:hover {
+  background: var(--surface-2);
+}
+
+// The stock's name is one of the row's two tab stops (its tick box is the other). It reads as a link, like a
+// stock's name everywhere on the page.
+.symbol {
+  min-width: 48px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 500;
+  color: var(--link);
+  text-align: left;
+  cursor: pointer;
+}
+
+tbody tr:hover .symbol,
+.symbol:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.symbol:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+.new-mark {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: var(--dip);
+  font-size: var(--text-micro);
+  font-weight: 600;
+  line-height: 18px;
+  color: #fff;
+}
+
+// A row's tick box: the stock is counted in the split of the cash. The box is the size the browser draws it, in
+// the page's own blue; the label around it is what takes the click, large enough to hit without aiming.
+.tick {
+  width: 28px;
+  padding: 0 8px 0 0;
+  vertical-align: middle;
+  cursor: default;
+}
+
+.tick-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+}
+
+.tick-box input,
+.count-sold input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--link);
+  cursor: pointer;
+}
+
+// "held", after the name of a stock that is in the portfolio already: the word and the look of the same tag in the
+// lists and among the candidates on the Watchlist. (A sentence may still say "you own it"; the tag is one word.)
+.held {
+  margin-left: 6px;
+  font-size: var(--text-micro);
+  color: var(--ink-3);
+}
+
+// The share is the size; the dollars beside it are the same thing in money, so they are quieter.
+.share {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.sub {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+// "at your limit": a fact about the size, not a warning. In the orange of a warning it stood on every row of a
+// portfolio whose limit binds, and a warning on every row warns of nothing.
+.capped {
+  color: var(--ink-2);
+}
+
+// What the ticked purchase would do: the result of what the reader just did, so it stands first among what is said
+// about the table, under the name of the column it explains, and in full ink. It is in the page before anything is
+// ticked, empty and without height, and must not be hidden then: a screen reader reads out what appears in a
+// block it already knows, not a block that arrives filled. Its margin is the example's, so the two collapse into
+// one while it is empty and the example stands where it would without it.
+.split {
+  margin-top: 14px;
+}
+
+// The first of those lines again, beside the lead, where the box has room for both (from 1000px; that band was
+// blank). It is shorter than the lead beside it, so a tick never moves the table. In a narrower box it is left
+// out: the lines under the table are close there.
+.tick-answer {
+  display: none;
+}
+
+@container (min-width: 1000px) {
+  // The top of the box keeps the room the answer to a tick takes (its title with the button, a line of two rows
+  // about the cash, a line about which ticked stocks move together): the lead beside it is two short paragraphs
+  // now, and without that room the first tick pushed the table down by 76px.
+  .top {
+    display: grid;
+    grid-template-columns: minmax(0, 520px) minmax(0, 1fr);
+    column-gap: 56px;
+    align-items: start;
+    min-height: 176px;
+  }
+
+  .tick-answer {
+    display: block;
+    margin-top: 4px;
+    max-width: 720px;
+  }
+
+  // The title and, right beside it, the button for all the ticked rows.
+  .tick-head {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-height: 30px;
+  }
+
+  .tick-head .split-title {
+    margin: 0;
+  }
+
+  .tick-answer p {
+    margin: 2px 0 0;
+    font-size: var(--text-body);
+    line-height: 1.55;
+    color: var(--ink);
+  }
+
+  .tick-answer p.more {
+    font-size: var(--text-meta);
+    color: var(--ink-2);
+  }
+
+  // One answer to a tick, not two: here the title, the first line and the button for several stand beside the
+  // lead, so under the table the title and that line are left to a screen reader, and the button at the foot is
+  // not drawn while its form is closed (two blocks with one title and two identical buttons were in sight).
+  tfoot .batch-row:not(.open) {
+    display: none;
+  }
+
+  tfoot .batch-row.open > td > button.batch {
+    display: none;
+  }
+
+  .about > .split h3,
+  .about > .split .tied-says,
+  .about > .split p.said-above,
+  .about > .split p:first-of-type {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+.split-title {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.split p {
+  margin: 4px 0 0;
+  max-width: var(--measure);
+  font-size: var(--text-body);
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+// That ticks are not kept: a fact about the box, not a result of the tick, so quieter than the lines above it.
+.split p.unsaved {
+  font-size: var(--text-meta);
+  color: var(--ink-2);
+}
+
+// Under the table, the first row worked out in words. Each line has the name of the column it explains in front of
+// it, set like the table's headings, so the eye goes from a heading to the same word here. The sentences are the
+// size and width of the notes under them.
+.reading {
+  margin-top: 14px;
+}
+
+.reading-title {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.reading dl {
+  margin: 2px 0 0;
+}
+
+.reading dl > div {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 0 16px;
+  align-items: baseline;
+  max-width: calc(var(--measure) + 92px);
+}
+
+.reading dl > div + div {
+  margin-top: 4px;
+}
+
+.reading dt {
+  font-size: var(--text-meta);
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+.reading dd {
+  margin: 0;
+  font-size: var(--text-body);
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+// In a narrow box the name stands over its sentence: beside it, the sentence would be a few words wide.
+@media (max-width: 699px) {
+  .reading dl > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .reading dl > div + div {
+    margin-top: 8px;
+  }
+}
+
+// Under the table in a box that is wide and not wide enough for the sentences beside the table (the box beside the
+// plan on a wide window): the sentences run in two columns. In one column of 492px they stood beside 700px of
+// empty box and made the box taller than the screen.
+@container (min-width: 1000px) and (max-width: 1619px) {
+  .about {
+    columns: 2;
+    column-gap: 56px;
+  }
+
+  // Each block keeps together, and the room between blocks is under them: a margin over a block would push the
+  // top of the second column 14px below the top of the first.
+  .about {
+    margin-top: 14px;
+  }
+
+  .about > * {
+    break-inside: avoid;
+    margin-top: 0;
+    margin-bottom: 12px;
+  }
+
+  // The columns break at one place: what is about the reader's own ticks and the worked example on the left, the
+  // notes about the table on the right. Left to the browser, the notes changed columns when a row was ticked.
+  .about > .reading + .note,
+  .about > .split + .note {
+    break-before: column;
+  }
+
+  // The block for what is ticked takes no room while nothing is ticked: its margin would start the left column
+  // 12px lower than the right one.
+  .about > .split:not(:has(h3)) {
+    margin-bottom: 0;
+  }
+
+}
+
+// What the portfolio already holds that is like the stock: two short cells, so a row is one line tall and the
+// sectors can be read down the table. The two figures behind "closely" are not here: they show where the pointer
+// rests on that cell.
+.fit {
+  color: var(--ink-2);
+}
+
+// Context that no test could use (analysts' target, owners in profit): the quiet grey of the notes, in the cell and
+// in its heading, and never green or red. The mark's own two facts beside the stock are in full ink.
+td.context {
+  color: var(--ink-2);
+}
+
+// A heading that says what its column is when pointed at or reached with the keyboard: marked as in the lists and
+// in "What you own", with a dotted line under its words.
+.has-help {
+  text-decoration: underline dotted var(--ink-3);
+  text-underline-offset: 4px;
+  cursor: help;
+}
+
+.has-help:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  tbody tr {
+    transition: none;
+  }
+}
+
+// ---- Which stocks move together: the letters of "Dip candidates", where the stocks to buy are ticked ----
+// A letter with a dot of its group's colour (the same three colours, see dip-candidates): the letter says which
+// group, the dot lets the eye find the rows of one group down the table. (Not ".group": that is the row that
+// heads the stocks which are owned.)
+.tied-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.tied-tag.none {
+  font-weight: 400;
+  color: var(--ink-3);
+}
+
+.dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ink-3);
+}
+
+.dot.g0 {
+  background: #6a4ce2;
+}
+
+.dot.g1 {
+  background: #f2a600;
+}
+
+.dot.g2 {
+  background: #ee7fac;
+}
+
+// What the ticked stocks have to do with one another: with the lines about what they would change.
+.tied-says {
+  margin: 4px 0 0;
+  font-size: var(--text-body);
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+// "Group", the one heading that orders the rows of this table (by group, and back to A to Z): a button that looks
+// like the heading it is, with the small triangle of the page's other tables while the rows follow it.
+.sort-group {
+  position: relative;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.sort-group:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+.sort-group::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 4px);
+  margin-top: -6px;
+  border: 4px solid transparent;
+}
+
+.sort-group[aria-pressed="true"] {
+  color: var(--ink);
+}
+
+.sort-group[aria-pressed="true"]::after {
+  border-bottom-color: currentColor;
+}
+
+.sort-group:hover:not([aria-pressed="true"])::after {
+  border-bottom-color: var(--ink-3);
+}
+
+// "Untick all", beside the button for the ticked rows: a quiet word, not a second button.
+.untick {
+  min-height: 24px;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--text-meta);
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.untick:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+// Under the table: whose an order of its rows is. A caption's size and ink, on one line where the table is wide
+// (the measure of a sentence is counted in the letters of its own size, and would break this one in three).
+.order-note {
+  margin: 8px 0 0;
+  font-size: var(--text-meta);
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+// A heading of the table: a button that looks like the heading it is, with the page's small triangle beside it
+// while the rows follow its column (down for the biggest first, up for the smallest or A first), and a paler one
+// under the pointer for the way a click would order them. Beside a number's heading the triangle stands on its
+// left, so that the heading stays in line with its figures.
+.sort-head {
+  position: relative;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.sort-head:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+.sort-head::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 4px);
+  border: 4px solid transparent;
+}
+
+th.num .sort-head::after {
+  left: auto;
+  right: calc(100% + 4px);
+}
+
+th[aria-sort] .sort-head {
+  color: var(--ink);
+}
+
+th[aria-sort="ascending"] .sort-head::after {
+  margin-top: -6px;
+  border-bottom-color: currentColor;
+}
+
+th[aria-sort="descending"] .sort-head::after {
+  margin-top: -2px;
+  border-top-color: currentColor;
+}
+
+th:not([aria-sort]) .sort-head:hover::after,
+th:not([aria-sort]) .sort-head:focus-visible::after {
+  margin-top: -2px;
+  border-top-color: var(--ink-3);
+}
+
+th:not([aria-sort]) .sort-head.up:hover::after,
+th:not([aria-sort]) .sort-head.up:focus-visible::after {
+  margin-top: -6px;
+  border-top-color: transparent;
+  border-bottom-color: var(--ink-3);
+}

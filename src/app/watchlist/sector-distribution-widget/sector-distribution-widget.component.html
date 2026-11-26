@@ -1,0 +1,17 @@
+<mat-card [style.width]="'100%'">
+  <mat-card-content>
+    <div class="heading">
+      <h3 class="title">{{ name }}</h3>
+      <span class="sectors" *ngIf="sectorSummary">{{ sectorSummary }}</span>
+      <ng-content></ng-content>
+    </div>
+    <!-- One quiet line: how the list's stocks have moved on average. Context no mark uses: shown with "All columns". -->
+    <div class="changes" *ngIf="showChanges" matTooltip="The middle stock of this list for each period: half of its stocks moved more, half less. One stock with an extreme year does not pull it.">
+      <span class="changes-label">Typical price change:</span>
+      <span class="change" *ngFor="let change of changes; trackBy: trackByLabel">
+        <span class="period">{{ change.label }}</span>
+        <app-percent-change-cell [percent]="change.value" [digits]="1"></app-percent-change-cell>
+      </span>
+    </div>
+  </mat-card-content>
+</mat-card>

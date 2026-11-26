@@ -1,0 +1,106 @@
+# The stock screener on this computer:   docker compose up -d   then open http://localhost:4200
+#
+# What you record is kept in a folder of this computer, outside Docker: ~/stock-screener-data
+# Set SCREENER_DATA to keep it somewhere else. Nothing here needs a settings file.
+name: stock-screener
+
+# What each service prints is kept by Docker, and without a limit it grows for as long as the app runs. Three files
+# of ten megabytes each are kept, the oldest dropped first.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  app:
+    build: .
+    # One image, under one name, for the app, the reader and the gate.
+    image: stock-screener:local
+    restart: unless-stopped
+    logging: *logging
+    # A small first process that hands "stop" on to the program at once, so stopping does not wait ten seconds.
+    init: true
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      MONGO_URL: mongodb://mongo:27017/screener
+      BACKUP_DIR: /backups
+      READER_SOCKET: /run/reader/reader.sock
+      TZ: ${SCREENER_TZ:-America/New_York}
+    ports:
+      # This computer only: the app does not answer another computer on the network.
+      - "127.0.0.1:${SCREENER_PORT:-4200}:4200"
+    volumes:
+      - ${SCREENER_DATA:-~/stock-screener-data}/backups:/backups
+      - reader-socket:/run/reader
+    networks: [db, out]
+
+  mongo:
+    image: mongo:8.0
+    restart: unless-stopped
+    logging: *logging
+    # Quiet: without it the database writes several lines for every connection, the health check's included.
+    command: ["mongod", "--quiet"]
+    # Time to finish writing to its files when it is stopped, rather than being cut off after ten seconds.
+    stop_grace_period: 1m
+    volumes:
+      - ${SCREENER_DATA:-~/stock-screener-data}/db:/data/db
+    # No published port and no way out: only the app can reach the database.
+    networks: [db]
+    # Each check starts a small program, so it runs every 30 seconds once the database is up. While it starts it is
+    # asked every 2 seconds, so the app is not kept waiting, and a slow first start (on a Windows folder it can take
+    # more than a minute) is given two minutes before it counts as a failure.
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ping: 1}).ok"]
+      interval: 30s
+      timeout: 5s
+      retries: 4
+      start_period: 120s
+      start_interval: 2s
+
+  reader:
+    build: .
+    image: stock-screener:local
+    restart: unless-stopped
+    logging: *logging
+    init: true
+    depends_on: [gate]
+    working_dir: /home/node
+    command: ["node", "/app/tools/claude/reader-service.js"]
+    environment:
+      READER_SOCKET: /run/reader/reader.sock
+      HTTPS_PROXY: http://gate:8080
+      HTTP_PROXY: http://gate:8080
+    volumes:
+      - claude-signin:/home/node/.claude
+      - reader-socket:/run/reader
+    # Its only network has no way out. Not to Mongo, not to the app, not to this computer's own address.
+    networks: [reader-net]
+
+  gate:
+    build: .
+    image: stock-screener:local
+    restart: unless-stopped
+    logging: *logging
+    init: true
+    command: ["node", "/app/tools/claude/gate.js"]
+    # The reader's only way out: it passes connections to Anthropic's addresses on and refuses every other.
+    networks: [reader-net, out]
+
+networks:
+  db:
+    internal: true
+  out: {}
+  # Internal alone still leaves an address of the computer running Docker on this network, and the reader could
+  # knock on whatever listens there. "isolated" leaves no such address. It needs Docker Engine 28 or newer: an older
+  # one either refuses to create the network or leaves this computer's address on it.
+  reader-net:
+    internal: true
+    driver_opts:
+      com.docker.network.bridge.gateway_mode_ipv4: isolated
+
+volumes:
+  claude-signin: {}
+  reader-socket: {}

@@ -1,0 +1,40 @@
+<form (ngSubmit)="submit()" (keydown.escape)="cancel.emit()" (input)="changed()" (change)="changed()" novalidate>
+  <p class="what">{{ what }}</p>
+  <p class="intro">{{ intro }}</p>
+  <div class="line">
+    <div class="fields">
+      <label>
+        <span>Shares bought</span>
+        <input #sharesField type="number" name="shares" min="0" step="any" inputmode="decimal" autocomplete="off" appFocusWhenShown [(ngModel)]="shares"
+               [attr.aria-invalid]="wrong('shares')" [attr.aria-describedby]="shownProblem ? 'purchase-problem' : null">
+      </label>
+      <label>
+        <span>Price paid</span>
+        <input type="number" name="paid" min="0" step="any" inputmode="decimal" autocomplete="off" appPrice [(ngModel)]="paid"
+               [attr.aria-invalid]="wrong('paid')" [attr.aria-describedby]="shownProblem ? 'purchase-problem' : null">
+      </label>
+      <label>
+        <span>Bought on (optional)</span>
+        <input type="date" name="day" [max]="today" [(ngModel)]="day">
+      </label>
+    </div>
+  </div>
+  <label class="check" *ngIf="cash !== undefined">
+    <input type="checkbox" name="paidFromCash" [(ngModel)]="viaCash" (change)="cashChosen = true">
+    <span>{{ cashLabel }}</span>
+  </label>
+  <!-- What the numbers come to, kept in the page while it is empty so that a screen reader reads out what appears. -->
+  <p class="result" role="status">{{ result }}</p>
+  <!-- What looks like a slip (a price far from today's, an amount far above the row's): said while typing, and it
+       stops nothing. Kept in the page while empty, like the line above it. -->
+  <p class="caution" role="status">{{ caution }}</p>
+  <!-- A purchase that would take the cash under the share the user keeps outside stocks: said, not refused. -->
+  <p class="caution kept" role="status">{{ keptNote }}</p>
+  <p class="problem" id="purchase-problem" *ngIf="shownProblem" role="alert">{{ shownProblem }}</p>
+  <!-- The buttons come last, on the screen and for the Tab key, as in a stock's details: the box that decides what
+       happens to the cash, and the sum, are met before the button that records. -->
+  <div class="actions">
+    <button mat-stroked-button type="submit">Record this purchase</button>
+    <button mat-button type="button" (click)="cancel.emit()">Cancel</button>
+  </div>
+</form>

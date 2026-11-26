@@ -1,0 +1,265 @@
+<mat-card class="could-add">
+  <mat-card-content>
+    <h2 class="title">{{ title }}</h2>
+
+    <p class="empty waiting" *ngIf="loading && !instead" aria-busy="true">Working it out from today's prices.</p>
+    <!-- No price arrived at all: said in place, not left on "working". "Try again" is in the plan's box and in the bar. -->
+    <p class="empty instead" *ngIf="loading && instead" role="status">{{ instead }}</p>
+
+    <ng-container *ngIf="!loading">
+      <ng-container *ngIf="rows.length > 0; else nothing">
+        <!-- What the box is and how it is used, and beside it (where the box has room: there was a blank band
+             there) the first line of what the ticked purchase would do. -->
+        <div class="top">
+        <div class="intro">
+        <!-- The lead is the key to the table, not an explanation of it: that the rows are in no order and that each
+             size is for adding that one stock alone has to be in sight, so it is shown whole (a review found a
+             reader taking eighteen sizes of 12% each for a plan that does not add up). -->
+        <p class="lead">{{ lead }}</p>
+        <!-- The hint says how much there is to split, and that changes when the box under the sell side is ticked:
+             a screen reader reads the new sentence out. -->
+        <p class="hint" *ngIf="hint" aria-live="polite">{{ hint }}</p>
+
+        <!-- The other side of a rebalance. When the plan says to sell some of a stock it asks for something, so it is
+             said here, with the hint; and the money that would free can be split together with the cash. -->
+        <ng-container *ngIf="hasSale">
+          <!-- "That money" in the box's name is the money of this sentence: the box is described by it. -->
+          <p class="sell" id="could-add-sell">{{ sellSays }}</p>
+          <label class="count-sold">
+            <input type="checkbox" [checked]="countSold" (change)="toggleSold()" aria-describedby="could-add-sell">
+            <span>{{ countSoldLabel }}</span>
+          </label>
+        </ng-container>
+
+        </div>
+        <!-- The answer to a tick, beside the lead, where the box has room for both: its title with the button for
+             all the ticked rows (at the foot of the table that button can be below the window), the first of the
+             lines about what is ticked, and whether the ticked stocks moved together. No taller than the room the
+             top of the box keeps for it, so that a tick never moves the table. Its words are not read out a second
+             time: the lines under the table are what a screen reader hears. (Its class is not "ticked": a ticked
+             row may carry that one.) -->
+        <div class="tick-answer">
+          <ng-container *ngIf="splitSays.length > 0">
+            <div class="tick-head">
+              <div class="tick-title" aria-hidden="true"><h3 class="split-title">{{ cashTitle }}</h3></div>
+              <button type="button" class="add batch" *ngIf="canRecord && batchLines.length > 1" (click)="startBatch()" [matTooltip]="addTip"
+                      [attr.aria-expanded]="batching"
+                      [attr.aria-label]="'Add the ' + batchLines.length + ' ticked: record purchases you made'">Add the {{ batchLines.length }} ticked</button>
+              <button type="button" class="untick" (click)="untickAll()">Untick all</button>
+            </div>
+            <div aria-hidden="true">
+              <p><app-says [text]="splitSays[0]"></app-says></p>
+              <!-- The one figure about risk in the answer: it stood under the table only, a screen lower. -->
+              <p class="bad-case" *ngIf="badCaseSays"><app-says [text]="badCaseSays"></app-says></p>
+              <p class="tied-says" *ngIf="tiedSays">{{ tiedSays }}</p>
+              <p class="more" *ngIf="!tiedSays && !badCaseSays">What else it would change is under the table.</p>
+            </div>
+          </ng-container>
+        </div>
+        </div>
+
+        <!-- The table, then what is said about it. One under the other in a narrow box (beside the plan on a very
+             wide window); side by side where the box has the window's whole width. -->
+        <div class="body">
+        <!-- A row a stock, in the order given. Its name opens the stock, which leaves this view; a click elsewhere on
+             the row does nothing, as in "What you own" beside it: a row here has a box to tick and a button, and a
+             click that missed one of them used to take the reader to the other view. -->
+        <div class="table-scroll">
+          <!-- A way past the table for the Tab key (a tick, a name and "Add" in every row): out of sight until it
+               has the keyboard. Inside the table's own block: that block and the notes are the two halves of a wide box. -->
+          <a class="skip-over" href="" (click)="skipTable($event)">Skip the table of {{ rows.length }} stocks</a>
+          <table>
+            <caption class="visually-hidden">Stocks that could be added to {{ portfolio }}, each with its size</caption>
+            <thead>
+            <tr>
+              <!-- The tick boxes and the columns of numbers are there once the portfolio is worth something: without
+                   sizes each would be a dash in every row. The second amount is there while something is ticked. -->
+              <th scope="col" class="tick" *ngIf="hasSizes"><span class="visually-hidden">Count it in the split</span></th>
+              <!-- Every heading is a button: a click orders the rows by its column, a second click turns them
+                   round, and "Stock" gives A to Z back (the owner: "all tables must have sortable columns"). The
+                   table starts A to Z and the page orders nothing before a click: the note under the table says
+                   that an order is the reader's own view. -->
+              <th scope="col" [attr.aria-sort]="sortedAs('symbol')"><button type="button" class="sort-head up" (click)="sortBy('symbol')">Stock</button></th>
+              <!-- Which stocks moved together over the past year: the same letter, the same group, as in "Dip
+                   candidates". Here is where the reader ticks what to buy, so here is where it can be used. -->
+              <th scope="col" class="group-head" *ngIf="hasGroups" [attr.aria-sort]="sortedAs('group')"><button type="button" class="sort-head up has-help" (click)="sortBy('group')" [matTooltip]="groupHelp" matTooltipClass="multiline-tooltip">Group</button></th>
+              <!-- What the mark rests on stands beside the stock, as in "Dip candidates"; then what the plan gives it;
+                   then, set quieter, context that no test could use; then what the portfolio holds that is like it.
+                   A heading of these columns says what it is when pointed at or reached with the Tab key. -->
+              <ng-container *ngIf="hasFacts">
+                <th scope="col" class="num" [attr.aria-sort]="sortedAs('dropped')"><button type="button" class="sort-head has-help" (click)="sortBy('dropped')" [matTooltip]="factHelp.dropped" matTooltipClass="multiline-tooltip">{{ factColumns.dropped }}</button></th>
+                <th scope="col" [attr.aria-sort]="sortedAs('growing')"><button type="button" class="sort-head has-help" (click)="sortBy('growing')" [matTooltip]="factHelp.growing" matTooltipClass="multiline-tooltip">{{ factColumns.growing }}</button></th>
+              </ng-container>
+              <th scope="col" class="num starts" *ngIf="hasSizes" [attr.aria-sort]="sortedAs('size')"><button type="button" class="sort-head has-help" (click)="sortBy('size')" [matTooltip]="columnHelp.size" matTooltipClass="multiline-tooltip">{{ columns.size }}</button></th>
+              <th scope="col" class="num" *ngIf="hasSizes" [attr.aria-sort]="sortedAs('bad')"><button type="button" class="sort-head has-help" (click)="sortBy('bad')" [matTooltip]="columnHelp.bad" matTooltipClass="multiline-tooltip">{{ columns.bad }}</button></th>
+              <th scope="col" class="num" *ngIf="hasSizes" [attr.aria-sort]="sortedAs('good')"><button type="button" class="sort-head has-help" (click)="sortBy('good')" [matTooltip]="columnHelp.good" matTooltipClass="multiline-tooltip">{{ columns.good }}</button></th>
+              <th scope="col" class="num two-lines" *ngIf="cashColumn" [attr.aria-sort]="sortedAs('cash')"><button type="button" class="sort-head has-help" (click)="sortBy('cash')" [matTooltip]="columnHelp.cash" matTooltipClass="multiline-tooltip">{{ cashTitle }}</button></th>
+              <ng-container *ngIf="hasFacts">
+                <th scope="col" class="num context two-lines starts" [attr.aria-sort]="sortedAs('target')"><button type="button" class="sort-head has-help" (click)="sortBy('target')" [matTooltip]="factHelp.target" matTooltipClass="multiline-tooltip">{{ factColumns.target }}</button></th>
+                <th scope="col" class="num context two-lines" [attr.aria-sort]="sortedAs('holders')"><button type="button" class="sort-head has-help" (click)="sortBy('holders')" [matTooltip]="factHelp.holders" matTooltipClass="multiline-tooltip">{{ factColumns.holders }}</button></th>
+              </ng-container>
+              <ng-container *ngIf="hasFit">
+                <th scope="col" class="starts" [attr.aria-sort]="sortedAs('sector')"><button type="button" class="sort-head up" (click)="sortBy('sector')">{{ columns.sector }}</button></th>
+                <th scope="col" class="two-lines" [attr.aria-sort]="sortedAs('moves')"><button type="button" class="sort-head up" (click)="sortBy('moves')">{{ columns.moves }}</button></th>
+              </ng-container>
+              <th scope="col" class="act" *ngIf="canRecord"><span class="visually-hidden">Record a purchase</span></th>
+            </tr>
+            </thead>
+            <!-- The new stocks, then the ones that are owned and could be added to, under a heading of their own: the
+                 lead counts the new ones only, and a table with more rows than it counts would read as a miscount. -->
+            <tbody>
+            <ng-container *ngFor="let row of ordered(newRows); trackBy: trackBySymbol">
+              <tr [class.buying]="buying === row.symbol" [class.ticked]="isTicked(row.symbol)" [attr.data-row]="row.symbol">
+                <ng-container *ngTemplateOutlet="cells; context: {$implicit: row}"></ng-container>
+              </tr>
+              <ng-container *ngTemplateOutlet="purchase; context: {$implicit: row}"></ng-container>
+            </ng-container>
+            </tbody>
+            <tbody *ngIf="ownedRows.length > 0">
+            <tr class="group" *ngIf="newRows.length > 0">
+              <th scope="rowgroup" [attr.colspan]="columnCount">{{ ownedTitle }}</th>
+            </tr>
+            <ng-container *ngFor="let row of ordered(ownedRows); trackBy: trackBySymbol">
+              <tr [class.buying]="buying === row.symbol" [class.ticked]="isTicked(row.symbol)" [attr.data-row]="row.symbol">
+                <ng-container *ngTemplateOutlet="cells; context: {$implicit: row}"></ng-container>
+              </tr>
+              <ng-container *ngTemplateOutlet="purchase; context: {$implicit: row}"></ng-container>
+            </ng-container>
+            </tbody>
+
+            <!-- With two or more rows ticked: one form for all of them, at the foot of the table. The stocks ticked
+                 are the ones the reader said they were thinking of buying, so they are the ones bought together. -->
+            <!-- Once the reader has typed in it, the form stays while one line is left: unticking a row down to one
+                 used to close it and drop what was typed. -->
+            <tfoot *ngIf="canRecord && (batchLines.length > 1 || (batching && batchLines.length > 0))">
+            <tr class="batch-row" [class.open]="batching">
+              <td [attr.colspan]="columnCount">
+                <button type="button" class="add batch" (click)="startBatch()" [matTooltip]="addTip" [attr.aria-expanded]="batching"
+                        [attr.aria-label]="'Add the ' + batchLines.length + ' ticked: record purchases you made'">Add the {{ batchLines.length }} ticked</button>
+                <app-purchases-form *ngIf="batching" [lines]="batchLines" [today]="today" [cash]="cash" [keep]="keep" [portfolio]="portfolio"
+                                    (typed)="batchTyped = true" (trades)="recordAll($event)" (cancel)="cancelBatch()"></app-purchases-form>
+              </td>
+            </tr>
+            </tfoot>
+
+            <!-- Under the row whose "Add" was clicked: the purchase, filled in from that row. It is not a row to click. -->
+            <ng-template #purchase let-row>
+              <tr class="form-row" *ngIf="buying === row.symbol">
+                <td [attr.colspan]="columnCount">
+                  <app-purchase-form [symbol]="row.symbol" [held]="positions[row.symbol]" [price]="prices[row.symbol]"
+                                     [dollars]="startDollars(row)" [today]="today" [cash]="cash" [keep]="keep" [portfolio]="portfolio"
+                                     [draft]="drafts.get(row.symbol)" (typed)="drafts.set(row.symbol, $event)"
+                                     (trade)="record($event)" (cancel)="cancelBuying(row.symbol)"></app-purchase-form>
+                </td>
+              </tr>
+            </ng-template>
+
+            <!-- The cells of a row, the same for both kinds. -->
+            <ng-template #cells let-row>
+              <!-- The cell takes the click, so that one beside the box does not open the stock instead. -->
+              <td class="tick" *ngIf="hasSizes" (click)="$event.stopPropagation()">
+                <label class="tick-box">
+                  <input type="checkbox" [checked]="isTicked(row.symbol)" (change)="toggle(row.symbol)"
+                         [attr.aria-label]="'Count ' + row.symbol + ' in the split'">
+                </label>
+              </td>
+              <th scope="row">
+                <button type="button" class="symbol" (click)="open.emit(row.symbol)" [attr.aria-label]="'Open details for ' + row.symbol"
+                        (focus)="onStockFocus(row.symbol, $event)" (blur)="onStockBlur()"
+                        [matTooltip]="stockTip(row)" matTooltipPosition="above" matTooltipClass="multiline-tooltip">{{ row.symbol }}</button>
+                <span class="new-mark" *ngIf="row.isNew" aria-label="Marked DIP BUY today">new</span>
+                <span class="held" *ngIf="row.owned"> held</span>
+              </th>
+              <td class="group-cell" *ngIf="hasGroups" [matTooltip]="groupTipOf(row.symbol)" matTooltipClass="multiline-tooltip">
+                <span class="tied-tag" *ngIf="group(row.symbol) as g; else noGroup" [attr.aria-label]="'Group ' + g.letter"><i [class]="'g' + g.index" aria-hidden="true"></i>{{ g.letter }}</span>
+                <ng-template #noGroup><span class="tied-tag none" aria-label="In no group">—</span></ng-template>
+              </td>
+              <ng-container *ngIf="hasFacts">
+                <td class="num" [matTooltip]="row.facts?.droppedTip || ''">{{ row.facts?.dropped || '—' }}</td>
+                <td [matTooltip]="row.facts?.growingTip || ''" matTooltipClass="multiline-tooltip">{{ row.facts?.growing || '—' }}</td>
+              </ng-container>
+              <td class="num size starts" *ngIf="hasSizes" [matTooltip]="row.sizeTip" matTooltipClass="multiline-tooltip">
+                <span class="share">{{ row.share }}</span>
+                <span class="sub" *ngIf="row.dollars"> {{ row.dollars }}</span>
+                <span class="sub capped" *ngIf="row.capped"> at your limit</span>
+              </td>
+              <td class="num" *ngIf="hasSizes" [matTooltip]="row.badTip" matTooltipClass="multiline-tooltip">{{ row.bad }}</td>
+              <td class="num" *ngIf="hasSizes" [matTooltip]="row.goodTip" matTooltipClass="multiline-tooltip">{{ row.good }}</td>
+              <!-- A ticked row's one figure to act on: what the money would buy of the stock. Nothing stands beside
+                   it but the two words of a stock that gets nothing. -->
+              <td class="num cash" *ngIf="cashColumn" [matTooltip]="cashOf(row.symbol)?.tip || ''" matTooltipClass="multiline-tooltip">
+                <ng-container *ngIf="cashOf(row.symbol) as cell">
+                  <span class="share">{{ cell.amount }}</span>
+                  <span class="sub" *ngIf="cell.note"> {{ cell.note }}</span>
+                </ng-container>
+              </td>
+              <!-- Context: with its sign, in the quiet grey, without green or red. It is no score. -->
+              <ng-container *ngIf="hasFacts">
+                <td class="num context starts" [matTooltip]="row.facts?.targetTip || ''" matTooltipClass="multiline-tooltip">{{ row.facts?.target || '—' }}</td>
+                <td class="num context" [matTooltip]="row.facts?.holdersTip || ''" matTooltipClass="multiline-tooltip">{{ row.facts?.holders || '—' }}</td>
+              </ng-container>
+              <!-- Two short cells a row, so that the sectors can be read down the table and so can "closely". A stock
+                   that is owned says in their place what is held of it. -->
+              <ng-container *ngIf="hasFit">
+                <td class="fit starts" colspan="2" *ngIf="row.ownedNote; else fitCells">{{ row.ownedNote }}</td>
+                <ng-template #fitCells>
+                  <td class="fit sector starts">{{ row.sector }}</td>
+                  <td class="fit moves" [matTooltip]="row.movesTip" matTooltipClass="multiline-tooltip">{{ row.moves }}</td>
+                </ng-template>
+              </ng-container>
+              <!-- The cell takes the click, so that one beside the button does not open the stock instead. -->
+              <td class="act" *ngIf="canRecord" (click)="$event.stopPropagation()">
+                <button type="button" class="add" *ngIf="prices[row.symbol] > 0" (click)="startBuying(row.symbol)" [matTooltip]="addTip"
+                        [attr.aria-expanded]="buying === row.symbol"
+                        [attr.aria-label]="'Add ' + row.symbol + ': record a purchase you made'">Add</button>
+              </td>
+            </ng-template>
+          </table>
+          <!-- Whose an order of the rows is: under the table whose headings it is about, in the small ink of a
+               caption. It is not one of the sentences that hold for every row, which stand beside or below. -->
+          <p class="order-note" *ngIf="rows.length > 1">{{ orderNote }}</p>
+        </div>
+
+        <div class="about">
+          <!-- What the ticked purchase would do, a line a thought. The block is there before anything is ticked, so
+               that what appears in it is read out by a screen reader. -->
+          <div class="split" role="status">
+            <ng-container *ngIf="splitSays.length > 0">
+              <h3 class="split-title">{{ cashTitle }}</h3>
+              <p *ngFor="let line of splitSays" [class.said-above]="!!badCaseSays && line === badCaseSays"><app-says [text]="line"></app-says></p>
+              <!-- Whether the ticked stocks moved together over the past year: a fact about them, said with the
+                   lines about what they would change. -->
+              <p class="tied-says" *ngIf="tiedSays">{{ tiedSays }}</p>
+              <!-- The ticks are for looking and are not kept: said while something is ticked, so that a reload
+                   that clears them is no surprise. Outside what is read out: it is not a result of the tick. -->
+              <p class="unsaved">{{ ticksNote }}</p>
+            </ng-container>
+          </div>
+
+          <!-- The first row worked out in words: a line under the name of each column, with that row's own amounts. -->
+          <div class="reading" *ngIf="reading as example">
+            <h3 class="reading-title">{{ exampleTitle }}<app-more key="could-add.example"></app-more></h3>
+            <dl appMoreRest="could-add.example">
+              <div *ngFor="let line of example.lines">
+                <dt>{{ line.label }}</dt>
+                <dd><app-says [text]="line.text"></app-says></dd>
+              </div>
+            </dl>
+          </div>
+
+          <p class="note"><app-more key="could-add.sizes" [text]="sizeNote"></app-more></p>
+          <!-- That the plan asks to sell nothing asks for nothing: it is said here, as quietly as the notes, and
+               costs no line above the table. -->
+          <p class="sell" *ngIf="sellSays && !hasSale"><app-more key="could-add.sell" [text]="sellSays"></app-more></p>
+          <p class="note" *ngIf="hasFacts"><app-more key="could-add.facts" [text]="factsNote"></app-more></p>
+          <p class="note" *ngIf="showFitNote"><app-more key="could-add.fit" [text]="fitNote"></app-more></p>
+          <p class="note" *ngIf="hasGroups"><app-more key="could-add.groups" [text]="groupNote"></app-more></p>
+        </div>
+        </div>
+      </ng-container>
+      <ng-template #nothing>
+        <p class="empty">{{ emptyText }}</p>
+      </ng-template>
+    </ng-container>
+  </mat-card-content>
+</mat-card>

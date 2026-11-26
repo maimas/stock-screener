@@ -1,0 +1,36 @@
+// The day, then how far off it is, on one line: a row of a list is one line tall.
+.container {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 80px;
+  white-space: nowrap;
+}
+
+.days {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+// Results within two weeks: the day is in the warning's orange, as the legend of the lists says. How far off it is
+// and what to do then stay grey: in orange they ran into the orange "volatile" figure of the next column and read
+// as one phrase with it.
+.soon .date {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.soon .days {
+  color: var(--ink-2);
+}
+
+.reported .date {
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+}
+
+// "beat by 8.5%" or "missed by 3.0%": said in words, without green or red. In tests a stock that missed did not
+// go on doing worse, so the result is context and not a point for or against.
+.reported .days {
+  color: var(--ink-2);
+}

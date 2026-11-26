@@ -1,0 +1,137 @@
+// Sits inside the row details as one more section of the column flow.
+:host {
+  display: block;
+  break-inside: avoid;
+  padding-top: 16px;
+}
+
+// Set like the headings of the sections around it (signal-detail).
+h4 {
+  margin: 0 0 4px;
+  font-size: var(--text-data);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+p {
+  margin: 0 0 6px;
+  max-width: 70ch;
+}
+
+ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+li {
+  margin: 3px 0;
+  max-width: 70ch;
+}
+
+li.over {
+  color: var(--warn);
+  font-weight: 500;
+}
+
+.intro,
+.hint {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 6px 0 8px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--text-meta);
+  color: var(--ink-2);
+}
+
+input {
+  width: 124px;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  font: inherit;
+  font-size: var(--text-data);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+input[type="date"] {
+  width: 148px;
+}
+
+// The box that settles a purchase or a sale against the portfolio's cash: a line of its own under the fields.
+label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: var(--text-data);
+  color: var(--ink);
+}
+
+label.check input {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  accent-color: var(--brand);
+}
+
+input:hover {
+  border-color: var(--ink-3);
+}
+
+input:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 0;
+  border-color: var(--link);
+}
+
+.problem {
+  color: var(--loss);
+  font-size: var(--text-meta);
+}
+
+// Something to know before saving (the purchase would take the cash under what is kept outside stocks): the
+// orange of a warning, not the red of a refusal.
+.caution {
+  color: var(--warn);
+}
+
+// What the purchase or the sale being entered leads to: the answer the form is for, so in the full ink.
+.result {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 4px;
+}
+
+// What the first-entry form is, before anything else in it: in the full ink, as in the forms of "Could add".
+.what {
+  margin: 0 0 6px;
+  font-size: var(--text-data);
+  font-weight: 500;
+  color: var(--ink);
+}
+
+// "Remove" takes a holding away: it stays in the line of the other three (a wider gap dropped it to a line of its own).
+.actions .remove {
+  margin-left: 0;
+}

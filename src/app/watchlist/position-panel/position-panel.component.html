@@ -1,0 +1,120 @@
+<h4>{{ heading }}</h4>
+
+<ng-container *ngIf="row && !editing && !recording">
+  <p class="holding">{{ holdingText }}</p>
+  <ul>
+    <li><app-says [text]="resultText"></app-says></li>
+    <li>{{ timeText }}</li>
+    <li *ngIf="weightText">{{ weightText }}</li>
+    <li *ngIf="riskText" [class.over]="row.risk?.overBudget"><app-says [text]="riskText"></app-says></li>
+    <li *ngIf="rangeText"><app-says [text]="rangeText"></app-says></li>
+  </ul>
+  <!-- A purchase and a sale are what the plan asks for, so they come first; "Edit" corrects what is recorded. -->
+  <div class="actions">
+    <button mat-stroked-button type="button" data-opens="bought" (click)="startRecording('bought')">Bought more</button>
+    <button mat-stroked-button type="button" data-opens="sold" (click)="startRecording('sold')">Sold some</button>
+    <button mat-button type="button" data-opens="edit" (click)="startEdit()">Edit</button>
+    <button mat-button type="button" class="remove" (click)="remove.emit(symbol)">Remove</button>
+  </div>
+</ng-container>
+
+<!-- One more purchase of a stock that is held: this purchase only. The page works out the holding that results. -->
+<form *ngIf="row && recording === 'bought'" (ngSubmit)="submitPurchase()" (keydown.escape)="escape($event)" (input)="changed()" (change)="touched = true" novalidate>
+  <p class="intro">Enter this purchase only. The page adds it to what you hold and works out the new average price.</p>
+  <div class="fields">
+    <label>
+      <span>Shares bought</span>
+      <input type="number" name="boughtShares" min="0" step="any" inputmode="decimal" autocomplete="off" appFocusWhenShown [(ngModel)]="boughtShares">
+    </label>
+    <label>
+      <span>Price paid</span>
+      <input type="number" name="boughtPrice" min="0" step="any" inputmode="decimal" autocomplete="off" appPrice [(ngModel)]="boughtPrice">
+    </label>
+    <label>
+      <span>Bought on (optional)</span>
+      <input type="date" name="boughtDay" [max]="today" [(ngModel)]="boughtDay">
+    </label>
+  </div>
+  <label class="check" *ngIf="cash !== undefined">
+    <input type="checkbox" name="paidFromCash" [(ngModel)]="viaCash" (change)="cashChosen = true">
+    <span>Paid from this portfolio's cash ({{ cashShown }})</span>
+  </label>
+  <p class="result" *ngIf="purchaseResult" role="status">{{ purchaseResult }}</p>
+  <p class="caution" *ngIf="slipNote" role="status">{{ slipNote }}</p>
+  <p class="caution" *ngIf="keptNote" role="status">{{ keptNote }}</p>
+  <p class="problem" *ngIf="telling && purchaseProblem" role="alert">{{ purchaseProblem }}</p>
+  <div class="actions">
+    <button mat-stroked-button type="submit">Record this purchase</button>
+    <button mat-button type="button" (click)="stopRecording()">Cancel</button>
+  </div>
+</form>
+
+<!-- Some of the shares sold: the price paid and the day of what is left do not change. -->
+<form *ngIf="row && recording === 'sold'" (ngSubmit)="submitSale()" (keydown.escape)="escape($event)" (input)="touched = true" (change)="touched = true" novalidate>
+  <p class="intro">{{ saleIntro || saleOpening }}</p>
+  <div class="fields">
+    <label>
+      <span>Shares sold</span>
+      <input type="number" name="soldShares" min="0" step="any" inputmode="decimal" autocomplete="off" appFocusWhenShown [(ngModel)]="soldShares">
+    </label>
+    <!-- The price matters only for the cash: without a record of cash there is nothing to add it to. -->
+    <label *ngIf="cash !== undefined">
+      <span>Price sold at</span>
+      <input type="number" name="soldPrice" min="0" step="any" inputmode="decimal" autocomplete="off" appPrice [(ngModel)]="soldPrice">
+    </label>
+  </div>
+  <label class="check" *ngIf="cash !== undefined">
+    <input type="checkbox" name="soldToCash" [(ngModel)]="viaCash">
+    <span>The money went to this portfolio's cash ({{ cashShown }})</span>
+  </label>
+  <p class="result" *ngIf="saleResult" role="status">{{ saleResult }}</p>
+  <p class="caution" *ngIf="saleSlip" role="status">{{ saleSlip }}</p>
+  <p class="problem" *ngIf="telling && saleProblem" role="alert">{{ saleProblem }}</p>
+  <div class="actions">
+    <button mat-stroked-button type="submit">Record this sale</button>
+    <button mat-button type="button" (click)="stopRecording()">Cancel</button>
+  </div>
+</form>
+
+<!-- A stock that is not held: a sentence and one button. The form opens on the button, as "Bought more" does;
+     standing open under every stock, with its filled button, it looked like an order ticket. -->
+<ng-container *ngIf="!row && !entering">
+  <p class="intro">Not in this portfolio. Enter what you hold to see how it is doing, how it compares with the market, and what a bad half-year could cost.</p>
+  <div class="actions">
+    <button mat-stroked-button type="button" data-opens="first" (click)="startEntering()">Enter what you hold</button>
+  </div>
+</ng-container>
+
+<form *ngIf="showForm" (ngSubmit)="submit()" (keydown.escape)="escape($event)" (input)="changed()" (change)="touched = true" novalidate>
+  <!-- What the form is, as the purchase forms of "Could add" say it first. -->
+  <p class="what" *ngIf="!row">{{ recordsOnly }}</p>
+  <div class="fields">
+    <label>
+      <span>Shares</span>
+      <input type="number" name="shares" min="0" step="any" inputmode="decimal" autocomplete="off" [(ngModel)]="shares">
+    </label>
+    <label>
+      <span>Price paid</span>
+      <input type="number" name="price" min="0" step="any" inputmode="decimal" autocomplete="off" appPrice [(ngModel)]="price">
+    </label>
+    <label>
+      <span>Bought on (optional)</span>
+      <input type="date" name="day" [max]="today" [(ngModel)]="day">
+    </label>
+  </div>
+  <label class="check" *ngIf="!row && cash !== undefined">
+    <input type="checkbox" name="firstFromCash" [(ngModel)]="viaCash" (change)="cashChosen = true">
+    <span>Paid from this portfolio's cash ({{ cashShown }})</span>
+  </label>
+  <p class="result" *ngIf="firstResult" role="status">{{ firstResult }}</p>
+  <p class="caution" *ngIf="!row && slipNote" role="status">{{ slipNote }}</p>
+  <p class="caution" *ngIf="!row && keptNote" role="status">{{ keptNote }}</p>
+  <p class="problem" *ngIf="telling && problem" role="alert">{{ problem }}</p>
+  <div class="actions">
+    <button mat-stroked-button type="submit">{{ saveLabel }}</button>
+    <button mat-button type="button" (click)="cancel()">Cancel</button>
+  </div>
+</form>
+
+<!-- How big a stock that is not held could be, in each portfolio, is said next to this panel ("Where it fits"). -->
+<p class="hint" *ngIf="row && casesText">{{ casesText }}</p>

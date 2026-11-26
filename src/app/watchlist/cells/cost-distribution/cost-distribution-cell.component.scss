@@ -1,0 +1,66 @@
+// One line: the chart, then the share of holders in profit beside it. A row of the table is then no taller for
+// this cell than for a plain number.
+.container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+  white-space: nowrap;
+}
+
+svg {
+  display: block;
+}
+
+// Teal for what was bought below today's price (in profit), orange for what was bought above it. The owner asked
+// for these colours back (2026-11-26); the tooltip still says that the figure made no difference in tests.
+rect.profit {
+  fill: #1a9e77;
+}
+
+rect.loss {
+  fill: #d95f02;
+}
+
+.price-line {
+  stroke: #212121;
+  stroke-width: 2;
+}
+
+.cost-line {
+  stroke: #212121;
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+}
+
+.labels {
+  font-size: var(--text-meta);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.labels {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+// The orange of a warning: most holders bought above today's price.
+.warn-icon {
+  width: 13px;
+  height: 13px;
+  font-size: var(--text-data);
+  color: #b34e00;
+}
+
+.cost-text {
+  font-size: var(--text-meta);
+  white-space: nowrap;
+  letter-spacing: -0.2px;
+  color: var(--ink-3);
+}
+
+.no-data {
+  color: var(--ink-3);
+}
+

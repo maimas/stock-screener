@@ -1,0 +1,30 @@
+<!-- The frame around the page: a slim bar that names the app and says how fresh the prices are, then the page itself. -->
+<!-- The first stop of the Tab key: past the bar, into the page. It shows only while it has the keyboard. -->
+<a class="skip" href="#page" (click)="skip($event)">Skip to the page</a>
+<header class="app-bar">
+  <h1 class="brand">
+    <mat-icon aria-hidden="true">candlestick_chart</mat-icon>
+    Stock Screener
+  </h1>
+  <!-- The two views of the one page: what you own and its plan, and the stocks you watch. -->
+  <nav class="views" aria-label="Views">
+    <a routerLink="/portfolio" routerLinkActive="chosen" ariaCurrentWhenActive="page">Portfolio</a>
+    <a routerLink="/watchlist" routerLinkActive="chosen" ariaCurrentWhenActive="page">Watchlist</a>
+  </nav>
+  <div class="prices">
+    <!-- A reload that failed is said here, in place of the quiet time: the prices on the page are the old ones. The
+         line is in the page from the start, so that a screen reader reads out what appears in it. -->
+    <span class="failed" role="status"><ng-container *ngIf="failed"><mat-icon aria-hidden="true">warning</mat-icon>{{ failedText }}</ng-container></span>
+    <span class="as-of" *ngIf="!failed && asOf as time"
+          matTooltip="The time of the newest price on the page, and when the page last loaded the prices. Outside market hours a reload brings the same prices. Prices from this source can be delayed.">Prices as of {{ time }}<span class="checked" *ngIf="checked"> · checked {{ checked }}</span></span>
+    <button type="button" class="reload" [class.loading]="loading" [disabled]="loading" (click)="status.reload()">
+      <mat-icon aria-hidden="true">refresh</mat-icon>
+      <span>{{ loading ? 'Loading prices' : failed ? 'Try again' : 'Reload prices' }}</span>
+    </button>
+  </div>
+</header>
+
+<main class="page" id="page" tabindex="-1">
+  <router-outlet></router-outlet>
+  <app-spinner></app-spinner>
+</main>

@@ -1,0 +1,21 @@
+<ng-container *ngIf="reading as r; else unread">
+  <p class="reading">{{ sentences }}</p>
+  <ul *ngIf="r.sources.length">
+    <li *ngFor="let source of r.sources">
+      <a [href]="source.url" target="_blank" rel="noopener noreferrer">{{ title(source) }}</a>
+      <span class="source"> {{ site(source) }}</span>
+    </li>
+  </ul>
+  <p class="by">
+    <span class="line" tabindex="0" [matTooltip]="note" matTooltipClass="multiline-tooltip">{{ byLine }}</span>&ngsp;
+    <button type="button" class="again" *ngIf="canAsk" (click)="read()">{{ againLabel }}</button>
+  </p>
+</ng-container>
+
+<!-- What the page lists itself, shown until the news was read. -->
+<ng-template #unread><ng-content></ng-content></ng-template>
+
+<p class="busy" *ngIf="busy" role="status" aria-busy="true">{{ readingNow }}</p>
+<p class="failed" *ngIf="failure" role="alert">{{ failure }}</p>
+<button mat-stroked-button type="button" class="ask" *ngIf="canAsk && !reading" (click)="read()"
+        [matTooltip]="readTip" matTooltipClass="multiline-tooltip">{{ readLabel }}</button>
