@@ -107,8 +107,8 @@
                 <th scope="col" class="num context two-lines" [attr.aria-sort]="sortedAs('holders')"><button type="button" class="sort-head has-help" (click)="sortBy('holders')" [matTooltip]="factHelp.holders" matTooltipClass="multiline-tooltip">{{ factColumns.holders }}</button></th>
               </ng-container>
               <ng-container *ngIf="hasFit">
-                <th scope="col" class="starts" [attr.aria-sort]="sortedAs('sector')"><button type="button" class="sort-head up" (click)="sortBy('sector')">{{ columns.sector }}</button></th>
-                <th scope="col" class="two-lines" [attr.aria-sort]="sortedAs('moves')"><button type="button" class="sort-head up" (click)="sortBy('moves')">{{ columns.moves }}</button></th>
+                <th scope="col" class="starts" [attr.aria-sort]="sortedAs('sector')"><button type="button" class="sort-head up has-help" (click)="sortBy('sector')" [matTooltip]="columnHelp.sector" matTooltipClass="multiline-tooltip">{{ columns.sector }}</button></th>
+                <th scope="col" class="two-lines" [attr.aria-sort]="sortedAs('moves')"><button type="button" class="sort-head up has-help" (click)="sortBy('moves')" [matTooltip]="columnHelp.moves" matTooltipClass="multiline-tooltip">{{ columns.moves }}</button></th>
               </ng-container>
               <th scope="col" class="act" *ngIf="canRecord"><span class="visually-hidden">Record a purchase</span></th>
             </tr>

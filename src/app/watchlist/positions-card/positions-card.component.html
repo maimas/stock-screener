@@ -202,7 +202,7 @@
             <ng-template #noPlan><span class="no-plan">—</span></ng-template>
           </td>
           <!-- How long it has been held: a few words, with what is unusual about it on a line of its own. -->
-          <td class="held" *ngIf="hasDates" [class.past]="pastTheTests(row)">
+          <td class="held" *ngIf="hasDates" [class.past]="pastTheTests(row)" [matTooltip]="heldTip(row)" matTooltipClass="multiline-tooltip">
             <ng-container *ngIf="row.view.position.day; else addDate">
               <span class="held-weeks">{{ held(row) }}</span>
               <span class="held-note" *ngIf="heldNote(row) as note">{{ note }}</span>

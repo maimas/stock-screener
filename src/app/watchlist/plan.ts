@@ -172,7 +172,9 @@ export function planSteps(input: PlanInput, f: Figures = EVIDENCE): PlanStep[] {
     // Amounts show from the first visit. The assumption they rest on is said first, with where to change it.
     steps.push({
       kind: 'setup', verb: 'YOUR LIMIT', items: [],
-      text: `The plan assumes you can lose ${money(limit.dollars)} on one stock. Change it in this box.`,
+      // The field by its name: the box has four.
+      // ("The plan assumes you can lose $4,000 on one stock. Change it in this box." named no field.)
+      text: `Set "${LIMIT_LABEL}": until then the plan assumes ${money(limit.dollars)}.`,
       why: `You have not entered a limit, so the plan starts from ${limit.percent}% of this portfolio. With that, up to ` +
         `${shareThatFits(limit.percent, f.cases.volatile.bad)}% of your money fits in one stock whose price swings a lot. ` +
         `In tests, ${severalBrief}. To change it, enter your own number in the "${PLAN_BOX}" box, under "${LIMIT_LABEL}".`,

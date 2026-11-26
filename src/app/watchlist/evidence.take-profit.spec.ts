@@ -235,10 +235,11 @@ describe('what the app says about taking a profit', () => {
   // of the picked level are two figures, each beside what keeping gave; the sentence above is where the pointer rests.
   it('gives both sides of the picked level as two figures: how often a loss, and the average, each beside keeping', () => {
     expect(t.takeProfitFigures(15)).withContext('offered both ways: a range, lowest first')
-      .toEqual({loss: '28% to 34%, kept 44%', mean: '+4.1% to +4.4%, kept +9.1%'});
-    expect(t.takeProfitFigures(25)).withContext('offered one way: one figure').toEqual({loss: '37%, kept 44%', mean: '+5.5%, kept +9.1%'});
+      .toEqual({loss: '28% to 34% of stocks, against 44% when kept', mean: '+4.1% to +4.4%, against +9.1% when kept'});
+    expect(t.takeProfitFigures(25)).withContext('offered one way: one figure')
+      .toEqual({loss: '37% of stocks, against 44% when kept', mean: '+5.5%, against +9.1% when kept'});
     expect(textsFor(tested((rule, way) => way === 'seen' ? {lossPercent: 28} : {})).takeProfitFigures(15)!.loss)
-      .withContext('the two ways came out alike: no range').toBe('28%, kept 44%');
+      .withContext('the two ways came out alike: no range').toBe('28% of stocks, against 44% when kept');
   });
 
   it('has no such figures for a level that is not offered, or before the test was recorded', () => {

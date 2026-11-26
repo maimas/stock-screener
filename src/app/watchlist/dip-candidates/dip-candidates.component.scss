@@ -147,6 +147,88 @@ mat-card-content {
   }
 }
 
+// Where the box is as wide as a window and its stocks stand in two tables, it was taller than a laptop's window:
+// the lists began under the first screen (a review, at 1440x800: the box 785px tall). The column beside the tables
+// was the tall part. There the marks and the groups stay beside the tables, and the tested figures run across the
+// foot of the box in one line, with "How to read this" and the log's line under them: the box is about as tall as
+// its tables, and the lists start on the first screen. (Not folded: the folded box has its own, shorter, layout.)
+@container (min-width: 1250px) {
+  .candidates:not(.folded) .body {
+    grid-template-rows: auto auto 1fr;
+    row-gap: 12px;
+  }
+
+  .candidates:not(.folded) .about {
+    display: contents;
+  }
+
+  .candidates:not(.folded) .stocks {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+  }
+
+  .candidates:not(.folded) .legend,
+  .candidates:not(.folded) .one-bet,
+  .candidates:not(.folded) .tied {
+    grid-column: 2;
+    margin-top: 0;
+  }
+
+  .candidates:not(.folded) .legend {
+    grid-row: 1;
+  }
+
+  .candidates:not(.folded) .one-bet {
+    grid-row: 2;
+  }
+
+  .candidates:not(.folded) .tied {
+    grid-row: 3;
+  }
+
+  .candidates:not(.folded) .tested-figures,
+  .candidates:not(.folded) app-about,
+  .candidates:not(.folded) .note.log,
+  .candidates:not(.folded) .note.attention {
+    grid-column: 1 / -1;
+    max-width: none;
+    margin-top: 0;
+  }
+
+  // The five figures in one line; the risk among them keeps its place at the end and takes no row to itself.
+  .candidates:not(.folded) .tested-figures dl {
+    grid-template-columns: repeat(5, max-content);
+  }
+
+  .candidates:not(.folded) .tested-figures .risk {
+    grid-column: auto;
+  }
+
+  // What the figures are of, and what they do not say by themselves, on one line over them.
+  .candidates:not(.folded) .tested-figures {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    column-gap: 20px;
+    align-items: baseline;
+  }
+
+  .candidates:not(.folded) .tested-figures dl {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .candidates:not(.folded) .tested-limits {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0 0 4px;
+  }
+
+  // The two lines about the market run the width of the box: at the width of a paragraph the second took three.
+  .candidates:not(.folded) .market {
+    max-width: none;
+  }
+}
+
 // On a very narrow screen the table can be wider than its box: it then scrolls by itself and the page does not.
 .stocks {
   overflow-x: auto;

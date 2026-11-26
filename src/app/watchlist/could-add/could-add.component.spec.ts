@@ -212,7 +212,9 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
       const fixture = create({facts: FACTS});
       const helped = fixture.debugElement.queryAll(By.css('thead th .has-help'));
       expect(helped.map(it => say(it.nativeElement))).toEqual(
-        ['Dropped', 'Growing', 'Size', 'Bad case', 'Good case', 'With your cash', 'Analyst target', 'Holders in profit']);
+        ['Dropped', 'Growing', 'Size', 'Bad case', 'Good case', 'With your cash', 'Analyst target', 'Holders in profit', 'Sector (you own)', 'Moves with yours']);
+      expect(helped.slice(8).map(it => it.injector.get(MatTooltip).message)).withContext('what the two columns about fit are').toEqual(
+        [COLUMN_HELP.sector, COLUMN_HELP.moves]);
       expect(helped.every(it => it.nativeElement.tagName === 'BUTTON')).withContext('each heading is a button that orders the rows').toBeTrue();
       expect(helped.slice(2, 6).map(it => it.injector.get(MatTooltip).message)).toEqual(
         [COLUMN_HELP.size, COLUMN_HELP.bad, COLUMN_HELP.good, COLUMN_HELP.cash]);
@@ -638,7 +640,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
       tick(fixture, 'ACME');
       expect(say(beside().querySelector('h3'))).toBe('With your cash');
       expect(facts(fixture)).toEqual([
-        ['Short of its share', '$2,013'], ['Cash to split', '$1,000'], ['Stocks held', '3 today, 4 after'],
+        ['Room for the one ticked', '$2,013'], ['Cash to split', '$1,000'], ['Stocks held', '3 today, 4 after'],
         ['Bad half-year, every marked stock at once', '−$2,790 today, −$3,200 after'],
       ]);
       expect(beside().querySelectorAll('p').length).withContext('no sentence').toBe(0);

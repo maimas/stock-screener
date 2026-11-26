@@ -1,6 +1,6 @@
 <!-- What there is to do today, by name, then a line a step. The box around these lines is the portfolio's (positions-card). -->
 <!-- The lead. Each verb in it wears the colour of its mark in the lines under it; the sentence reads as before. -->
-<p class="count" *ngIf="!loading && !empty"><ng-container *ngIf="leadVerbs.length > 0; else nothingToDo">To do today: <ng-container *ngFor="let verb of leadVerbs; let last = last"><span [class]="'lead-verb ' + verb.kind">{{ verb.verb }}</span>{{ last ? '.' : ', ' }}</ng-container></ng-container><ng-template #nothingToDo>{{ headline }}</ng-template></p>
+<p class="count" *ngIf="!loading && !empty"><ng-container *ngIf="leadVerbs.length > 0; else nothingToDo">To do today: <ng-container *ngFor="let verb of leadVerbs; trackBy: trackByVerb; let last = last"><span [class]="'lead-verb ' + verb.kind">{{ verb.verb }}</span>{{ last ? '.' : ', ' }}</ng-container></ng-container><ng-template #nothingToDo>{{ headline }}</ng-template></p>
 
 <ol class="steps" *ngIf="shownSteps.length > 0">
   <li *ngFor="let step of shownSteps; trackBy: trackByKind" [class]="'step ' + step.kind"

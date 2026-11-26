@@ -367,6 +367,18 @@ describe('PositionsCardComponent: how long a position has been held', () => {
     expect(card.held(row('NVDA'))).toBe('—');
     expect(card.heldNote(row('NVDA'))).toBe('');
   });
+
+  // Found by a review of the page: "DIP BUY today: counts from today" stood in the cell with nothing to say what
+  // it means. The few words of the note have their sentence where the pointer rests.
+  it('says what the note under the weeks means where the pointer rests on it, and nothing for a cell without a note', () => {
+    expect(card.heldTip(row('NVDA', {day: '2025-10-01'}))).toBe(
+      'Held for longer than the 6 months the tests followed. It is marked DIP BUY today, and holding it is the same bet as ' +
+      'buying it today: the plan keeps it and counts its 6 months from today.');
+    expect(card.heldTip(row('AMZN', {day: '2025-10-01', marked: false}))).toBe(
+      'Held for longer than the 6 months the tests followed. After that the tests disagree, so the plan has no rule for it.');
+    expect(card.heldTip(row('NVDA', {day: '2026-10-15'}))).toBe('');
+    expect(card.heldTip(row('NVDA'))).toBe('');
+  });
 });
 
 describe('PositionsCardComponent: what the plan says about each stock', () => {
@@ -658,12 +670,13 @@ describe('PositionsCardComponent, as shown: one box for a portfolio\'s plan and 
       it('shows both sides of that level in the test as figures under the fields, while it is picked', () => {
         const {el, card} = box({takeProfitPercent: 15});
         const figures = Array.from(el.querySelectorAll('.figures dl.facts > div')).map(it => [text(it.querySelector('dt')), text(it.querySelector('dd'))]);
-        const level = figures.filter(([label]) => label!.includes('+15%') || label === 'on average');
-        expect(level.map(([label]) => label)).toEqual(['At +15% in the test, ended with a loss', 'on average']);
-        expect(level[0][1]).toMatch(/^\d+% to \d+%, kept \d+%$/);
-        expect(level[1][1]).toMatch(/^\+[\d.]+% to \+[\d.]+%, kept \+[\d.]+%$/);
+        const level = figures.filter(([label]) => label!.includes('+15%'));
+        // Each says by itself what it is (a review found "on average" after a comma, and "kept 42%", hard to read).
+        expect(level.map(([label]) => label)).toEqual(['In the test at +15%, ended with a loss', 'In the test at +15%, made on average']);
+        expect(level[0][1]).toMatch(/^\d+% to \d+% of stocks, against \d+% when kept$/);
+        expect(level[1][1]).toMatch(/^\+[\d.]+% to \+[\d.]+%, against \+[\d.]+% when kept$/);
         expect(card.settingFacts.filter(it => it.label.includes('+15%'))[0].tip).toBe(card.profitText);
-        expect(box().card.settingFacts.some(it => it.label.includes('in the test'))).withContext('no level picked').toBeFalse();
+        expect(box().card.settingFacts.some(it => it.label.includes('In the test'))).withContext('no level picked').toBeFalse();
       });
 
       it('keeps the level when another setting is saved', () => {

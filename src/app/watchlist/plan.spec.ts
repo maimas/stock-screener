@@ -121,7 +121,9 @@ describe('planSteps: a verb, one plain sentence and the stocks with their amount
     expect(list[0].verb).toBe('YOUR LIMIT');
     // The field is in the same box as this line, above it in a narrow window and beside it in a wide one: the line
     // says "in this box", which holds for both. The evidence is read at the bottom of the page, so it names the box.
-    expect(list[0].text).toBe('The plan assumes you can lose $4,000 on one stock. Change it in this box.');
+    // "Change it in this box" named no field: the box has four (found by a review).
+    // It starts with what to do and names the field, within the 80 characters of a plan line.
+    expect(list[0].text).toBe('Set "Most I can lose on one stock": until then the plan assumes $4,000.');
     expect(list[0].why).toBe(
       'You have not entered a limit, so the plan starts from 10% of this portfolio. With that, up to 24% of your money fits in ' +
       'one stock whose price swings a lot. In tests, three stocks held together had a milder bad half-year than one alone ' +

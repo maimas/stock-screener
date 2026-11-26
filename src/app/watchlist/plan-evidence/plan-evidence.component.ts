@@ -40,6 +40,12 @@ export class PlanEvidenceComponent {
   openOnJump(event: FocusEvent): void {
     if (event.target === event.currentTarget && this.control && !this.control.open) {
       this.control.toggle();
+      // The page scrolled here while the box was one line tall, perhaps at the foot of the window: opened, it
+      // reaches below it. Once it has its new height it is brought to the top of the window (without the motion,
+      // for who asked for none).
+      const box = event.currentTarget as HTMLElement;
+      const calm = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      setTimeout(() => box.scrollIntoView({behavior: calm ? 'auto' : 'smooth', block: 'start'}));
     }
   }
 

@@ -3,6 +3,12 @@
   color: var(--ink);
 }
 
+// The box is measured, not the window: beside "Could add" on a very wide window it is narrower (1,196px inside at
+// 2560) than alone in a laptop's window (1,344px at 1440).
+mat-card-content {
+  container-type: inline-size;
+}
+
 // The top of the box, read downwards: the title, then which portfolio.
 .header {
   display: grid;
@@ -543,6 +549,30 @@ table.every td.group {
 
 table.every td.row-actions {
   padding: 0;
+}
+
+// In a box under 1,340px (beside "Could add" on a 2560 window) every column with those gaps was 1,323px in a box
+// of 1,196px, and "Bought" and the remove button were cut off. The gaps are closer there, and the few words under
+// the weeks ("DIP BUY today: counts from today") may take two lines.
+@container (max-width: 1339px) {
+  table.every th,
+  table.every td {
+    padding-right: 8px;
+  }
+
+  table.every th.group,
+  table.every td.group {
+    padding-left: 8px;
+  }
+
+  table.every td.row-actions {
+    padding: 0;
+  }
+
+  table.every .held-note {
+    max-width: 17ch;
+    white-space: normal;
+  }
 }
 
 // While the first prices are arriving: the room the table will take, drawn as its rows' lines, so that what

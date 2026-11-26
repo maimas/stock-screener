@@ -430,8 +430,9 @@ export class PositionsCardComponent {
     }
     const level = this.profitLevel, sides = level === undefined ? undefined : takeProfitFigures(level);
     if (level !== undefined && sides) {
-      facts.push({label: `At +${level}% in the test, ended with a loss`, value: sides.loss, tip: this.profitText},
-        {label: 'on average', value: sides.mean, tip: this.profitText});
+      // Each says by itself what it is: where one runs onto the next line, it is still read alone.
+      facts.push({label: `In the test at +${level}%, ended with a loss`, value: sides.loss, tip: this.profitText},
+        {label: `In the test at +${level}%, made on average`, value: sides.mean, tip: this.profitText});
     }
     return facts;
   }
@@ -646,6 +647,18 @@ export class PositionsCardComponent {
     // buying it today), and counts its 6 months from today. Saying only that it is older than the tests would
     // contradict the word KEEP beside it.
     return row.verdict === 'DIP BUY' ? 'DIP BUY today: counts from today' : 'longer than the tests followed';
+  }
+
+  /** What that note means, in a sentence, where the pointer rests on the cell. Nothing for a cell without a note. */
+  heldTip(row: PositionRow): string {
+    if (!this.heldNote(row)) {
+      return '';
+    }
+    const longer = 'Held for longer than the 6 months the tests followed.';
+    return row.verdict === 'DIP BUY'
+      ? `${longer} It is marked DIP BUY today, and holding it is the same bet as buying it today: the plan keeps it and counts its 6 months from today.`
+      // In the words of the plan's own line and reason for such a stock (YOUR CALL).
+      : `${longer} After that the tests disagree, so the plan has no rule for it.`;
   }
 
   /**

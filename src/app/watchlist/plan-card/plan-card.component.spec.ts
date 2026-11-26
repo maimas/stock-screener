@@ -126,6 +126,31 @@ describe('PlanCardComponent, as shown', () => {
     expect(shown([step('timing')]).querySelector('.count .lead-verb')).withContext('"Nothing to do today." has no verb').toBeNull();
   });
 
+  // Found by a measurement of the page: on every key press the box built the verbs of its lead anew (they are
+  // worked out on each look, and the loop over them had no way to know them again). Nothing that is rebuilt
+  // between a press and its release can be clicked, and the same fault had made a table of the Watchlist dead.
+  it('builds nothing anew when the page is looked at again: the lead, the lines and their stocks stay the same nodes', () => {
+    const fixture = TestBed.createComponent(PlanCardComponent);
+    const sentence = '2 stocks could be added: see "Could add" for the size of each.';
+    Object.assign(fixture.componentInstance, {
+      steps: [{...step('trim'), items: [{symbol: 'ACME', label: 'keep $590'}]}, step('timing'), {...step('buy'), text: sentence}],
+    });
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    const nodes = () => Array.from(el.querySelectorAll('.count .lead-verb, .step, .step .item, .step .text, .step .jump'));
+    const before = nodes();
+    expect(before.length).withContext('two verbs, three lines with their sentences, one stock, one jump').toBe(10);
+    let changed = 0;
+    const watch = new MutationObserver(records => changed += records.reduce((sum, it) => sum + it.addedNodes.length + it.removedNodes.length, 0));
+    watch.observe(el, {childList: true, subtree: true});
+    fixture.detectChanges();
+    fixture.detectChanges();
+    changed += watch.takeRecords().reduce((sum, it) => sum + it.addedNodes.length + it.removedNodes.length, 0);
+    watch.disconnect();
+    expect(changed).withContext('nodes added or taken away by two more looks').toBe(0);
+    nodes().forEach((node, at) => expect(node).withContext(`node ${at}`).toBe(before[at]));
+  });
+
   // The lead can read the same for weeks ("To do today: BUY."). The line that differs from one day to the next is
   // what changed since the last day: on a day something did, it is set firmer; on a day nothing did, quieter.
   it('sets the line about what changed apart: firm on a day something changed, quiet when nothing did', () => {

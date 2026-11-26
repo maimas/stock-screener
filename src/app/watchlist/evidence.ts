@@ -327,8 +327,8 @@ function takeProfitTexts(f: Figures): {
         return said(low) === said(high) ? said(low) : `${said(low)} to ${said(high)}`;
       };
       return {
-        loss: `${range(used.map(it => it.lossPercent), value => `${value}%`)}, kept ${k.lossPercent}%`,
-        mean: `${range(used.map(it => it.mean), pct)}, kept ${pct(k.mean)}`,
+        loss: `${range(used.map(it => it.lossPercent), value => `${value}%`)} of stocks, against ${k.lossPercent}% when kept`,
+        mean: `${range(used.map(it => it.mean), pct)}, against ${pct(k.mean)} when kept`,
       };
     },
   };

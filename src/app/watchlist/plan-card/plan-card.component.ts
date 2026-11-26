@@ -116,6 +116,14 @@ export class PlanCardComponent {
     return step.kind;
   }
 
+  /**
+   * The verbs of the lead are worked out on every look: each is known again by its step, so that the page keeps
+   * the node it drew. Without it they were built anew on every key press.
+   */
+  trackByVerb(_: number, verb: { verb: string, kind: StepKind }): string {
+    return `${verb.kind} ${verb.verb}`;
+  }
+
   trackBySymbol(_: number, item: PlanItem): string {
     return item.symbol;
   }

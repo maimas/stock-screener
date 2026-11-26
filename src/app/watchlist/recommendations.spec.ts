@@ -566,6 +566,10 @@ describe('the sentences of the cash split in "Could add"', () => {
       bad: 'What that size would lose in a bad half-year: in tests, 1 in 10 stocks like it lost that much or more after 6 months.',
       good: 'What that size would gain in a good half-year: in tests, 1 in 10 stocks like it gained that much or more after 6 months.',
       cash: 'What the money to split would buy of each stock you ticked. A stock you did not tick shows nothing here.',
+      // Found by a review: these two headings said nothing where the pointer rests. What they say is the note's.
+      sector: 'The stock\'s sector and, in brackets, how many of your stocks are in it. A fact, not a tested reason to pick one.',
+      moves: 'Whether its price has moved closely with your stocks over the past year (0.5 or more, where 0 is not at all and 1 is ' +
+        'exactly together). The two figures show where the pointer rests on a cell. A fact, not a tested reason to pick one.',
     });
   });
 
@@ -587,7 +591,8 @@ describe('the sentences of the cash split in "Could add"', () => {
       expect(splitFacts(split())).toEqual({
         instead: '',
         facts: [
-          {label: 'Short of its share', value: '$2,013', tip: ONE_SHORT},
+          // Not "short of its share": beside a stock, "shares" reads as shares of stock (found by a review).
+          {label: 'Room for the one ticked', value: '$2,013', tip: ONE_SHORT},
           {label: 'Cash to split', value: '$1,000', tip: CASH_SOURCE},
           {label: 'Stocks held', value: '3 today, 4 after', tip: 'You would hold 4 stocks instead of 3.'},
           {label: 'Bad half-year, every marked stock at once', value: '−$2,790 today, −$3,200 after', tip: BAD_CASE},
@@ -598,7 +603,7 @@ describe('the sentences of the cash split in "Could add"', () => {
     it('names the figure for several, and says what stays cash when the cash covers everything', () => {
       const facts = splitFacts(split({parts: three, cash: 20000, gap: 13896, placed: 13896, left: 6104, stocksAfter: 6})).facts;
       expect(facts.map(it => [it.label, it.value])).toEqual([
-        ['Short of their shares', '$13,896'], ['Cash to split', '$20,000'], ['Stays cash', '$6,104'],
+        ['Room for the 3 ticked', '$13,896'], ['Cash to split', '$20,000'], ['Stays cash', '$6,104'],
         ['Stocks held', '3 today, 6 after'], ['Bad half-year, every marked stock at once', '−$2,790 today, −$3,200 after'],
       ]);
       expect(splitFacts(split({parts: three, cash: 13896, gap: 13896, placed: 13896, left: 0})).facts.map(it => it.label))
@@ -612,7 +617,7 @@ describe('the sentences of the cash split in "Could add"', () => {
 
     it('names the money by what it is once what selling would free is counted', () => {
       const withSale = splitFacts(split({cash: 5780.49, gap: 9000, placed: 5780.49}), {freed: 1780.49, cash: 4000}).facts;
-      expect(withSale.map(it => [it.label, it.value]).slice(0, 2)).toEqual([['Short of its share', '$9,000'], ['Cash and sale money to split', '$5,780']]);
+      expect(withSale.map(it => [it.label, it.value]).slice(0, 2)).toEqual([['Room for the one ticked', '$9,000'], ['Cash and sale money to split', '$5,780']]);
       expect(withSale[withSale.length - 1].value).withContext('after is after selling and buying').toBe('−$2,790 today, −$3,200 after selling and buying');
       const saleOnly = splitFacts(split({cash: 1780.49, gap: 9000, placed: 1780.49}), {freed: 1780.49, cash: 0}).facts;
       expect(saleOnly[1].label).toBe('Sale money to split');
@@ -623,6 +628,13 @@ describe('the sentences of the cash split in "Could add"', () => {
     it('says for a portfolio with no marked stock yet what the purchase itself could lose', () => {
       const first = splitFacts(split({togetherLossBefore: 0, togetherLossAfter: 410})).facts;
       expect([first[first.length - 1].label, first[first.length - 1].value]).toEqual(['Bad half-year, what you would buy', '−$410']);
+    });
+
+    // An owned stock ticked beside new ones is often at its share already: the figure counts the ones with room.
+    it('names the figure by the ticked stocks that have room, when some are at their share already', () => {
+      const atShare = part({symbol: 'CCC', owned: true, gap: 0, dollars: 0, bound: 'none', loss: 0, gain: 0});
+      const facts = splitFacts(split({parts: [part(), part({symbol: 'BBB'}), atShare], cash: 8000, gap: 13896, placed: 8000, stocksAfter: 5})).facts;
+      expect([facts[0].label, facts[0].value]).toEqual(['Room for 2 of the 3 ticked', '$13,896']);
     });
 
     // Which of the ticked stocks moved together is a fact about them, so it stands with the figures: the stocks

@@ -143,10 +143,11 @@ fields says):
   $115.00"), rounded up so that an order at that price never sells under the level. Its reason says what such an
   order is (one that waits at a price: a limit order) and that in the test it stood for the 6 months only.
 - Under the fields two figures say what the level did in the test, both sides, each beside what keeping gave
-  ("At +15% in the test, ended with a loss  25% to 30%, kept 42%" and "on average  +4.9% to +6.3%, kept +10.5%").
-  The sentence they come from, with which stocks the level counts for, is where the pointer rests on them and
-  behind "How to read this box". Each line's reason, in "How the plan was tested", says both sides in that test's numbers (how much rarer a loss
-  was, whether the bad case was milder, how much lower the average) and what became of the stocks that got that
+  ("In the test at +15%, ended with a loss  25% to 30% of stocks, against 42% when kept" and "In the test at +15%,
+  made on average  +4.9% to +6.3%, against +10.5% when kept": each says by itself what it is). The sentence they
+  come from, with which stocks the level counts for, is where the pointer rests on them and behind "How to read
+  this box". Each line's reason, in "How the plan was tested", says both sides in that test's numbers (how much
+  rarer a loss was, whether the bad case was milder, how much lower the average) and what became of the stocks that got that
   far when they were kept. The whole test stands once, under THE PLAN in the same box and behind its "more", as
   two small tables: what keeping and each way of selling did, and what became of the stocks a sale took out early
   when they were kept instead. Both tables hold every way that was tested, the ways the plan does not offer set
@@ -408,9 +409,10 @@ The page is made for a browser window that fills a large monitor, and still work
 - **Signal before sentences on the Portfolio view** (the same remark of the owner, made about this view with
   two pictures of it). By the same rules: a box shows its title, its figures and its table, and one sentence, which
   says what to do next. What was a sentence with a number in it is a figure with its name (`dl.facts`): beside the
-  headline of "What you own", under the fields, and for the answer to a tick in "Could add" ("Short of their
-  shares $9,539 · Cash to split $1,500 · Stocks held 5 today, 7 after · Bad half-year, every marked stock at once
-  −$2,916 today, −$3,531 after · Moved together ACME and BOLT (group A)"). Each figure has the sentence it comes
+  headline of "What you own", under the fields, and for the answer to a tick in "Could add" ("Room for the 2
+  ticked $9,539 · Cash to split $1,500 · Stocks held 5 today, 7 after · Bad half-year, every marked stock at once
+  −$2,916 today, −$3,531 after · Moved together ACME and BOLT (group A)"; the first was "Short of their shares",
+  which beside a stock read as shares of stock). Each figure has the sentence it comes
   from where the pointer rests on it. "Could add" says beside its title how many stocks it lists and that the page
   ranks none of them ("16 stocks marked DIP BUY, not in Brokerage yet · not ranked"), and keeps one instruction
   ("Tick stocks to split your cash ($1,500) between them."); what the plan's sale would free is a figure with the
@@ -422,8 +424,21 @@ The page is made for a browser window that fills a large monitor, and still work
   scrolls to it and opens it. Nothing was deleted: with everything closed the view has about 190 words in sight
   outside its tables where it had about 730 (a made-up portfolio of five stocks, two rows ticked), and it is
   470px shorter in a 2000px window. The room the answer to a tick takes is kept free, so a tick still moves no
-  table; in a window of 1,100px the table of "Could add" no longer runs 114px past its box (the reserve of its
-  cash column is kept only from a box 1,200px wide).
+  table; in a window of 1,100px the table of "Could add" no longer runs past its box (the reserve of its cash
+  column is kept only from a box 1,200px wide, and under that its cells stand 8px apart).
+- **What a review of both views found on the Portfolio view, and what was done** (2026-11-26). The plan's lines
+  built the verbs of "To do today" anew on every key press: they are known again from one look to the next, and a
+  measurement of twelve presses of the Tab key now counts no node built anew in that box. With "All columns", the
+  table of "What you own" was 1,323px in the box of 1,196px that it has beside "Could add" on a 2560 window, and
+  "Bought" and the remove button were cut off: in a box under 1,340px its cells stand closer and the few words
+  under the weeks may take two lines, and it is 1,157px there (in a 1,100px window fifteen columns still scroll
+  inside their block). Opened by the plan's "How it was tested", the box at the foot of the page is brought to
+  the top of the window again once it has its new height. The headings "Sector (you own)" and "Moves with yours"
+  say what they are where the pointer rests or the Tab key lands, as the other headings do; the few words under
+  the weeks held ("DIP BUY today: counts from today") have their sentence where the pointer rests. The line
+  YOUR LIMIT names its field and starts with what to do ("Set "Most I can lose on one stock": until then the plan
+  assumes $4,000."). Not done without the owner's word: a "Typical" figure between the two cases, and an answer
+  to a tick that stays in sight while a long table is scrolled.
 - **A stock's details are three columns, a column a subject**, where the list is 1280px wide or more (two in a
   narrower list, with the reader's stake on the right): what the mark rests on and what is risky about this one
   stock; why it dropped; your stake in it ("Where it fits", then "What you own of it", which names the portfolio
@@ -441,6 +456,27 @@ The page is made for a browser window that fills a large monitor, and still work
   inside, and no sentence may be squeezed to a word a line. A sentence never stands in a block that is as wide as
   its content (a table's own block): one such sentence once made "Dip candidates" as wide as itself and squeezed
   the column beside it.
+- **And with a real pointer and real keys.** At the same three sizes a check clicks a symbol and a tick box the
+  way a hand does (pressed, then released), presses the Tab key twelve times on each view, and counts what the
+  page builds anew meanwhile: twelve different stops, and nothing built anew but a tooltip. A click made by a
+  script cannot be lost; a real one was, where "Dip candidates" shows two tables side by side: the two halves were
+  cut anew every time the page checked itself, so both tables were rebuilt under the pointer and under the
+  keyboard. A list that a loop goes over is kept until what it is made from changes, and the loop says how to
+  tell its items apart.
+- **Gains never stand without their risk in the same sight.** The tested figures of "Dip candidates" are five: a
+  stock with the mark on average, the typical one, any stock that dropped, the market, and how many stocks with
+  the mark fell a further 20% first; a line under them says what "typical" is and which years were tested. In a
+  stock's details "Risk of this stock" is two figures under every stock marked DIP BUY (how much its price swings
+  in a year, and how many such stocks fell a further 20% within 13 weeks of the mark, with the other group's
+  figure beside it); the sentence that says them is behind "more". For a stock that is held, "What you own of it"
+  is rows of a name and a figure (holding, worth now, held, share, then the bad, the typical and the good
+  half-year together), the bad one first; the sentences and what the tests cover are behind "more" at the
+  heading.
+- **What the marks mean is the first thing behind "How to read this"** in "Dip candidates", so a reader without
+  a pointer finds it; the marks in the line above carry the dotted line of everything that says more when
+  pointed at. The lists' heading "Mark · dropped" names the figure that stands beside each mark. Where the box is
+  as wide as the window, its marks and groups stand beside its two tables and the tested figures run in one line
+  across its foot, so the lists begin on the first screen of a laptop.
 - **The plan's BUY line leads to "Could add"**: the box's name in the sentence is a jump to it.
 - **Looking a stock up does not cost the reader their place.** A stock opened from the Portfolio view shows its
   details on the Watchlist with a link "Back to your plan" beside the company's name; the link, and the browser's

@@ -1,4 +1,4 @@
-import {ComponentFixture, TestBed} from "@angular/core/testing";
+import {ComponentFixture, fakeAsync, TestBed, tick} from "@angular/core/testing";
 import {PlanEvidenceComponent} from "./plan-evidence.component";
 import {PlanStep, StepKind} from "../plan";
 import {textsFor} from "../evidence";
@@ -125,6 +125,25 @@ describe('PlanEvidenceComponent: the page it makes', () => {
     fixture.detectChanges();
     expect(page(fixture).querySelector<HTMLElement>('.about-body')!.hidden).withContext('a second time: still open').toBeFalse();
   });
+
+  // Found by a review of the page: the link scrolled to the box while it was one line tall, at the foot of a 2560
+  // window; then the box opened downwards, out of the window, and the page stayed where it was. Once it has
+  // opened, the box is brought to the top of the window again.
+  it('brings itself into view again once it has opened from the plan\'s link, and not when it was open already', fakeAsync(() => {
+    const fixture = create(false);
+    const card = page(fixture).querySelector<HTMLElement>('#plan-evidence')!;
+    const scrolled = spyOn(card, 'scrollIntoView');
+    card.dispatchEvent(new FocusEvent('focus'));
+    fixture.detectChanges();
+    expect(scrolled).withContext('not before the box has its new height').not.toHaveBeenCalled();
+    tick();
+    expect(scrolled).toHaveBeenCalledTimes(1);
+    expect((scrolled.calls.mostRecent().args[0] as ScrollIntoViewOptions).block).toBe('start');
+    card.dispatchEvent(new FocusEvent('focus'));
+    fixture.detectChanges();
+    tick();
+    expect(scrolled).withContext('open already: the page that brought the reader here has scrolled to it').toHaveBeenCalledTimes(1);
+  }));
 
   it('sets a table for each run of like figures, in its place among the paragraphs', () => {
     const fixture = create();

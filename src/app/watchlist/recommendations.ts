@@ -158,11 +158,15 @@ export function tickHint(cash: number | undefined, freed = 0, offered = false, k
  * What the columns of a row's numbers are, said when a heading is pointed at or reached with the Tab key. The
  * worked example under the table says the same with the first row's own amounts.
  */
-export const COLUMN_HELP: Record<'size' | 'bad' | 'good' | 'cash', string> = {
+export const COLUMN_HELP: Record<'size' | 'bad' | 'good' | 'cash' | 'sector' | 'moves', string> = {
   size: 'What the stock would get if it were the only one you add: a share of what this portfolio is worth, and that share in dollars.',
   bad: 'What that size would lose in a bad half-year: in tests, 1 in 10 stocks like it lost that much or more after 6 months.',
   good: 'What that size would gain in a good half-year: in tests, 1 in 10 stocks like it gained that much or more after 6 months.',
   cash: 'What the money to split would buy of each stock you ticked. A stock you did not tick shows nothing here.',
+  // The two columns about what the portfolio holds that is like the stock (FIT_NOTE says the same in one paragraph).
+  sector: 'The stock\'s sector and, in brackets, how many of your stocks are in it. A fact, not a tested reason to pick one.',
+  moves: `Whether its price has moved closely with your stocks over the past year (${LINKED_CORRELATION} or more, where 0 is not at all and 1 is ` +
+    'exactly together). The two figures show where the pointer rests on a cell. A fact, not a tested reason to pick one.',
 };
 
 /**
@@ -342,8 +346,11 @@ export function splitFacts(split: CashSplit, o: SplitSaid = {}): { facts: Fact[]
   }
   const freed = o.freed ?? 0, counted = freed > 0;
   const own = (o.cash ?? split.cash - freed) >= CENT;
+  const count = split.parts.length;
   const facts: Fact[] = [
-    {label: short === 1 ? 'Short of its share' : 'Short of their shares', value: money(split.gap), tip: lines[0]},
+    // How much could go into the ticked stocks. Not "short of their shares": beside a stock, "shares" reads as
+    // shares of stock. The sentence, with what the room is measured by, is the tip.
+    {label: `Room for ${short < count ? `${short} of the ${count}` : count === 1 ? 'the one' : `the ${count}`} ticked`, value: money(split.gap), tip: lines[0]},
     // Where the money is from is the last of the sentences.
     {label: !counted ? 'Cash to split' : own ? 'Cash and sale money to split' : 'Sale money to split', value: money(split.cash),
       tip: lines[lines.length - 1]},
