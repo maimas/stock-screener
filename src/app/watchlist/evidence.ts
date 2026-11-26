@@ -198,10 +198,11 @@ function listOf(items: string[]): string {
  */
 function takeProfitTexts(f: Figures): {
   blocks: readonly EvidenceBlock[], marketRosePercent: number | null,
-  why: (level: number, way: TakeProfitWay) => string, brief: (level: number) => string
+  why: (level: number, way: TakeProfitWay) => string, brief: (level: number) => string,
+  figures: (level: number) => { loss: string, mean: string } | undefined
 } {
   const e = f.eighth;
-  const nothing = {blocks: [] as readonly EvidenceBlock[], marketRosePercent: null, why: () => '', brief: () => ''};
+  const nothing = {blocks: [] as readonly EvidenceBlock[], marketRosePercent: null, why: () => '', brief: () => '', figures: () => undefined};
   if (!e) {
     return nothing;
   }
@@ -311,6 +312,24 @@ function takeProfitTexts(f: Figures): {
       return `At +${level}%, in a test on ${e.stocks} stocks: ${one.t.lossPercent}% ended below what was paid ${one.how}` +
         (other ? ` and ${other.t.lossPercent}% ${other.how}` : '') + `, against ${k.lossPercent}% when kept. ` +
         `The average was ${used.map(it => pct(it.t.mean)).join(' and ')}, against ${pct(k.mean)}.`;
+    },
+
+    // The same two sides as two figures: how often a stock ended with a loss, and what it made on average, each
+    // beside what keeping gave. A level offered both ways gives the two as a range, lowest first.
+    figures: (level: number): { loss: string, mean: string } | undefined => {
+      const o = offer.find(it => it.level === level);
+      if (!o) {
+        return undefined;
+      }
+      const used = [...(o.order ? [e.order[level]] : []), ...(o.seen ? [e.seen[level]] : [])];
+      const range = (values: number[], said: (value: number) => string) => {
+        const low = Math.min(...values), high = Math.max(...values);
+        return said(low) === said(high) ? said(low) : `${said(low)} to ${said(high)}`;
+      };
+      return {
+        loss: `${range(used.map(it => it.lossPercent), value => `${value}%`)}, kept ${k.lossPercent}%`,
+        mean: `${range(used.map(it => it.mean), pct)}, kept ${pct(k.mean)}`,
+      };
     },
   };
 }
@@ -575,6 +594,8 @@ export function textsFor(f: Figures) {
     takeProfitWhy: profitTexts.why,
     /** Under the field, while a level is picked: what that level did in the test, by the ways it is offered. */
     takeProfitBrief: profitTexts.brief,
+    /** The same as two figures, for the line of figures under the fields. */
+    takeProfitFigures: profitTexts.figures,
 
     /** After "Market fear high (VIX 31.2): " in the Dip candidates card. */
     fearHighShort:
@@ -603,6 +624,7 @@ export const severalCardNote = TEXTS.severalCardNote;
 export const PLAN_SHORT = TEXTS.planShort;
 /** Under the field "Take a profit at", for the level picked: built once, like the texts above. */
 export const takeProfitBrief = TEXTS.takeProfitBrief;
+export const takeProfitFigures = TEXTS.takeProfitFigures;
 
 /** Quotes no tested number: a WATCH is outside what the tests measured. */
 export function watchHeadline(dipText: string, dipPercent: number): string {

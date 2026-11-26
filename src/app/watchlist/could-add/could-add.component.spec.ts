@@ -4,8 +4,9 @@ import {NoopAnimationsModule} from "@angular/platform-browser/animations";
 import {MatTooltip} from "@angular/material/tooltip";
 import {CouldAddComponent} from "./could-add.component";
 import {
-  Addition, COLUMN_HELP, couldAddLead, FIT_NOTE, NO_SIZE_NOTE, nothingToAdd, readingOf, Recommendation, RowReading, sellNote, SIZE_RULES, SizingInput, tickHint
+  Addition, COLUMN_HELP, couldAddHeadline, couldAddLead, FIT_NOTE, NO_SIZE_NOTE, nothingToAdd, ORDER_NOTE, readingOf, Recommendation, RowReading, sellNote, SIZE_RULES, SizingInput, tickHint
 } from "../recommendations";
+import {MORE_STORAGE_KEY} from "../more/more.service";
 import {TestedCases} from "../sizing";
 import {FACTS_NOTE, StockFacts} from "../stock-facts";
 import {Trade} from "../position-panel/position-panel.component";
@@ -69,17 +70,62 @@ function tick(fixture: ComponentFixture<CouldAddComponent>, symbol: string): voi
 /** The lines under the table that say what the ticked purchase would do. */
 const splitSays = (fixture: ComponentFixture<CouldAddComponent>) => Array.from(page(fixture).querySelectorAll('.split p:not(.unsaved)')).map(say);
 const notes = (fixture: ComponentFixture<CouldAddComponent>) => Array.from(page(fixture).querySelectorAll('p.note')).map(say);
+/** The answer to a tick, beside the instruction: figures with their names, as [name, figure] pairs. */
+const facts = (fixture: ComponentFixture<CouldAddComponent>) =>
+  Array.from(page(fixture).querySelectorAll('.tick-answer dl.facts > div')).map(fact => [say(fact.querySelector('dt')), say(fact.querySelector('dd'))]);
+/** The one control of the box's explanations, and what it opens. */
+const about = (fixture: ComponentFixture<CouldAddComponent>) => ({
+  button: page(fixture).querySelector<HTMLButtonElement>('.about button.about-toggle')!,
+  body: page(fixture).querySelector<HTMLElement>('.about .about-body')!,
+});
 /** The example under the table, as [label, sentence] pairs. */
 const example = (fixture: ComponentFixture<CouldAddComponent>) =>
   Array.from(page(fixture).querySelectorAll('.reading dl > div')).map(line => [say(line.querySelector('dt')), say(line.querySelector('dd'))]);
 
 describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized for the portfolio being shown)', () => {
-  beforeEach(() => TestBed.configureTestingModule({imports: [CouldAddComponent, NoopAnimationsModule]}));
+  beforeEach(() => {
+    localStorage.removeItem(MORE_STORAGE_KEY);
+    TestBed.configureTestingModule({imports: [CouldAddComponent, NoopAnimationsModule]});
+  });
+  afterEach(() => localStorage.removeItem(MORE_STORAGE_KEY));
 
-  it('has its title, and says above the table which stocks these are and that their order means nothing', () => {
+  it('has its title, and says beside it which stocks these are and that the page ranks none of them', () => {
     const fixture = create();
     expect(say(page(fixture).querySelector('h2'))).toBe('Could add');
-    expect(say(page(fixture).querySelector('p.lead'))).toBe(couldAddLead(2, 'Brokerage'));
+    expect(say(page(fixture).querySelector('.head .headline'))).toBe(couldAddHeadline(2, 'Brokerage'));
+    expect(say(page(fixture).querySelector('.head .headline'))).toBe('2 stocks marked DIP BUY, not in Brokerage yet · not ranked');
+    expect(say(page(fixture).querySelector('p.lead'))).withContext('the paragraph itself is with the explanations').toBe(couldAddLead(2, 'Brokerage'));
+  });
+
+  // The owner, of this box when it began with a paragraph, had three lines about a tick and ten notes around the
+  // table: "too much text and not much signal". Above the table one sentence is left, the instruction.
+  it('keeps one sentence in sight above the table: what to do', () => {
+    const fixture = create();
+    const sentences = Array.from(page(fixture).querySelectorAll('.top p')).map(say);
+    expect(sentences).toEqual([tickHint(1000)]);
+    expect(sentences[0]).toBe('Tick stocks to split your cash ($1,000) between them.');
+  });
+
+  it('keeps every explanation of the box behind one control under the table, closed until it is asked for', () => {
+    const fixture = create();
+    const {button, body} = about(fixture);
+    expect(say(button)).toBe('How to read this table');
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    expect(body.hidden).toBeTrue();
+    expect(page(fixture).querySelectorAll('button.about-toggle').length).withContext('one control, not one a note').toBe(1);
+    expect(page(fixture).querySelector('app-more')).withContext('no "more" inside it: opened, the notes are whole').toBeNull();
+    // Nothing is taken away: the lead, the example, the notes and whose an order of the rows is are all behind it.
+    expect(Array.from(body.children).map(part => part.className.split(' ')[0])).toEqual(['lead', 'sell', 'reading', 'note', 'note', 'order-note']);
+    expect(say(body.querySelector('.order-note'))).toBe(ORDER_NOTE);
+    button.click();
+    fixture.detectChanges();
+    expect([button.getAttribute('aria-expanded'), body.hidden]).toEqual(['true', false]);
+  });
+
+  it('shows no sentence outside that control but the instruction, with nothing ticked', () => {
+    const fixture = create();
+    const inSight = Array.from(page(fixture).querySelectorAll('p')).filter(p => !p.closest('[hidden]')).map(say);
+    expect(inSight).toEqual([tickHint(1000)]);
   });
 
   it('gives each stock a row: its size as a share first and dollars second, a bad and a good half-year at that size, and its fit', () => {
@@ -239,7 +285,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
     expect(Array.from(body.children).map(part => part.className)).toEqual(['table-scroll', 'about']);
     expect(body.querySelector('.about .reading')).withContext('the example').not.toBeNull();
     expect(body.querySelectorAll('.about p.note').length).withContext('the sentences that hold for every row').toBe(2);
-    expect(page(create()).querySelector('.body p.lead')).withContext('the lead stays above both').toBeNull();
+    expect(page(create()).querySelector('.about p.lead')).withContext('the lead is the first of the explanations').not.toBeNull();
   });
 
   it('shows no example when it is given none', () => {
@@ -569,31 +615,48 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
       expect(opened).toEqual([]);
     });
 
-    it('announces the lines to a screen reader, and puts them first among what is said about the table', () => {
+    it('announces the answer to a tick to a screen reader', () => {
       const fixture = create();
-      const status = page(fixture).querySelector('.about')!.firstElementChild!;
-      expect(status.className).toBe('split');
+      const status = page(fixture).querySelector('.tick-answer .answer')!;
       expect(status.getAttribute('role')).withContext('there before anything is ticked, so that what appears in it is read out').toBe('status');
       // Hidden while empty, it would be out of a screen reader's sight until it is already filled, and the first
-      // tick's lines might then not be read out at all.
+      // tick's figures might then not be read out at all.
       expect(getComputedStyle(status).display).withContext('in the page while it is empty').not.toBe('none');
-      expect(status.getBoundingClientRect().height).withContext('and it takes no room').toBe(0);
+      expect(say(status)).toBe('');
       tick(fixture, 'ACME');
-      expect(page(fixture).querySelector('.about')!.firstElementChild!.querySelectorAll('p:not(.unsaved)').length).toBe(4);
+      expect(status.querySelectorAll('dl.facts > div').length).toBe(4);
+      expect(page(fixture).querySelector('.tick-answer [aria-hidden="true"]')).withContext('nothing of the answer is kept from a screen reader').toBeNull();
     });
 
     // Found by three reviews of the page: the answer to a tick stood under the table only, out of sight in a
-    // laptop window while rows were being ticked. Its first line is said again beside the lead, above the table.
-    it('says the first line about what is ticked beside the lead too, for the eye only', () => {
+    // laptop window while rows were being ticked. And the owner, of the sentences it then got beside the lead:
+    // "too much text and not much signal". It is figures with their names now, each with its sentence at the pointer.
+    it('answers a tick beside the instruction with figures, each named, and no sentence', () => {
       const fixture = create();
       const beside = () => page(fixture).querySelector('.top > .tick-answer')!;
       expect(say(beside())).withContext('nothing ticked').toBe('');
       tick(fixture, 'ACME');
       expect(say(beside().querySelector('h3'))).toBe('With your cash');
-      // The bad half-year stands with it: the one figure about risk in the answer was a screen lower, under the table.
-      expect(Array.from(beside().querySelectorAll('p')).map(say)).toEqual([splitSays(fixture)[0], fixture.componentInstance.badCaseSays]);
-      expect(fixture.componentInstance.badCaseSays).toContain('A bad half-year');
-      expect(beside().querySelector('[aria-hidden="true"] h3')).withContext('the lines under the table are what is read out').not.toBeNull();
+      expect(facts(fixture)).toEqual([
+        ['Short of its share', '$2,013'], ['Cash to split', '$1,000'], ['Stocks held', '3 today, 4 after'],
+        ['Bad half-year, every marked stock at once', '−$2,790 today, −$3,200 after'],
+      ]);
+      expect(beside().querySelectorAll('p').length).withContext('no sentence').toBe(0);
+      // The sentence a figure comes from is where the pointer rests on it.
+      const tips = fixture.debugElement.queryAll(By.css('.tick-answer dl.facts > div')).map(it => it.injector.get(MatTooltip).message);
+      expect(tips).toEqual([ONE_SHORT, CASH_SOURCE, 'You would hold 4 stocks instead of 3.', BAD_CASE]);
+      // And all of them, whole, are with the explanations of the box.
+      expect(splitSays(fixture)).toEqual([ONE_SHORT, 'You would hold 4 stocks instead of 3.', BAD_CASE, CASH_SOURCE]);
+      expect(page(fixture).querySelector('.about .about-body .split')).not.toBeNull();
+    });
+
+    it('answers with the one sentence that says why, where nothing is split', () => {
+      const fixture = create({cash: undefined});
+      tick(fixture, 'ACME');
+      expect(facts(fixture)).toEqual([]);
+      expect(Array.from(page(fixture).querySelectorAll('.tick-answer .answer p')).map(say)).toEqual([
+        'You ticked 1, but this portfolio has no cash to split. Enter it in the "Your plan today" box, under "Cash".',
+      ]);
     });
 
     it('follows the cash: more of it, and the ticked stock gets all it is short of', () => {
@@ -656,13 +719,19 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
         expect(countSold(fixture)).withContext('nothing to count').toBeNull();
       });
 
-      it('says above the table what the plan asks to sell and what that would free, and offers to count that money, unticked', () => {
+      it('says above the table what the sale would free, as a figure, and offers to count that money, unticked', () => {
         const fixture = create({sizing: TOO_BIG, cash: 4000});
-        expect(sellSays(fixture)).toBe('The plan says SELL SOME: selling AAA down to $1,220 would free $1,780.');
-        const above = Array.from(page(fixture).querySelectorAll('p.lead, p.hint, p.sell, label.count-sold, .body')).map(el => el.className);
-        expect(above).withContext('it asks for something: it stands with the hint, before the table').toEqual(['lead', 'hint', 'sell', 'count-sold', 'body']);
+        const sale = page(fixture).querySelector('.top .sale')!;
+        expect(say(sale.querySelector('.fact'))).toBe('SELL SOME would free $1,780');
+        expect(say(sale.querySelector('.fact strong'))).withContext('the figure is what stands out').toBe('$1,780');
+        expect(fixture.debugElement.query(By.css('.top .sale .fact')).injector.get(MatTooltip).message)
+          .withContext('which stocks, where the pointer rests').toBe('The plan says SELL SOME: selling AAA down to $1,220 would free $1,780.');
+        const above = Array.from(page(fixture).querySelectorAll('p.hint, .sale, label.count-sold, .body')).map(el => el.className);
+        expect(above).withContext('it asks for something: it stands with the hint, before the table').toEqual(['hint', 'sale', 'count-sold', 'body']);
         expect(say(page(fixture).querySelector('label.count-sold'))).toBe('Count that money in the split');
         expect(countSold(fixture)!.checked).toBeFalse();
+        expect(sellSays(fixture)).withContext('the sentence is with the explanations').toBe('The plan says SELL SOME: selling AAA down to $1,220 would free $1,780.');
+        expect(page(fixture).querySelector('.about .about-body p.sell')).not.toBeNull();
       });
 
       it('splits the cash and the freed money together once that is ticked, and says what a bad half-year would then cost', () => {
@@ -1020,16 +1089,16 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
         const fixture = withPrices();
         fixture.componentRef.setInput('tied', TIED);
         fixture.detectChanges();
-        expect(say(page(fixture).querySelector('.table-scroll .order-note'))).withContext('under the table whose headings it is about').toBe(
+        expect(say(page(fixture).querySelector('.about .about-body .order-note'))).withContext('with the explanations of the table').toBe(
           'A click on a heading orders the rows by its column, and a second click turns the order round. That is your own view of them: the page ranks nothing.');
+        expect(page(fixture).querySelector('.table-scroll .order-note')).withContext('not a sentence in sight').toBeNull();
         expect(Array.from(page(fixture).querySelectorAll('.about .note')).map(say).some(text => text.startsWith('Stocks with the same letter moved closely together'))).toBeTrue();
       });
 
-      it('says the bad half-year of the split beside the lead, with the rest of the answer to a tick', () => {
+      it('gives the bad half-year of the split beside the instruction, with the rest of the answer to a tick', () => {
         const fixture = withPrices();
         tick(fixture, 'ACME');
-        const beside = page(fixture).querySelector('.tick-answer .bad-case');
-        expect(say(beside)).toBe(fixture.componentInstance.badCaseSays);
+        expect(facts(fixture)[facts(fixture).length - 1]).toEqual(['Bad half-year, every marked stock at once', '−$2,790 today, −$3,200 after']);
         expect(fixture.componentInstance.badCaseSays).not.toBe('');
       });
 
@@ -1047,15 +1116,16 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
         expect(page(fixture).querySelector('.tick-answer .untick')).toBeNull();
       });
 
-      it('shows the lead whole: it is the key to the table, and is not cut after its first sentence', () => {
+      it('keeps the lead whole among the explanations: it is not cut after its first sentence', () => {
         const fixture = withPrices();
         expect(page(fixture).querySelector('p.lead app-more')).toBeNull();
         expect(say(page(fixture).querySelector('p.lead'))).toContain('The page ranks none of them');
       });
 
-      it('gives each note under the table its own first sentence', () => {
-        const notes = Array.from(page(withPrices()).querySelectorAll('.about > p app-more'));
-        expect(notes.length).toBeGreaterThan(1);
+      it('keeps each note whole behind the one control: no "more" of its own', () => {
+        const fixture = withPrices();
+        expect(page(fixture).querySelectorAll('.about .about-body p.note').length).toBeGreaterThan(1);
+        expect(page(fixture).querySelector('.about app-more')).toBeNull();
       });
 
       it('still has no column of groups when none is given', () => {
@@ -1070,8 +1140,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
         tick(fixture, 'ZED');
         expect(say(page(fixture).querySelector('.split .tied-says'))).toBe(
           'ACME and ZED are both in group A: over the past year they moved closely together.');
-        expect(say(page(fixture).querySelector('.tick-answer .tied-says'))).withContext('beside the lead too').toContain('both in group A');
-        expect(page(fixture).querySelector('.tick-answer .more')).withContext('in place of the pointer to the lines under the table').toBeNull();
+        expect(facts(fixture)[facts(fixture).length - 1]).withContext('beside the instruction, as a figure').toEqual(['Moved together', 'ACME and ZED (group A)']);
       });
     });
 
@@ -1081,7 +1150,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
       const fixture = withPrices();
       tick(fixture, 'ACME');
       tick(fixture, 'ZED');
-      page(fixture).querySelector<HTMLButtonElement>('tfoot button.batch')!.click();
+      page(fixture).querySelector<HTMLButtonElement>('.tick-answer button.batch')!.click();
       fixture.detectChanges();
       const form = fixture.debugElement.query(By.directive(PurchasesFormComponent)).componentInstance as PurchasesFormComponent;
       form.rows[0].shares = 7;
@@ -1117,7 +1186,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
 
       tick(fixture, 'ACME');
       tick(fixture, 'ZED');
-      const several = () => page(fixture).querySelector<HTMLButtonElement>('tfoot button.batch')!;
+      const several = () => page(fixture).querySelector<HTMLButtonElement>('.tick-answer button.batch')!;
       several().click();
       fixture.detectChanges();
       fixture.debugElement.query(By.directive(PurchasesFormComponent)).componentInstance.cancel.emit();
@@ -1161,13 +1230,15 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
     });
 
     // The stocks ticked are the ones the reader said they were thinking of buying: after buying them, each had to
-    // be recorded in a form of its own. With two or more ticked the foot of the table offers one form for all.
+    // be recorded in a form of its own. With two or more ticked one form for all is offered, by a button that
+    // stands with the answer to a tick (one button, not a second at the foot of the table); the form itself opens
+    // at the foot of the table.
     describe('the ticked stocks, recorded together', () => {
-      const batchButton = (fixture: ComponentFixture<CouldAddComponent>) => page(fixture).querySelector<HTMLButtonElement>('tfoot button.batch');
+      const batchButton = (fixture: ComponentFixture<CouldAddComponent>) => page(fixture).querySelector<HTMLButtonElement>('.tick-answer button.batch');
       const batch = (fixture: ComponentFixture<CouldAddComponent>) =>
         fixture.debugElement.query(By.directive(PurchasesFormComponent))?.componentInstance as PurchasesFormComponent | undefined;
 
-      it('is offered at the foot of the table once two rows are ticked, and not for one', () => {
+      it('is offered with the answer to a tick once two rows are ticked, and not for one', () => {
         const fixture = withPrices();
         expect(batchButton(fixture)).toBeNull();
         tick(fixture, 'ACME');
@@ -1175,7 +1246,12 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
         tick(fixture, 'ZED');
         expect(say(batchButton(fixture))).toBe('Add the 2 ticked');
         expect(batchButton(fixture)!.getAttribute('aria-label')).toBe('Add the 2 ticked: record purchases you made');
-        expect(page(fixture).querySelector('tfoot td')!.getAttribute('colspan')).withContext('across the whole table').toBe('9');
+        expect(page(fixture).querySelectorAll('button.batch').length).withContext('one button, not a second at the foot of the table').toBe(1);
+        expect(page(fixture).querySelector('tfoot')).withContext('the foot of the table is there for the form only').toBeNull();
+        batchButton(fixture)!.click();
+        fixture.detectChanges();
+        expect(page(fixture).querySelector('tfoot td')!.getAttribute('colspan')).withContext('the form: across the whole table').toBe('9');
+        expect(page(fixture).querySelectorAll('button.batch').length).toBe(1);
       });
 
       it('opens one form with a line for each ticked stock, starting from what the cash gives each', () => {

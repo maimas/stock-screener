@@ -1,6 +1,11 @@
 <mat-card class="could-add">
   <mat-card-content>
-    <h2 class="title">{{ title }}</h2>
+    <!-- The title and, beside it, what the box holds in a count and a few words: how many stocks, whose they are
+         not yet, and that the page ranks none of them. (It was the first sentence of a paragraph.) -->
+    <div class="head">
+      <h2 class="title">{{ title }}</h2>
+      <span class="headline" *ngIf="!loading && rows.length > 0 && headline">{{ headline }}</span>
+    </div>
 
     <p class="empty waiting" *ngIf="loading && !instead" aria-busy="true">Working it out from today's prices.</p>
     <!-- No price arrived at all: said in place, not left on "working". "Try again" is in the plan's box and in the bar. -->
@@ -8,53 +13,56 @@
 
     <ng-container *ngIf="!loading">
       <ng-container *ngIf="rows.length > 0; else nothing">
-        <!-- What the box is and how it is used, and beside it (where the box has room: there was a blank band
-             there) the first line of what the ticked purchase would do. -->
+        <!-- Above the table: the one sentence the box keeps in sight, which says what to do, and beside it (where
+             the box has room) the answer to a tick. The owner, of the paragraph, the three lines about a tick and
+             the ten notes that stood around this table: "too much text and not much signal". What explains the box
+             is behind one control under the table. -->
         <div class="top">
         <div class="intro">
-        <!-- The lead is the key to the table, not an explanation of it: that the rows are in no order and that each
-             size is for adding that one stock alone has to be in sight, so it is shown whole (a review found a
-             reader taking eighteen sizes of 12% each for a plan that does not add up). -->
-        <p class="lead">{{ lead }}</p>
-        <!-- The hint says how much there is to split, and that changes when the box under the sell side is ticked:
+        <!-- The hint says how much there is to split, and that changes when the box of the sell side is ticked:
              a screen reader reads the new sentence out. -->
         <p class="hint" *ngIf="hint" aria-live="polite">{{ hint }}</p>
 
-        <!-- The other side of a rebalance. When the plan says to sell some of a stock it asks for something, so it is
-             said here, with the hint; and the money that would free can be split together with the cash. -->
-        <ng-container *ngIf="hasSale">
-          <!-- "That money" in the box's name is the money of this sentence: the box is described by it. -->
-          <p class="sell" id="could-add-sell">{{ sellSays }}</p>
+        <!-- The other side of a rebalance. When the plan says to sell some of a stock it asks for something, so it
+             is here, with the hint: what that would free as a figure with its name, and the box that has it split
+             together with the cash. Which stocks, in a sentence, is where the pointer rests on the figure and with
+             the explanations; "that money" in the box's name is the money of that sentence, which describes it. -->
+        <div class="sale" *ngIf="saleFact as sale">
+          <span class="fact" [matTooltip]="sale.tip || ''" matTooltipClass="multiline-tooltip"><span class="fact-label">{{ sale.label }}</span>&ngsp;<strong>{{ sale.value }}</strong></span>
           <label class="count-sold">
             <input type="checkbox" [checked]="countSold" (change)="toggleSold()" aria-describedby="could-add-sell">
             <span>{{ countSoldLabel }}</span>
           </label>
-        </ng-container>
+        </div>
 
         </div>
-        <!-- The answer to a tick, beside the lead, where the box has room for both: its title with the button for
-             all the ticked rows (at the foot of the table that button can be below the window), the first of the
-             lines about what is ticked, and whether the ticked stocks moved together. No taller than the room the
-             top of the box keeps for it, so that a tick never moves the table. Its words are not read out a second
-             time: the lines under the table are what a screen reader hears. (Its class is not "ticked": a ticked
-             row may carry that one.) -->
+        <!-- The answer to a tick: its title with the buttons for all the ticked rows (at the foot of the table that
+             button can be below the window), then figures with their names: what the ticked stocks are short of,
+             the money there is to split, the stocks held and what a bad half-year could cost, today and after, and
+             which of the ticked stocks moved together. Each figure has its sentence where the pointer rests, and
+             the sentences stand whole with the explanations. The block that is read out is in the page before
+             anything is ticked, empty: a screen reader reads what appears in a block it already knows. (Its class
+             is not "ticked": a ticked row may carry that one.) -->
         <div class="tick-answer">
-          <ng-container *ngIf="splitSays.length > 0">
-            <div class="tick-head">
-              <div class="tick-title" aria-hidden="true"><h3 class="split-title">{{ cashTitle }}</h3></div>
-              <button type="button" class="add batch" *ngIf="canRecord && batchLines.length > 1" (click)="startBatch()" [matTooltip]="addTip"
-                      [attr.aria-expanded]="batching"
-                      [attr.aria-label]="'Add the ' + batchLines.length + ' ticked: record purchases you made'">Add the {{ batchLines.length }} ticked</button>
-              <button type="button" class="untick" (click)="untickAll()">Untick all</button>
-            </div>
-            <div aria-hidden="true">
-              <p><app-says [text]="splitSays[0]"></app-says></p>
-              <!-- The one figure about risk in the answer: it stood under the table only, a screen lower. -->
-              <p class="bad-case" *ngIf="badCaseSays"><app-says [text]="badCaseSays"></app-says></p>
-              <p class="tied-says" *ngIf="tiedSays">{{ tiedSays }}</p>
-              <p class="more" *ngIf="!tiedSays && !badCaseSays">What else it would change is under the table.</p>
-            </div>
-          </ng-container>
+          <div class="tick-head" *ngIf="split">
+            <h3 class="split-title">{{ cashTitle }}</h3>
+            <button type="button" class="add batch" *ngIf="canRecord && (batchLines.length > 1 || (batching && batchLines.length > 0))" (click)="startBatch()" [matTooltip]="addTip"
+                    [attr.aria-expanded]="batching"
+                    [attr.aria-label]="'Add the ' + batchLines.length + ' ticked: record purchases you made'">Add the {{ batchLines.length }} ticked</button>
+            <button type="button" class="untick" (click)="untickAll()">Untick all</button>
+          </div>
+          <div class="answer" role="status">
+            <ng-container *ngIf="split">
+              <dl class="facts" *ngIf="answerFacts.length > 0">
+                <div *ngFor="let fact of answerFacts; trackBy: trackByLabel" [matTooltip]="fact.tip || ''" matTooltipClass="multiline-tooltip">
+                  <dt>{{ fact.label }}</dt>
+                  <dd>{{ fact.value }}</dd>
+                </div>
+              </dl>
+              <!-- Nothing is split, or nothing is short: the one sentence that says why is the answer. -->
+              <p class="instead" *ngIf="splitInstead"><app-says [text]="splitInstead"></app-says></p>
+            </ng-container>
+          </div>
         </div>
         </div>
 
@@ -127,16 +135,15 @@
             </ng-container>
             </tbody>
 
-            <!-- With two or more rows ticked: one form for all of them, at the foot of the table. The stocks ticked
-                 are the ones the reader said they were thinking of buying, so they are the ones bought together. -->
+            <!-- With two or more rows ticked: one form for all of them, at the foot of the table, opened by the
+                 button that stands with the answer to a tick. The stocks ticked are the ones the reader said they
+                 were thinking of buying, so they are the ones bought together. -->
             <!-- Once the reader has typed in it, the form stays while one line is left: unticking a row down to one
                  used to close it and drop what was typed. -->
-            <tfoot *ngIf="canRecord && (batchLines.length > 1 || (batching && batchLines.length > 0))">
-            <tr class="batch-row" [class.open]="batching">
+            <tfoot *ngIf="canRecord && batching && batchLines.length > 0">
+            <tr class="batch-row open">
               <td [attr.colspan]="columnCount">
-                <button type="button" class="add batch" (click)="startBatch()" [matTooltip]="addTip" [attr.aria-expanded]="batching"
-                        [attr.aria-label]="'Add the ' + batchLines.length + ' ticked: record purchases you made'">Add the {{ batchLines.length }} ticked</button>
-                <app-purchases-form *ngIf="batching" [lines]="batchLines" [today]="today" [cash]="cash" [keep]="keep" [portfolio]="portfolio"
+                <app-purchases-form [lines]="batchLines" [today]="today" [cash]="cash" [keep]="keep" [portfolio]="portfolio"
                                     (typed)="batchTyped = true" (trades)="recordAll($event)" (cancel)="cancelBatch()"></app-purchases-form>
               </td>
             </tr>
@@ -215,45 +222,46 @@
               </td>
             </ng-template>
           </table>
-          <!-- Whose an order of the rows is: under the table whose headings it is about, in the small ink of a
-               caption. It is not one of the sentences that hold for every row, which stand beside or below. -->
-          <p class="order-note" *ngIf="rows.length > 1">{{ orderNote }}</p>
         </div>
 
+        <!-- Everything that explains the box, behind one control and closed until it is asked for (what the reader
+             opened is remembered): which stocks these are and that each size stands alone; what the plan says to
+             sell; the sentences behind the figures of a tick; the first row worked out in words; what holds for
+             every row and what the columns are; whose an order of the rows is. Whole: no "more" inside it. -->
         <div class="about">
-          <!-- What the ticked purchase would do, a line a thought. The block is there before anything is ticked, so
-               that what appears in it is read out by a screen reader. -->
-          <div class="split" role="status">
-            <ng-container *ngIf="splitSays.length > 0">
+          <app-about key="could-add.about" label="How to read this table">
+            <p class="lead">{{ lead }}</p>
+            <!-- What the plan says to sell and what that would free, or that it asks to sell nothing. -->
+            <p class="sell" id="could-add-sell" *ngIf="sellSays">{{ sellSays }}</p>
+
+            <!-- What the ticked purchase would do, a line a thought: the sentences the figures above come from. -->
+            <div class="split" *ngIf="splitSays.length > 0">
               <h3 class="split-title">{{ cashTitle }}</h3>
-              <p *ngFor="let line of splitSays" [class.said-above]="!!badCaseSays && line === badCaseSays"><app-says [text]="line"></app-says></p>
-              <!-- Whether the ticked stocks moved together over the past year: a fact about them, said with the
-                   lines about what they would change. -->
+              <p *ngFor="let line of splitSays"><app-says [text]="line"></app-says></p>
+              <!-- Whether the ticked stocks moved together over the past year: a fact about them. -->
               <p class="tied-says" *ngIf="tiedSays">{{ tiedSays }}</p>
-              <!-- The ticks are for looking and are not kept: said while something is ticked, so that a reload
-                   that clears them is no surprise. Outside what is read out: it is not a result of the tick. -->
+              <!-- The ticks are for looking and are not kept, so that a reload that clears them is no surprise. -->
               <p class="unsaved">{{ ticksNote }}</p>
-            </ng-container>
-          </div>
+            </div>
 
-          <!-- The first row worked out in words: a line under the name of each column, with that row's own amounts. -->
-          <div class="reading" *ngIf="reading as example">
-            <h3 class="reading-title">{{ exampleTitle }}<app-more key="could-add.example"></app-more></h3>
-            <dl appMoreRest="could-add.example">
-              <div *ngFor="let line of example.lines">
-                <dt>{{ line.label }}</dt>
-                <dd><app-says [text]="line.text"></app-says></dd>
-              </div>
-            </dl>
-          </div>
+            <!-- The first row worked out in words: a line under the name of each column, with that row's own amounts. -->
+            <div class="reading" *ngIf="reading as example">
+              <h3 class="reading-title">{{ exampleTitle }}</h3>
+              <dl>
+                <div *ngFor="let line of example.lines">
+                  <dt>{{ line.label }}</dt>
+                  <dd><app-says [text]="line.text"></app-says></dd>
+                </div>
+              </dl>
+            </div>
 
-          <p class="note"><app-more key="could-add.sizes" [text]="sizeNote"></app-more></p>
-          <!-- That the plan asks to sell nothing asks for nothing: it is said here, as quietly as the notes, and
-               costs no line above the table. -->
-          <p class="sell" *ngIf="sellSays && !hasSale"><app-more key="could-add.sell" [text]="sellSays"></app-more></p>
-          <p class="note" *ngIf="hasFacts"><app-more key="could-add.facts" [text]="factsNote"></app-more></p>
-          <p class="note" *ngIf="showFitNote"><app-more key="could-add.fit" [text]="fitNote"></app-more></p>
-          <p class="note" *ngIf="hasGroups"><app-more key="could-add.groups" [text]="groupNote"></app-more></p>
+            <p class="note">{{ sizeNote }}</p>
+            <p class="note" *ngIf="hasFacts">{{ factsNote }}</p>
+            <p class="note" *ngIf="showFitNote">{{ fitNote }}</p>
+            <p class="note" *ngIf="hasGroups">{{ groupNote }}</p>
+            <!-- Whose an order of the rows is: the page starts A to Z and ranks nothing. -->
+            <p class="order-note" *ngIf="rows.length > 1">{{ orderNote }}</p>
+          </app-about>
         </div>
         </div>
       </ng-container>

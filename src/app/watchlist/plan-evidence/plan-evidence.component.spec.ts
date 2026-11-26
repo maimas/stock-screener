@@ -73,7 +73,11 @@ describe('PlanEvidenceComponent: the page it makes', () => {
   beforeEach(() => localStorage.removeItem(MORE_STORAGE_KEY));
   afterEach(() => localStorage.removeItem(MORE_STORAGE_KEY));
 
-  function create(): ComponentFixture<PlanEvidenceComponent> {
+  /** The box with made-up figures: opened, as a reader who asked for it has it, unless told to leave it closed. */
+  function create(opened = true): ComponentFixture<PlanEvidenceComponent> {
+    if (opened) {
+      localStorage.setItem(MORE_STORAGE_KEY, JSON.stringify(['evidence.box']));
+    }
     const fixture = TestBed.configureTestingModule({imports: [PlanEvidenceComponent]}).createComponent(PlanEvidenceComponent);
     fixture.componentInstance.blocks = MADE_UP;
     fixture.detectChanges();
@@ -85,6 +89,42 @@ describe('PlanEvidenceComponent: the page it makes', () => {
   /** What stands under THE PLAN, block by block. */
   const pieces = (fixture: ComponentFixture<PlanEvidenceComponent>) =>
     Array.from(page(fixture).querySelectorAll<HTMLElement>('.the-plan dd > p, .the-plan dd > table'));
+
+  // The owner, of a page of careful sentences: "too much text and not much signal". This box is all explanation:
+  // it is its title and one control until it is asked for, and what the reader opened is remembered.
+  it('is its title and one control until it is asked for', () => {
+    const fixture = create(false);
+    expect(said(page(fixture).querySelector('h2.title'))).toBe('How the plan was tested');
+    const control = page(fixture).querySelector<HTMLButtonElement>('button.about-toggle')!;
+    expect(said(control)).toBe('The plan in full, its tests, and the reasons of today\'s steps');
+    expect(control.getAttribute('aria-expanded')).toBe('false');
+    const body = page(fixture).querySelector<HTMLElement>('.about-body')!;
+    expect(body.hidden).toBeTrue();
+    expect(body.querySelector('dl.the-plan')).withContext('nothing is taken away: it is all behind the control').not.toBeNull();
+    const inSight = Array.from(page(fixture).querySelectorAll('p, dd')).filter(el => !el.closest('[hidden]'));
+    expect(inSight.length).withContext('no sentence in sight').toBe(0);
+  });
+
+  it('opens from its control, and stays open for the next visit', () => {
+    const fixture = create(false);
+    page(fixture).querySelector<HTMLButtonElement>('button.about-toggle')!.click();
+    fixture.detectChanges();
+    expect(page(fixture).querySelector<HTMLElement>('.about-body')!.hidden).toBeFalse();
+    expect(JSON.parse(localStorage.getItem(MORE_STORAGE_KEY) ?? '[]')).toContain('evidence.box');
+  });
+
+  // The plan's last line ("How it was tested") scrolls here and puts the keyboard on the box: whoever comes that
+  // way asked for it, so it opens. It does not close again when the box is brought into view a second time.
+  it('opens when the plan\'s link brings the reader to it', () => {
+    const fixture = create(false);
+    const card = page(fixture).querySelector<HTMLElement>('#plan-evidence')!;
+    card.dispatchEvent(new FocusEvent('focus'));
+    fixture.detectChanges();
+    expect(page(fixture).querySelector<HTMLElement>('.about-body')!.hidden).toBeFalse();
+    card.dispatchEvent(new FocusEvent('focus'));
+    fixture.detectChanges();
+    expect(page(fixture).querySelector<HTMLElement>('.about-body')!.hidden).withContext('a second time: still open').toBeFalse();
+  });
 
   it('sets a table for each run of like figures, in its place among the paragraphs', () => {
     const fixture = create();

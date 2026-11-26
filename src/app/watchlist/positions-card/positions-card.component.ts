@@ -10,17 +10,17 @@ import {Portfolio} from "../positions";
 import {NamedPortfolio, PortfolioBook} from "../portfolio-book";
 import {PortfolioView, PositionRow} from "../portfolio-view";
 import {asks, HoldingPlan, holdingPlans, PlanStep, saidInRows, StepKind} from "../plan";
-import {CASES_CARD_NOTE, EVIDENCE, severalCardNote, takeProfitBrief, takeProfitOffer} from "../evidence";
+import {CASES_CARD_NOTE, EVIDENCE, severalCardNote, takeProfitBrief, takeProfitFigures, takeProfitOffer} from "../evidence";
 import {CASH_LABEL, DEFAULT_LIMIT_PERCENT, KEEP_OUT_LABEL, LIMIT_LABEL, NO_GAP_UNDER, OWN_TABLE, PLAN_BOX, TAKE_PROFIT_LABEL} from "../sizing";
-import {COULD_ADD} from "../recommendations";
+import {COULD_ADD, Fact} from "../recommendations";
 import {money, shareCount, shareText, signedMoney, signedPercent, signedWholeMoney} from "../format";
-import {againstMarket, againstMarketLines} from "../market-compare";
+import {againstMarket, againstMarketFacts, againstMarketLines} from "../market-compare";
 import {DEFAULT_SORT, nextSort, RowSort, SortColumn, sortedRows} from "../position-sort";
 import {TipOnFocusDirective} from "../tip-on-focus.directive";
 import {FocusWhenShownDirective} from "../focus-when-shown.directive";
 import {SaysComponent} from "../says/says.component";
 import {byGroup, GROUP_HELP, groupBySymbol, groupTip, NO_GROUPS, TIED_NOTE, TiedGroup, TiedGroups} from "../tied-groups";
-import {MoreComponent} from "../more/more.component";
+import {AboutComponent} from "../more/about.component";
 
 /**
  * The settings of a portfolio as the box hands them over: all of them each time, and one that is left out means
@@ -54,7 +54,7 @@ export type PlanWord = { kind: StepKind, verb: string, text: string };
   standalone: true,
   imports: [
     NgIf, NgForOf, FormsModule, MatButtonModule, MatButtonToggleModule, MatCardModule, MatIconModule, MatTooltipModule,
-    TipOnFocusDirective, SaysComponent, FocusWhenShownDirective, MoreComponent,
+    TipOnFocusDirective, SaysComponent, FocusWhenShownDirective, AboutComponent,
   ],
   templateUrl: "./positions-card.component.html",
   styleUrls: ["./positions-card.component.scss"]
@@ -369,6 +369,87 @@ export class PositionsCardComponent {
   }
 
   /**
+   * The same comparison as figures with their names, beside the headline. While no stock can be compared and some
+   * have no purchase date, one figure says what the comparison needs.
+   */
+  get ownFacts(): Fact[] {
+    const facts = againstMarketFacts(againstMarket(this.view.rows.map(row => row.view)));
+    const undated = this.undatedText;
+    return facts.length > 0 || !undated ? facts : [{label: 'Against the market', value: 'needs a purchase date', tip: undated}];
+  }
+
+  /**
+   * The two cases of the marked stocks at once, for a row at the foot of the table: the sums of its two "case"
+   * columns, with the bad one as a share of the portfolio. From two marked stocks; one has both figures in its row.
+   */
+  get totals(): { label: string, bad: string, share: string, good: string, tip: string } | undefined {
+    const s = this.view.summary;
+    if (s.togetherLoss === undefined || s.togetherCount < 2) {
+      return undefined;
+    }
+    return {
+      label: `${s.togetherCount === 2 ? 'Both' : `All ${s.togetherCount}`} marked DIP BUY at once`,
+      bad: signedMoney(-s.togetherLoss),
+      share: s.togetherPercent === undefined ? '' : `${s.togetherPercent.toFixed(1)}% of this portfolio`,
+      good: s.togetherGain === undefined ? '' : signedMoney(s.togetherGain),
+      tip: this.togetherLines.join(' '),
+    };
+  }
+
+  /** How many columns stand before the two "case" columns, and after them when every column is shown. */
+  get totalsSpan(): number {
+    return 5 + (this.hasGroups ? 1 : 0) + (this.hasDates ? 2 : 0);
+  }
+
+  get totalsRest(): number {
+    return 4 + (this.hasDates ? 1 : 0);
+  }
+
+  /**
+   * What the entries in the fields come to, as figures with their names under the fields: what the portfolio is
+   * worth with its cash and how much of it the cash is, the limit in dollars, the share kept outside stocks in
+   * dollars with whether the cash covers it, and both sides of the level picked for taking a profit in its test.
+   */
+  get settingFacts(): Fact[] {
+    const facts: Fact[] = [];
+    const cash = this.cashText, total = this.view.portfolioValue;
+    if (cash && total !== undefined) {
+      facts.push({label: 'Worth with cash', value: money(total), tip: cash},
+        {label: 'In cash', value: `${((this.portfolio.cash ?? 0) / total * 100).toFixed(1)}%`, tip: cash});
+    }
+    const limit = this.limitText;
+    if (limit) {
+      facts.push({label: 'Limit on one stock', value: money(this.view.budget) + (this.view.limitIsDefault ? ' (starting value)' : ''), tip: limit});
+    }
+    const reserve = this.view.reserve, kept = this.reserveText;
+    if (reserve && kept) {
+      // A holding without a price: the amount to keep is the least it can be, and "covers it" cannot be said.
+      const least = reserve.atLeast ? 'at least ' : '';
+      const stands = reserve.short >= NO_GAP_UNDER ? `: cash is ${least}${money(reserve.short)} short` : reserve.atLeast ? '' : ': cash covers it';
+      facts.push({label: 'Kept outside stocks', value: `${least}${money(reserve.dollars)}${stands}`, tip: kept});
+    }
+    const level = this.profitLevel, sides = level === undefined ? undefined : takeProfitFigures(level);
+    if (level !== undefined && sides) {
+      facts.push({label: `At +${level}% in the test, ended with a loss`, value: sides.loss, tip: this.profitText},
+        {label: 'on average', value: sides.mean, tip: this.profitText});
+    }
+    return facts;
+  }
+
+  trackByLabel(_: number, fact: Fact): string {
+    return fact.label;
+  }
+
+  /**
+   * The box has explanations to keep behind its one control: what the entries come to, or, once it holds
+   * something and the prices are in, what is said about the table.
+   */
+  get hasAbout(): boolean {
+    return this.savedIn !== 'checking' && (!!this.cashText || !!this.limitText || !!this.reserveText || !!this.profitText
+      || (this.hasPositions && !this.loading));
+  }
+
+  /**
    * Whether a line of the comparison with the market is the one that says it is too early to mean much. The first
    * figure a reader meets here is the result so far, often a loss in red; this sentence is what puts it in
    * proportion, so the page sets it in the full ink and not in the grey of a note.
@@ -381,7 +462,7 @@ export class PositionsCardComponent {
    * How a purchase or a sale is told to the page: said under the table once a portfolio holds something. It names
    * both places a stock is acted on from, since a stock that is not owned yet has no row in this table.
    */
-  readonly howToChange = 'After you buy or sell, tell the page: click the stock\'s symbol, here or in "Could add". Its details take the purchase or the sale and work out the rest.';
+  readonly howToChange = 'Bought or sold? Click the stock\'s symbol, here or in "Could add", to record it.';
 
   /** What the user's limit comes to in dollars, once it is known. */
   get limitText(): string {

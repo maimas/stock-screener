@@ -230,4 +230,20 @@ describe('what the app says about taking a profit', () => {
     expect(textsFor(tested(() => ({passed: false}))).takeProfitBrief(15)).toBe('');
     expect(t.takeProfitBrief(20)).toBe('');
   });
+
+  // The owner, of a page of careful sentences: "too much text and not much signal". Under the fields the two sides
+  // of the picked level are two figures, each beside what keeping gave; the sentence above is where the pointer rests.
+  it('gives both sides of the picked level as two figures: how often a loss, and the average, each beside keeping', () => {
+    expect(t.takeProfitFigures(15)).withContext('offered both ways: a range, lowest first')
+      .toEqual({loss: '28% to 34%, kept 44%', mean: '+4.1% to +4.4%, kept +9.1%'});
+    expect(t.takeProfitFigures(25)).withContext('offered one way: one figure').toEqual({loss: '37%, kept 44%', mean: '+5.5%, kept +9.1%'});
+    expect(textsFor(tested((rule, way) => way === 'seen' ? {lossPercent: 28} : {})).takeProfitFigures(15)!.loss)
+      .withContext('the two ways came out alike: no range').toBe('28%, kept 44%');
+  });
+
+  it('has no such figures for a level that is not offered, or before the test was recorded', () => {
+    expect(textsFor(tested(() => ({passed: false}))).takeProfitFigures(15)).toBeUndefined();
+    expect(t.takeProfitFigures(20)).toBeUndefined();
+    expect(textsFor(FIGURES_2026_11_21).takeProfitFigures(15)).toBeUndefined();
+  });
 });

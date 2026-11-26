@@ -91,14 +91,16 @@
         </div>
         <!-- An entry that was not taken: what was there stays, and this line says why. -->
         <p class="problem" id="settings-problem" *ngIf="problem" role="alert">{{ problem }}</p>
-        <!-- The sentences come in the order of the fields over them: cash, the limit, the share kept, the level. -->
-        <!-- What the portfolio is worth with this cash, and how much of it the cash is. -->
-        <p class="budget worth" *ngIf="cashText">{{ cashText }}</p>
-        <p class="budget" *ngIf="limitText">{{ limitText }}</p>
-        <!-- What the share to keep outside stocks is in dollars, and whether the cash covers it. -->
-        <p class="budget reserve" *ngIf="reserveText"><app-more key="plan.reserve" [text]="reserveText"></app-more></p>
-        <!-- While a level for taking a profit is picked: what that level did in the test, both sides. -->
-        <p class="budget profit" *ngIf="profitText"><app-more key="plan.profit" [text]="profitText"></app-more></p>
+        <!-- What the entries come to, as figures with their names, in the order of the fields over them: what the
+             portfolio is worth with its cash, the limit in dollars, the share kept in dollars, and both sides of the
+             level picked for taking a profit in its test. Each has its sentence where the pointer rests; the
+             sentences stand with the explanations of the box. (The owner: "too much text and not much signal".) -->
+        <dl class="facts settings-facts" *ngIf="settingFacts.length > 0">
+          <div *ngFor="let fact of settingFacts; trackBy: trackByLabel" [matTooltip]="fact.tip || ''" matTooltipClass="multiline-tooltip">
+            <dt>{{ fact.label }}</dt>
+            <dd>{{ fact.value }}</dd>
+          </div>
+        </dl>
       </div>
     </div>
 
@@ -107,6 +109,14 @@
     <div class="own">
       <h3 class="own-title">{{ ownTitle }}</h3>
       <span class="headline" *ngIf="hasPositions">{{ summary.count }}<ng-container *ngIf="summary.worth && !loading"> · worth <strong>{{ summary.worth }}</strong> · <strong [class]="summary.tone">{{ summary.result }}</strong> since bought</ng-container></span>
+      <!-- What the same money would have made in the market, read with the headline: how far the stocks are from
+           it, and that it is early while it is. Figures with their names; the sentences are with the explanations. -->
+      <dl class="facts own-facts" *ngIf="hasPositions && !loading && ownFacts.length > 0">
+        <div *ngFor="let fact of ownFacts; trackBy: trackByLabel" [matTooltip]="fact.tip || ''" matTooltipClass="multiline-tooltip">
+          <dt>{{ fact.label }}</dt>
+          <dd>{{ fact.value }}</dd>
+        </div>
+      </dl>
       <!-- Which columns the table shows: the same choice, in the same words, as above the lists. -->
       <mat-button-toggle-group class="columns" *ngIf="hasPositions && !loading" [value]="allColumns ? 'all' : 'key'"
                                (change)="showColumns($event.value === 'all')" aria-label="Columns of this table">
@@ -114,13 +124,7 @@
         <mat-button-toggle value="all" matTooltip="Also how each stock was bought, its mark, and the button that removes it">All columns</mat-button-toggle>
       </mat-button-toggle-group>
     </div>
-    <!-- What the same money would have made in the market: read with the headline, so it stands right under it. -->
-    <ng-container *ngIf="!loading">
-      <p class="note market" *ngFor="let line of marketLines" [class.early]="saysTooEarly(line)"><app-says [text]="line"></app-says></p>
-    </ng-container>
-
-    <!-- The table, and beside it (where the box has room for both) what its two "case" columns are. In a box too
-         narrow for both, and when every column is shown, that explanation goes under the table. -->
+    <!-- The table. What explains it is behind the one control at the foot of the box. -->
     <ng-container *ngIf="hasPositions; else empty">
     <!-- While the first prices are arriving the table would be worked out from the stocks priced so far: a worth, a
          "% of total" adding to 100 among them, a bad case for one stock. Nothing is said from half the prices: the
@@ -199,8 +203,15 @@
           </td>
           <!-- How long it has been held: a few words, with what is unusual about it on a line of its own. -->
           <td class="held" *ngIf="hasDates" [class.past]="pastTheTests(row)">
-            <span class="held-weeks">{{ held(row) }}</span>
-            <span class="held-note" *ngIf="heldNote(row) as note">{{ note }}</span>
+            <ng-container *ngIf="row.view.position.day; else addDate">
+              <span class="held-weeks">{{ held(row) }}</span>
+              <span class="held-note" *ngIf="heldNote(row) as note">{{ note }}</span>
+            </ng-container>
+            <!-- No purchase date: the way to add one stands where the weeks would (it was a sentence beside the table). -->
+            <ng-template #addDate>
+              <button type="button" class="link-button add-date" (click)="open.emit(row.symbol)"
+                      [attr.aria-label]="'Add the purchase date of ' + row.symbol">add date</button>
+            </ng-template>
           </td>
           <td class="num group">{{ money(row.view.value) }}</td>
           <td class="num">{{ weight(row) }}</td>
@@ -224,27 +235,26 @@
           </td>
         </tr>
         </tbody>
+        <!-- The two "case" columns added up for the marked stocks, as if their cases came true together: the sums
+             of two columns, so a row at the table's foot (they were two sentences beside it). From two marked
+             stocks; one has both figures in its own row. -->
+        <tfoot *ngIf="totals as sum">
+        <tr class="together">
+          <th scope="row" [attr.colspan]="totalsSpan" [matTooltip]="sum.tip" matTooltipClass="multiline-tooltip">{{ sum.label }}<span class="sub" *ngIf="sum.share"> · bad case {{ sum.share }}</span></th>
+          <td class="num group">{{ sum.bad }}</td>
+          <td class="num">{{ sum.good }}</td>
+          <td *ngIf="allColumns" [attr.colspan]="totalsRest"></td>
+        </tr>
+        </tfoot>
       </table>
     </div>
       <!-- What a word of the "Plan" column means shows when it is pointed at, and in the heading's explanation: the
            owner had it removed from under the table, where it repeated what the pointer shows. -->
-      <!-- What to do after acting on the plan, under the table: the next step of the same reader, not a footnote. -->
+      <!-- What to do after acting on the plan, under the table: the one sentence the box keeps in sight. -->
       <p class="note how">{{ howToChange }}</p>
+      <!-- A stock whose quote did not load is left out of the totals: a warning, so it stays in sight. -->
+      <p class="note warn" *ngIf="unpricedText">{{ unpricedText }}</p>
     </div>
-      <!-- One column for one thought, top to bottom: what the two "case" columns are; how much the stocks move
-           together, which is why the cases may all come true at once; and what they then add up to. -->
-      <div class="notes-about">
-        <p class="note"><app-more key="own.cases" [text]="casesNote"></app-more></p>
-        <p class="note moving" *ngIf="together"><app-more key="own.together" [text]="together"></app-more></p>
-        <div class="together" *ngIf="togetherLines.length > 0">
-          <p class="note strong" *ngFor="let line of togetherLines"><app-says [text]="line"></app-says></p>
-        </div>
-        <!-- What the letters of the column "Group" are: said in sight, where the other columns are explained. -->
-        <p class="note" *ngIf="hasGroups"><app-more key="own.groups" [text]="groupNote"></app-more></p>
-        <p class="note" *ngIf="spreadText">{{ spreadText }}</p>
-        <p class="note" *ngIf="undatedText">{{ undatedText }}</p>
-        <p class="note warn" *ngIf="unpricedText">{{ unpricedText }}</p>
-      </div>
     </div>
     </ng-container>
     <ng-template #empty>
@@ -258,6 +268,29 @@
         </p>
       </ng-template>
     </ng-template>
+
+    <!-- Everything that explains the box, behind one control and closed until it is asked for (what the reader
+         opened is remembered): what the entries in the fields come to; the comparison with the market in sentences;
+         what the two "case" columns are, why the cases may all come true together and what they then add up to;
+         what the letters of "Group" are; how many stocks the plan covers; which stocks lack a purchase date.
+         Whole: no "more" inside it. -->
+    <app-about class="about" key="own.about" label="How to read this box" *ngIf="hasAbout">
+      <p class="budget worth" *ngIf="cashText">{{ cashText }}</p>
+      <p class="budget" *ngIf="limitText">{{ limitText }}</p>
+      <p class="budget reserve" *ngIf="reserveText">{{ reserveText }}</p>
+      <p class="budget profit" *ngIf="profitText">{{ profitText }}</p>
+      <ng-container *ngIf="hasPositions && !loading">
+        <p class="note market" *ngFor="let line of marketLines"><app-says [text]="line"></app-says></p>
+        <p class="note">{{ casesNote }}</p>
+        <p class="note moving" *ngIf="together">{{ together }}</p>
+        <div class="together" *ngIf="togetherLines.length > 0">
+          <p class="note strong" *ngFor="let line of togetherLines"><app-says [text]="line"></app-says></p>
+        </div>
+        <p class="note" *ngIf="hasGroups">{{ groupNote }}</p>
+        <p class="note" *ngIf="spreadText">{{ spreadText }}</p>
+        <p class="note" *ngIf="undatedText">{{ undatedText }}</p>
+      </ng-container>
+    </app-about>
 
     <p class="note saved" [class.warn]="savedIn === 'browser' || savedIn === 'memory'">
       {{ savedText }}

@@ -1,7 +1,8 @@
-import {Component, Input} from "@angular/core";
+import {Component, Input, ViewChild} from "@angular/core";
 import {NgForOf, NgIf} from "@angular/common";
 import {MoreComponent} from "../more/more.component";
 import {MoreRestDirective} from "../more/more-rest.directive";
+import {AboutComponent} from "../more/about.component";
 import {MatCardModule} from "@angular/material/card";
 import {PlanStep} from "../plan";
 import {EvidenceBlock, PLAN_BLOCKS} from "../evidence";
@@ -14,7 +15,7 @@ import {EvidenceBlock, PLAN_BLOCKS} from "../evidence";
 @Component({
   selector: "app-plan-evidence",
   standalone: true,
-  imports: [NgForOf, NgIf, MatCardModule, MoreComponent, MoreRestDirective],
+  imports: [NgForOf, NgIf, MatCardModule, MoreComponent, MoreRestDirective, AboutComponent],
   templateUrl: "./plan-evidence.component.html",
   styleUrls: ["./plan-evidence.component.scss"]
 })
@@ -28,6 +29,19 @@ export class PlanEvidenceComponent {
    * has like figures to set side by side (evidence.ts). The app's own account, unless a test hands in another.
    */
   @Input() blocks: readonly EvidenceBlock[] = PLAN_BLOCKS;
+
+  /** The one control the box is behind until it is asked for. */
+  @ViewChild(AboutComponent) private control?: AboutComponent;
+
+  /**
+   * The keyboard was put on the box itself, which is what the plan's last line does after scrolling here: the box
+   * opens, and stays open if it already was. (Not for something inside it that takes the keyboard.)
+   */
+  openOnJump(event: FocusEvent): void {
+    if (event.target === event.currentTarget && this.control && !this.control.open) {
+      this.control.toggle();
+    }
+  }
 
   /** The evidence behind each step of today's plan, in the plan's order. */
   get reasons(): { verb: string, why: string }[] {

@@ -1,4 +1,4 @@
-import {againstMarket, againstMarketLines} from "./market-compare";
+import {againstMarket, againstMarketFacts, againstMarketLines} from "./market-compare";
 import {PositionView, viewOf} from "./positions";
 
 const TODAY = '2026-11-21';
@@ -101,6 +101,49 @@ describe('againstMarketLines (the line under the "What you own" headline)', () =
   it('says nothing while there is nothing to compare', () => {
     expect(againstMarketLines(undefined)).toEqual([]);
     expect(lines(UNDATED)).toEqual([]);
+  });
+
+  // The owner, of a box where these sentences stood as three paragraphs under the headline: "too much text and not
+  // much signal". Beside the headline the comparison is figures with their names; a figure's sentence is where the
+  // pointer rests on it, and the sentences stand with the explanations of the box.
+  describe('againstMarketFacts (the same, as figures with their names)', () => {
+    const facts = (...views: PositionView[]) => againstMarketFacts(againstMarket(views));
+
+    it('gives how far the stocks are from the market, and how long the money has been in while that is under 6 months', () => {
+      expect(facts(AAA, BBB)).toEqual([
+        {
+          label: 'Against the market', value: '$340 ahead',
+          tip: 'The same money in the market on the same days: −$80 (−2.0%). Your stocks are $340 ahead of it.',
+        },
+        {
+          label: 'Money in for', value: '11 weeks: too early to mean much',
+          tip: 'Too early to mean much: on average this money has been in for 11 weeks. The tests looked at 6 months.',
+        },
+      ]);
+    });
+
+    it('says behind, or level, as plainly', () => {
+      expect(facts(one(100))[0].value).toBe('$40 behind');
+      expect(facts(one(104))[0].value).toBe('level');
+      expect(facts(one(110))[0].value).toBe('$60 ahead');
+    });
+
+    it('names how many stocks the figure is about when it cannot count them all, and keeps who is left out in its sentence', () => {
+      const [against] = facts(AAA, UNDATED, UNPRICED, BBB, TOO_OLD);
+      expect([against.label, against.value]).toEqual(['Against the market, 2 of 5 stocks', '$340 ahead']);
+      expect(against.tip).toBe(
+        'For 2 of your 5 stocks: +$260 (+6.5%) since bought. The same money in the market on the same days: −$80 (−2.0%). ' +
+        'Those 2 are $340 ahead of it. Left out: 3 with no price today, no purchase date, or bought over a year ago.');
+    });
+
+    it('has no figure about the time once the money has been in for the 6 months the tests looked at', () => {
+      expect(facts(one(110, '2026-05-23')).map(it => it.label)).toEqual(['Against the market']);
+    });
+
+    it('has nothing while there is nothing to compare', () => {
+      expect(againstMarketFacts(undefined)).toEqual([]);
+      expect(facts(UNDATED)).toEqual([]);
+    });
   });
 
   it('keeps to everyday words and short sentences, and states the difference without judging it', () => {

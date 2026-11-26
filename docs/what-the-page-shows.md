@@ -89,11 +89,12 @@ about that:
   - While a stock has no price, the portfolio is worth more than could be counted, so the amount to keep is the
     least it can be: the sentence says "at least" and does not say that the cash covers it, and "Could add" splits
     nothing until the price loads.
-- **How far your stocks are one bet** is said beside the table of "What you own", from what each stock is worth
-  today and the year of daily prices the page loads: where the money is ("85% of your stock money is in
-  Technology: 7 of your 9 stocks."), how many separate bets the stocks moved like, and how many times as much as
-  the market they swung ("Over the past year your stocks moved like about 2 separate bets, and about 1.9 times as
-  much as the market."). The line after it says what a bad half-year for every marked stock at once would cost.
+- **How far your stocks are one bet** is said with the explanations of "What you own" (behind "How to read this
+  box"), from what each stock is worth today and the year of daily prices the page loads: where the money is ("85%
+  of your stock money is in Technology: 7 of your 9 stocks."), how many separate bets the stocks moved like, and
+  how many times as much as the market they swung ("Over the past year your stocks moved like about 2 separate
+  bets, and about 1.9 times as much as the market."). What a bad half-year for every marked stock at once would
+  cost is a row at the foot of the table.
   - Only figures that hold up on a year of daily prices are given: shares of the money and sector labels, which
     are exact, and two figures of the stocks taken together. A figure for one pair of stocks, or for the last
     month, is not given: its error is as large as the figure.
@@ -141,8 +142,10 @@ fields says):
 - **ORDER PRICE** gives, for each of the others, the price to put on a sell order at that level ("ACME at
   $115.00"), rounded up so that an order at that price never sells under the level. Its reason says what such an
   order is (one that waits at a price: a limit order) and that in the test it stood for the 6 months only.
-- Under the fields one sentence says what the level did in the test, both sides, and which stocks it counts for.
-  Each line's reason, in "How the plan was tested", says both sides in that test's numbers (how much rarer a loss
+- Under the fields two figures say what the level did in the test, both sides, each beside what keeping gave
+  ("At +15% in the test, ended with a loss  25% to 30%, kept 42%" and "on average  +4.9% to +6.3%, kept +10.5%").
+  The sentence they come from, with which stocks the level counts for, is where the pointer rests on them and
+  behind "How to read this box". Each line's reason, in "How the plan was tested", says both sides in that test's numbers (how much rarer a loss
   was, whether the bad case was milder, how much lower the average) and what became of the stocks that got that
   far when they were kept. The whole test stands once, under THE PLAN in the same box and behind its "more", as
   two small tables: what keeping and each way of selling did, and what became of the stocks a sale took out early
@@ -177,9 +180,10 @@ any of them would be a ranking, and none passed a test. A row holds four kinds o
 the plan gives the stock, context, what you own that is like it): each of the last three starts at a hairline, so
 that "Analyst target" does not read as one more of the plan's numbers.
 
-Each size is for adding that one stock alone, and the box says so above the table: the rows do not add up to a plan
-for all of them, and once a stock is added the others are sized again. Under the table the box works its first row
-out in words ("For example, the first row: ..."), a line under the name of each column: what the size is a share
+Each size is for adding that one stock alone: the rows do not add up to a plan for all of them, and once a stock
+is added the others are sized again. The heading "Size" says so where the pointer rests or the Tab key lands, and
+so does the first of the box's explanations, behind "How to read this table" under the table. There the box also
+works its first row out in words ("For example, the first row: ..."), a line under the name of each column: what the size is a share
 of and why it is that share, then what the bad and the good case are and what they come to at that size, with the
 typical result beside the good one. The line under "Bad case" ends by setting that amount against your limit
 ("... that is −$825, within the $2,000 you accept to lose on one stock"): the limit is the most to lose on one
@@ -349,12 +353,16 @@ The page is made for a browser window that fills a large monitor, and still work
 - **"What you own" shows the columns a decision rests on**: Stock, Plan, Held, Value, % of total, Result, Market
   since, Bad case, Good case. "All columns" adds how each stock was bought (shares, price paid, price now, the day),
   its mark, and the button that removes it; the choice is the same one as above the lists and is remembered with it.
-  Beside the table (under it where the box has no room) one column says what "Bad case" and "Good case" are, how
-  far the stocks are one bet, and what the cases add up to if they all come true. Under the table one line
-  says how a purchase or a sale is told to the page. The sentences under the fields say only what the
-  fields do not show (what the limit comes to in dollars; what the portfolio is worth with its cash; what the
-  share to keep outside stocks is in dollars and whether the cash covers it; and, with a level picked for taking
-  a profit, what that level did in its test).
+  What the two cases of the marked stocks add up to if they all come true is a row at the foot of the table
+  ("Both marked DIP BUY at once · bad case 7.4% of this portfolio", then the two sums under their columns), from
+  two marked stocks on. A stock without a purchase date says "add date" where its weeks would stand. Under the
+  table one line says how a purchase or a sale is told to the page ("Bought or sold? Click the stock's symbol,
+  here or in "Could add", to record it."). Under the fields stand figures with their names, for what the fields
+  do not show: what the portfolio is worth with its cash and how much of it is cash, the limit in dollars, the
+  share kept outside stocks in dollars with whether the cash covers it, and, with a level picked for taking a
+  profit, both sides of that level in its test. Beside the headline of "What you own" the comparison with the
+  market is two such figures ("Against the market  $383 ahead", "Money in for  18 weeks: too early to mean
+  much"); while no stock has a purchase date the first says "needs a purchase date".
 - **A list shows what a mark rests on, a line a stock**: Stock, Mark, Price, Growth, Next results, Volatility,
   Past year. Every list has those columns at the same places, so a column can be read down the page. "All columns"
   adds the rest (the analysts' target, the range of the past year, valuation and the other context) and, over each
@@ -397,6 +405,25 @@ The page is made for a browser window that fills a large monitor, and still work
   or the Tab key lands; the tested result is four numbers under one quiet line (a stock with the mark on average,
   the typical one, any stock that dropped, the market), the typical one beside the average so the average does
   not stand alone.
+- **Signal before sentences on the Portfolio view** (the same remark of the owner, made about this view with
+  two pictures of it). By the same rules: a box shows its title, its figures and its table, and one sentence, which
+  says what to do next. What was a sentence with a number in it is a figure with its name (`dl.facts`): beside the
+  headline of "What you own", under the fields, and for the answer to a tick in "Could add" ("Short of their
+  shares $9,539 · Cash to split $1,500 · Stocks held 5 today, 7 after · Bad half-year, every marked stock at once
+  −$2,916 today, −$3,531 after · Moved together ACME and BOLT (group A)"). Each figure has the sentence it comes
+  from where the pointer rests on it. "Could add" says beside its title how many stocks it lists and that the page
+  ranks none of them ("16 stocks marked DIP BUY, not in Brokerage yet · not ranked"), and keeps one instruction
+  ("Tick stocks to split your cash ($1,500) between them."); what the plan's sale would free is a figure with the
+  box that counts it. Everything that explains a box is behind one control a box, closed until asked for and
+  remembered in this browser: "How to read this box" at the foot of the plan's box, "How to read this table"
+  under "Could add". Opened, the explanations are whole (no "more" inside) and run in columns where the box is
+  wide. "How the plan was tested" is all explanation, so it is its title and one control ("The plan in full, its
+  tests, and the reasons of today's steps") until it is asked for; the plan's last line, "How it was tested",
+  scrolls to it and opens it. Nothing was deleted: with everything closed the view has about 190 words in sight
+  outside its tables where it had about 730 (a made-up portfolio of five stocks, two rows ticked), and it is
+  470px shorter in a 2000px window. The room the answer to a tick takes is kept free, so a tick still moves no
+  table; in a window of 1,100px the table of "Could add" no longer runs 114px past its box (the reserve of its
+  cash column is kept only from a box 1,200px wide).
 - **A stock's details are three columns, a column a subject**, where the list is 1280px wide or more (two in a
   narrower list, with the reader's stake on the right): what the mark rests on and what is risky about this one
   stock; why it dropped; your stake in it ("Where it fits", then "What you own of it", which names the portfolio
@@ -455,12 +482,12 @@ The page is made for a browser window that fills a large monitor, and still work
   dollars, and the sum in shares was left to the reader.
 - **A reload does not close what is open.** A list's rows are the same rows after a reload of prices (the table
   follows each stock by its symbol), so the details open under a row, and a purchase half typed in them, stay.
-- **The answer to a tick is in sight.** In "Could add" the lines about what the ticked purchase would do stand under
-  the table; the first of them stands beside the lead, above the table, where the box is 1000px wide or more
-  (there it is left out under the table for the eye, and kept for a screen reader), with "Add the N ticked" under
-  it: at the foot of the table that button can be below the window. It is shorter than the lead, so a tick never
-  moves the table down; and the column "With your cash" is in the table from the start, empty until a row is
-  ticked, so a tick does not move the other columns sideways either.
+- **The answer to a tick is in sight.** In "Could add" what the ticked purchase would do stands above the table,
+  under the instruction and across the box: the title "With your cash" with "Add the N ticked" and "Untick all",
+  then figures with their names (see "Signal before sentences on the Portfolio view"). It is what a screen
+  reader hears after a tick. The room it takes is kept free before anything is ticked, so a tick never moves the
+  table down (in a narrow box, a phone, it does, by its own height); and the column "With your cash" is in the
+  table from the start, empty until a row is ticked, so a tick does not move the other columns sideways either.
 - **The page keeps its place while it loads.** While the first prices arrive "What you own" holds the room its
   table will take (a row a holding), the plan and "Could add" hold theirs, and "How the plan was tested" is not
   shown: it used to stand in the first screen for a few seconds and then drop by hundreds of pixels.
@@ -473,8 +500,10 @@ The page is made for a browser window that fills a large monitor, and still work
   something ("Add", "Bought more") are outlined. A row's purchase form in "Could add" comes back as it was left
   when another row's form was opened in between; Cancel starts it again from the row.
 - **An explanation shows its first sentence; "more" opens the rest.** The owner's choice (2026-11-26): the page
-  was to be taken in, not read at length. With everything closed the Portfolio view has about 520 words of prose
-  in sight where it had about 1,830, and at 2560 it is little more than one screen. What is shortened is
+  was to be taken in, not read at length. With everything closed the Portfolio view had about 520 words of prose
+  in sight where it had about 1,830. (Later the same day the owner found that still too much text: on the
+  Portfolio view the first sentences went behind one control a box, see "Signal before sentences on the Portfolio
+  view". "more" is left there inside "How the plan was tested", once that box is opened.) What is shortened is
   explanation: the lead of "Could add", its worked example and the notes about its columns; what the two "case"
   columns are and how alike the holdings move; what a share kept outside stocks and a level for taking a profit
   come to; each verb of "How the plan was tested" and how the plan did; how stocks marked DIP BUY did (under "Dip
@@ -502,8 +531,8 @@ The page is made for a browser window that fills a large monitor, and still work
   ("Paid from the cash of Savings ($5,000)"): with several portfolios the name on the page can be scrolled out of
   sight. The form for the ticked stocks stays open, with what was typed, when a row is unticked while it is being
   filled in.
-- **One answer to a tick, and a way past the tables.** Where the first line about a tick stands beside the lead,
-  the title and that line are not drawn a second time under the table, and "Add the N ticked" stands there alone.
+- **One answer to a tick, and a way past the tables.** "Add the N ticked" is one button, with the answer to a
+  tick; the form it opens stands at the foot of the table, and Cancel puts the keyboard back on the button.
   For the Tab key a link in front of the table of "Could add" and in front of each list ("Skip the table of 17
   stocks", "Skip the list Tech") leads past it; it is out of sight until it has the keyboard. "/" on the Portfolio
   view leads to "Find a stock" on the Watchlist. With the details of two or more stocks open, the line of "Your
@@ -596,9 +625,9 @@ The page is made for a browser window that fills a large monitor, and still work
   everywhere so that I can see"): the lists, "Dip candidates", "What you own" and "Could add" each have a column
   "Group", and a letter means the same group in all of them. A table that shows only some of a group's stocks
   says how many the group has and names the others ("1 of the group's 3 stocks: with ACME and CHIP"), so a letter
-  never stands for stocks the reader cannot find. In "Could add", once two or more rows are ticked, a sentence
-  beside the lead says whether they move together ("ACME and BOLT are both in group A: over the past year they
-  moved closely together.", or that none of them moved with another).
+  never stands for stocks the reader cannot find. In "Could add", once two or more rows are ticked, one of the
+  figures of the answer says whether they move together ("Moved together  ACME and BOLT (group A)", or "none of
+  the 2"); the sentence is where the pointer rests on it and with the box's explanations.
 - **Every table's rows can be ordered by its columns** (the owner: "all tables must have sortable columns"). A
   click on a heading orders the rows by that column, the biggest first for a number and A first for a name or a
   group; a second click turns the order round; the column the rows follow carries a small triangle. In the lists

@@ -1,6 +1,6 @@
 import {
-  additions, addLabel, afterSelling, badCaseTip, COLUMNS, COUNT_SOLD, couldAddLead, equalRiskShare, FIT_NOTE, fitOf, goodCaseTip, NO_SIZE_NOTE,
-  nothingToAdd, sellNote, toSell,
+  additions, addLabel, afterSelling, badCaseTip, COLUMNS, COUNT_SOLD, couldAddHeadline, couldAddLead, equalRiskShare, FIT_NOTE, fitOf, goodCaseTip, NO_SIZE_NOTE,
+  nothingToAdd, sellFact, sellNote, splitFacts, tiedFact, toSell,
   badHalfYearLine, COLUMN_HELP, fitBrief, ORDER_NOTE, ownedFit, readingOf, recommend, shareText, sizeLabel, sizeOfNew, sizeRules, sizeTip, SizingInput, splitCell, splitLines, tickHint,
   whereItFits
 } from "./recommendations";
@@ -263,6 +263,16 @@ describe('toSell, afterSelling and sellNote (what the plan says to sell some of,
       'The plan says SELL SOME: selling AAA down to $1,000, BBB down to $2,000 and CCC down to $3,000 would free $600 in all.');
     expect(COUNT_SOLD).toBe('Count that money in the split');
   });
+
+  // The owner: "too much text and not much signal". Above the table the sale is a figure with its name, beside the
+  // box that counts it; the sentence that names the stocks is where the pointer rests, and with the explanations.
+  it('gives what the sale would free as a figure with its name, and the sentence as what the pointer shows', () => {
+    expect(sellFact([])).withContext('nothing to sell: nothing to show').toBeUndefined();
+    expect(sellFact([{symbol: 'ACME', keep: 1219.51, free: 1780.49}])).toEqual({
+      label: 'SELL SOME would free', value: '$1,780', tip: 'The plan says SELL SOME: selling ACME down to $1,220 would free $1,780.',
+    });
+    expect(sellFact([{symbol: 'ACME', keep: 1219.51, free: 1780.49}, {symbol: 'ZED', keep: 1612.9, free: 400}])!.value).toBe('$2,180');
+  });
 });
 
 describe('whereItFits (one stock marked DIP BUY, a line for each portfolio)', () => {
@@ -301,6 +311,18 @@ describe('the sentences of the "Could add" box', () => {
       'Each size is for adding that one stock alone: once a stock is added, the others are sized again.');
     expect(couldAddLead(1, 'Brokerage')).withContext('one stock: no order and no other size to speak of').toBe(
       '1 stock is marked DIP BUY on the Watchlist (the price dropped while the business keeps growing) and is not in Brokerage yet.');
+  });
+
+  // The owner, of a page where every box began with a paragraph: "too much text and not much signal". Beside the
+  // title stands what the paragraph's first sentence said, as a count and a few words; the paragraph itself is
+  // with the explanations of the box, behind its one control.
+  it('says beside the title how many stocks there are, whose they are not yet, and that they are not ranked', () => {
+    expect(couldAddHeadline(3, 'Brokerage')).toBe('3 stocks marked DIP BUY, not in Brokerage yet · not ranked');
+    expect(couldAddHeadline(1, 'Brokerage')).withContext('one stock: no order to speak of').toBe('1 stock marked DIP BUY, not in Brokerage yet');
+    expect(couldAddHeadline(3, 'Brokerage', 2)).withContext('owned stocks that can be added to say so in their rows').toBe(couldAddHeadline(3, 'Brokerage'));
+    expect(couldAddHeadline(0, 'Brokerage', 2)).toBe('Brokerage holds every stock marked DIP BUY · 2 could be added to');
+    expect(couldAddHeadline(0, 'Brokerage', 1)).toBe('Brokerage holds every stock marked DIP BUY · 1 could be added to');
+    expect(couldAddHeadline(0, 'Brokerage')).toBe('');
   });
 
   // The stocks that are owned, marked and under their share are rows of the same table, after the new ones, so
@@ -481,22 +503,20 @@ describe('the sentences of the cash split in "Could add"', () => {
     expect(COLUMNS.money).toBe('With the money');
   });
 
-  it('says under the lead that ticking is the way in, and how much cash there is to split', () => {
-    expect(tickHint(1000)).toBe(
-      "Tick the ones you are thinking of buying: the page then splits this portfolio's cash ($1,000) between them.");
+  // The one sentence the box keeps in sight: an instruction, starting with what to do.
+  it('says in one short instruction that ticking is the way in, and how much cash there is to split', () => {
+    expect(tickHint(1000)).toBe('Tick stocks to split your cash ($1,000) between them.');
   });
 
   it('says where to enter the cash when the portfolio has none', () => {
-    const none = 'Tick the ones you are thinking of buying. This portfolio has no cash entered, so there is nothing to split yet: ' +
-      'enter it in the "Your plan today" box, under "Cash".';
+    const none = 'No cash to split yet: enter it in the "Your plan today" box, under "Cash".';
     expect(tickHint(undefined)).toBe(none);
     expect(tickHint(0)).toBe(none);
   });
 
   it('says in the hint that what selling would free is split too, once that is counted', () => {
-    expect(tickHint(4000, 1780.49)).toBe(
-      "Tick the ones you are thinking of buying: the page then splits this portfolio's cash and what selling would free ($5,780) between them.");
-    const freedOnly = 'Tick the ones you are thinking of buying: the page then splits what selling would free ($1,780) between them.';
+    expect(tickHint(4000, 1780.49)).toBe('Tick stocks to split your cash and what selling would free ($5,780) between them.');
+    const freedOnly = 'Tick stocks to split what selling would free ($1,780) between them.';
     expect(tickHint(0, 1780.49)).toBe(freedOnly);
     expect(tickHint(undefined, 1780.49)).toBe(freedOnly);
   });
@@ -504,8 +524,7 @@ describe('the sentences of the cash split in "Could add"', () => {
   // "There is nothing to split yet" over a box that offers money to split would not be the whole truth.
   it('names the other way to have something to split, when the plan says to sell some of a stock and that is not counted', () => {
     expect(tickHint(0, 0, true)).toBe(
-      'Tick the ones you are thinking of buying. This portfolio has no cash entered, so there is nothing to split yet: ' +
-      'enter it in the "Your plan today" box, under "Cash", or tick "Count that money in the split".');
+      'No cash to split yet: enter it in the "Your plan today" box, under "Cash", or tick "Count that money in the split".');
     expect(tickHint(1000, 0, true)).withContext('with cash there is something to split: the hint stays as it is').toBe(tickHint(1000));
     expect(splitLines(split({parts: three, cash: 0, gap: 13896, placed: 0, stocksAfter: 3, togetherLossAfter: 2790}), {offered: true})).toEqual([
       'You ticked 3, but this portfolio has no cash to split. Enter it in the "Your plan today" box, under "Cash", ' +
@@ -559,6 +578,78 @@ describe('the sentences of the cash split in "Could add"', () => {
 
   it('says what one ticked stock is short of and that the cash covers a part, then what the purchase changes', () => {
     expect(splitLines(split())).toEqual([ONE_SHORT, 'You would hold 4 stocks instead of 3.', BAD_CASE, CASH_SOURCE]);
+  });
+
+  // The owner: "too much text and not much signal". What a tick answers stands beside the lead as figures with
+  // their names; each keeps its sentence for the pointer, and the sentences stay with the box's explanations.
+  describe('splitFacts (the answer to a tick as labelled figures)', () => {
+    it('gives what the ticked stock is short of, the cash, the stocks held and the bad half-year, each with its sentence', () => {
+      expect(splitFacts(split())).toEqual({
+        instead: '',
+        facts: [
+          {label: 'Short of its share', value: '$2,013', tip: ONE_SHORT},
+          {label: 'Cash to split', value: '$1,000', tip: CASH_SOURCE},
+          {label: 'Stocks held', value: '3 today, 4 after', tip: 'You would hold 4 stocks instead of 3.'},
+          {label: 'Bad half-year, every marked stock at once', value: '−$2,790 today, −$3,200 after', tip: BAD_CASE},
+        ],
+      });
+    });
+
+    it('names the figure for several, and says what stays cash when the cash covers everything', () => {
+      const facts = splitFacts(split({parts: three, cash: 20000, gap: 13896, placed: 13896, left: 6104, stocksAfter: 6})).facts;
+      expect(facts.map(it => [it.label, it.value])).toEqual([
+        ['Short of their shares', '$13,896'], ['Cash to split', '$20,000'], ['Stays cash', '$6,104'],
+        ['Stocks held', '3 today, 6 after'], ['Bad half-year, every marked stock at once', '−$2,790 today, −$3,200 after'],
+      ]);
+      expect(splitFacts(split({parts: three, cash: 13896, gap: 13896, placed: 13896, left: 0})).facts.map(it => it.label))
+        .withContext('nothing over: no figure for it').not.toContain('Stays cash');
+    });
+
+    it('leaves out the stocks held when that does not change, and gives one number for a portfolio that held none', () => {
+      expect(splitFacts(split({stocksBefore: 3, stocksAfter: 3})).facts.map(it => it.label)).not.toContain('Stocks held');
+      expect(splitFacts(split({stocksBefore: 0, stocksAfter: 4})).facts.find(it => it.label === 'Stocks held')!.value).toBe('4 after');
+    });
+
+    it('names the money by what it is once what selling would free is counted', () => {
+      const withSale = splitFacts(split({cash: 5780.49, gap: 9000, placed: 5780.49}), {freed: 1780.49, cash: 4000}).facts;
+      expect(withSale.map(it => [it.label, it.value]).slice(0, 2)).toEqual([['Short of its share', '$9,000'], ['Cash and sale money to split', '$5,780']]);
+      expect(withSale[withSale.length - 1].value).withContext('after is after selling and buying').toBe('−$2,790 today, −$3,200 after selling and buying');
+      const saleOnly = splitFacts(split({cash: 1780.49, gap: 9000, placed: 1780.49}), {freed: 1780.49, cash: 0}).facts;
+      expect(saleOnly[1].label).toBe('Sale money to split');
+      const over = splitFacts(split({cash: 5780.49, gap: 2012.99, placed: 2012.99, left: 3767.5}), {freed: 1780.49, cash: 4000}).facts;
+      expect(over.map(it => [it.label, it.value])[2]).withContext('not all of it is cash today').toEqual(['Would be left as cash', '$3,768']);
+    });
+
+    it('says for a portfolio with no marked stock yet what the purchase itself could lose', () => {
+      const first = splitFacts(split({togetherLossBefore: 0, togetherLossAfter: 410})).facts;
+      expect([first[first.length - 1].label, first[first.length - 1].value]).toEqual(['Bad half-year, what you would buy', '−$410']);
+    });
+
+    // Which of the ticked stocks moved together is a fact about them, so it stands with the figures: the stocks
+    // and their group, and the sentence where the pointer rests.
+    it('gives which of the ticked stocks moved together as one more figure, with its sentence', () => {
+      const tied = {groups: [{letter: 'A', index: 0, symbols: ['AAA', 'BBB', 'CCC'], level: 0.7, sector: ''}], alone: ['DDD'], unknown: []};
+      expect(tiedFact(['AAA', 'BBB', 'DDD'], tied)).toEqual({
+        label: 'Moved together', value: 'AAA and BBB (group A)',
+        tip: 'AAA and BBB are both in group A: over the past year they moved closely together.',
+      });
+      expect(tiedFact(['AAA', 'DDD'], tied)).toEqual({
+        label: 'Moved together', value: 'none of the 2', tip: 'None of the 2 you ticked moved closely with another of them over the past year.',
+      });
+      expect(tiedFact(['AAA'], tied)).withContext('one stock has no other to move with').toBeUndefined();
+      expect(tiedFact(['AAA', 'BBB'], {groups: [], alone: [], unknown: []})).withContext('no groups on the page').toBeUndefined();
+    });
+
+    // Where the sentences had one line that said why nothing is split, that line is the answer: no figures.
+    it('gives the one sentence in place of figures when nothing is split, or nothing is short', () => {
+      expect(splitFacts(split({parts: three, cash: 0, gap: 13896, placed: 0, stocksAfter: 3, togetherLossAfter: 2790}))).toEqual({
+        facts: [], instead: 'You ticked 3, but this portfolio has no cash to split. Enter it in the "Your plan today" box, under "Cash".',
+      });
+      const none = part({gap: 0, dollars: 0, bound: 'none', loss: 0, gain: 0});
+      expect(splitFacts(split({parts: [none], gap: 0, placed: 0, left: 1000, stocksAfter: 3, togetherLossAfter: 2790}))).toEqual({
+        facts: [], instead: 'The one you ticked is at its share already, so none of your $1,000 goes to it.',
+      });
+    });
   });
 
   it('says for several that each gets the same part of what it is short of', () => {
@@ -777,32 +868,29 @@ describe('the sentences of the cash split in "Could add"', () => {
   // A second limit of the user's own: a share of the portfolio stays outside stocks ("Keep outside stocks"), so only
   // the money above it is split. Here it is $2,000, a fifth of a $10,000 portfolio.
   describe('with a share kept outside stocks', () => {
-    const tick = 'Tick the ones you are thinking of buying';
-
     it('says in the hint how much is above what is kept: that is what is split', () => {
       expect(tickHint(3000, 0, false, 2000)).toBe(
-        `${tick}: the page then splits this portfolio's cash above the $2,000 you keep outside stocks ($1,000) between them.`);
+        'Tick stocks to split your cash above the $2,000 you keep outside stocks ($1,000) between them.');
       expect(tickHint(3000, 1500, false, 2000)).withContext('with what selling would free counted').toBe(
-        `${tick}: the page then splits this portfolio's cash and what selling would free, above the $2,000 you keep outside stocks ($2,500), ` +
-        'between them.');
+        'Tick stocks to split your cash and what selling would free, above the $2,000 you keep outside stocks ($2,500), between them.');
       expect(tickHint(0, 3000, false, 2000)).withContext('no cash entered').toBe(
-        `${tick}: the page then splits what selling would free, above the $2,000 you keep outside stocks ($1,000), between them.`);
+        'Tick stocks to split what selling would free, above the $2,000 you keep outside stocks ($1,000), between them.');
     });
 
     it('says in the hint that there is nothing to split when all the money lies within what is kept', () => {
-      const within = `${tick}. Your cash ($1,500) is within the $2,000 you keep outside stocks, so there is nothing to split yet.`;
+      const within = 'Nothing to split yet: your cash ($1,500) is within the $2,000 you keep outside stocks.';
       expect(tickHint(1500, 0, false, 2000)).toBe(within);
       expect(tickHint(1500, 0, true, 2000)).withContext('a sale is on offer').toBe(`${within} Or tick "Count that money in the split".`);
       expect(tickHint(100, 1500, false, 2000)).toBe(
-        `${tick}. Your cash and what selling would free ($1,600) are within the $2,000 you keep outside stocks, so there is nothing to split yet.`);
+        'Nothing to split yet: your cash and what selling would free ($1,600) are within the $2,000 you keep outside stocks.');
       expect(tickHint(0, 1500, false, 2000)).toBe(
-        `${tick}. What selling would free ($1,500) is within the $2,000 you keep outside stocks, so there is nothing to split yet.`);
+        'Nothing to split yet: what selling would free ($1,500) is within the $2,000 you keep outside stocks.');
       expect(tickHint(3000, 0, false, 0)).withContext('nothing kept: as before').toBe(tickHint(3000));
     });
 
     // With no cash entered, "enter it" alone would mislead: any cash up to what is kept still leaves nothing to split.
     it('says in the hint that only cash above what is kept is split, when no cash is entered', () => {
-      const none = `${tick}. This portfolio has no cash entered, and only cash above the $2,000 you keep outside stocks is split: ` +
+      const none = 'No cash to split yet, and only cash above the $2,000 you keep outside stocks is split: ' +
         'enter it in the "Your plan today" box, under "Cash"';
       expect(tickHint(0, 0, false, 2000)).toBe(`${none}.`);
       expect(tickHint(undefined, 0, true, 2000)).withContext('a sale is on offer').toBe(`${none}, or tick "Count that money in the split".`);
@@ -813,7 +901,7 @@ describe('the sentences of the cash split in "Could add"', () => {
     it('splits nothing while a stock has no price: what is kept cannot be worked out then', () => {
       const unknown = 'one of your stocks has no price, so what you keep outside stocks cannot be worked out yet: ' +
         'nothing is split until its price loads.';
-      expect(tickHint(3000, 0, false, 2000, true)).toBe(`${tick}. O${unknown.slice(1)}`);
+      expect(tickHint(3000, 0, false, 2000, true)).withContext('no "tick": nothing would come of it yet').toBe(`O${unknown.slice(1)}`);
       const nothing = split({parts: [part({dollars: 0})], cash: 0, placed: 0, stocksAfter: 3, togetherLossAfter: 2790});
       expect(splitLines(nothing, {keep: 2000, cash: 3000, keepUnknown: true})).toEqual([`You ticked 1, but ${unknown}`]);
       expect(tickHint(3000, 0, false, 0, true)).withContext('nothing kept: a missing price changes nothing here').toBe(tickHint(3000));

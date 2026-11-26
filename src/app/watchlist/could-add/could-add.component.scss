@@ -10,12 +10,26 @@
   font-variant-numeric: tabular-nums;
 }
 
+// The title and, beside it on the same line, what the box holds in a count and a few words (as "What you own"
+// has its count and worth beside its title).
+.head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+}
+
 .title {
   margin: 0;
   font-size: var(--text-title);
   font-weight: 500;
   line-height: 1.3;
   color: var(--ink);
+}
+
+.headline {
+  font-size: var(--text-body);
+  color: var(--ink-2);
 }
 
 // Sentences: a size and a width that read easily, a paragraph a thought.
@@ -62,27 +76,10 @@
   cursor: pointer;
 }
 
-// The table and what is said about it. The box is measured, not the window: beside the plan on a very wide window
-// the box is narrow and the two stand one under the other; where the box has the window's whole width they stand
-// side by side, the table as wide as it needs and the sentences in what is left. That halves the height of the box,
-// and the example is read with the row it explains in view.
+// The box is measured, not the window: beside the plan on a very wide window it is narrow, alone on a row it has
+// the window's whole width.
 mat-card-content {
   container-type: inline-size;
-}
-
-// From 1620px: the table with all its columns is about 1,130px, and the sentences beside it need 430px or more.
-@container (min-width: 1620px) {
-  .body {
-    display: grid;
-    grid-template-columns: max-content minmax(0, 1fr);
-    column-gap: 56px;
-    align-items: start;
-  }
-
-  // The first heading on the right starts level with the table's own headings.
-  .about > :first-child {
-    margin-top: 14px;
-  }
 }
 
 // The table may be wider than a phone: it scrolls inside the box, the page never does. `position: relative` keeps
@@ -202,9 +199,12 @@ tfoot app-purchases-form {
 }
 
 // The column of a ticked row's amount is as wide empty as filled ("— nothing to split" is its widest), so the
-// first tick moves no column after it.
-td.cash {
-  min-width: 18ch;
+// first tick moves no column after it. Only in a box with the room for it: in a narrower one (a window of about
+// 1,100px) that reserve made the table 114px wider than its box, ticked or not.
+@container (min-width: 1200px) {
+  td.cash {
+    min-width: 18ch;
+  }
 }
 
 // A ticked row has one figure to act on, what the money would buy of the stock: it is the row's strong figure,
@@ -382,85 +382,88 @@ tbody tr:hover .symbol,
   color: var(--ink-2);
 }
 
-// What the ticked purchase would do: the result of what the reader just did, so it stands first among what is said
-// about the table, under the name of the column it explains, and in full ink. It is in the page before anything is
-// ticked, empty and without height, and must not be hidden then: a screen reader reads out what appears in a
-// block it already knows, not a block that arrives filled. Its margin is the example's, so the two collapse into
-// one while it is empty and the example stands where it would without it.
+// The sentences behind the figures of a tick, among the explanations of the box.
 .split {
   margin-top: 14px;
 }
 
-// The first of those lines again, beside the lead, where the box has room for both (from 1000px; that band was
-// blank). It is shorter than the lead beside it, so a tick never moves the table. In a narrower box it is left
-// out: the lines under the table are close there.
-.tick-answer {
-  display: none;
+// The other side of a rebalance, above the table: what the sale would free as a figure with its name, and on the
+// same line the box that counts it.
+.sale {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 18px;
+  margin-top: 4px;
+  font-size: var(--text-body);
+  line-height: 1.6;
 }
 
+.sale .fact-label {
+  color: var(--ink-2);
+}
+
+.sale .fact strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+// The instruction and, with it on one line where there is room, what the plan's sale would free.
+.intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 40px;
+}
+
+// The answer to a tick, under the instruction and across the box: its title with the buttons for all the ticked
+// rows, then figures with their names, which run on beside the title and onto further lines under themselves.
+.tick-answer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0 24px;
+  margin-top: 4px;
+}
+
+// The title and, right beside it, the buttons for all the ticked rows.
+.tick-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 16px;
+  min-height: 28px;
+}
+
+// What is read out to a screen reader: the figures, or the one sentence in their place.
+.answer {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+// (The figures with their names, `dl.facts`, are styled once for the whole page: styles.scss.)
+
+// In place of the figures where nothing is split: the one sentence that says why.
+.answer p.instead {
+  margin: 3px 0 0;
+  max-width: var(--measure);
+  font-size: var(--text-body);
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+// The room the answer takes is kept free before anything is ticked, so that a tick never moves the table: two
+// lines of figures where the box is wide, three where it is a little narrower. (In a narrow box, a phone, nothing
+// is kept: the answer then pushes the table down by its own height.)
 @container (min-width: 1000px) {
-  // The top of the box keeps the room the answer to a tick takes (its title with the button, a line of two rows
-  // about the cash, a line about which ticked stocks move together): the lead beside it is two short paragraphs
-  // now, and without that room the first tick pushed the table down by 76px.
-  .top {
-    display: grid;
-    grid-template-columns: minmax(0, 520px) minmax(0, 1fr);
-    column-gap: 56px;
-    align-items: start;
-    min-height: 176px;
-  }
-
   .tick-answer {
-    display: block;
-    margin-top: 4px;
-    max-width: 720px;
+    min-height: 84px;
   }
+}
 
-  // The title and, right beside it, the button for all the ticked rows.
-  .tick-head {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    min-height: 30px;
-  }
-
-  .tick-head .split-title {
-    margin: 0;
-  }
-
-  .tick-answer p {
-    margin: 2px 0 0;
-    font-size: var(--text-body);
-    line-height: 1.55;
-    color: var(--ink);
-  }
-
-  .tick-answer p.more {
-    font-size: var(--text-meta);
-    color: var(--ink-2);
-  }
-
-  // One answer to a tick, not two: here the title, the first line and the button for several stand beside the
-  // lead, so under the table the title and that line are left to a screen reader, and the button at the foot is
-  // not drawn while its form is closed (two blocks with one title and two identical buttons were in sight).
-  tfoot .batch-row:not(.open) {
-    display: none;
-  }
-
-  tfoot .batch-row.open > td > button.batch {
-    display: none;
-  }
-
-  .about > .split h3,
-  .about > .split .tied-says,
-  .about > .split p.said-above,
-  .about > .split p:first-of-type {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
+@container (min-width: 1200px) {
+  .tick-answer {
+    min-height: 56px;
   }
 }
 
@@ -542,40 +545,24 @@ tbody tr:hover .symbol,
   }
 }
 
-// Under the table in a box that is wide and not wide enough for the sentences beside the table (the box beside the
-// plan on a wide window): the sentences run in two columns. In one column of 492px they stood beside 700px of
-// empty box and made the box taller than the screen.
-@container (min-width: 1000px) and (max-width: 1619px) {
-  .about {
-    columns: 2;
+// Under the table, the one control of the explanations. Opened in a wide box they run in columns (in one column of
+// 56 characters they stood beside 700px of empty box): each block keeps together, and the room between blocks is
+// under them, so that the columns start level. The body belongs to the control's own view, hence ::ng-deep.
+.about {
+  margin-top: 4px;
+}
+
+@container (min-width: 1000px) {
+  .about ::ng-deep .about-body {
+    columns: 2 440px;
     column-gap: 56px;
   }
 
-  // Each block keeps together, and the room between blocks is under them: a margin over a block would push the
-  // top of the second column 14px below the top of the first.
-  .about {
-    margin-top: 14px;
-  }
-
-  .about > * {
+  .about ::ng-deep .about-body > * {
     break-inside: avoid;
     margin-top: 0;
     margin-bottom: 12px;
   }
-
-  // The columns break at one place: what is about the reader's own ticks and the worked example on the left, the
-  // notes about the table on the right. Left to the browser, the notes changed columns when a row was ticked.
-  .about > .reading + .note,
-  .about > .split + .note {
-    break-before: column;
-  }
-
-  // The block for what is ticked takes no room while nothing is ticked: its margin would start the left column
-  // 12px lower than the right one.
-  .about > .split:not(:has(h3)) {
-    margin-bottom: 0;
-  }
-
 }
 
 // What the portfolio already holds that is like the stock: two short cells, so a row is one line tall and the

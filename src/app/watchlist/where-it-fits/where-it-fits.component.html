@@ -1,6 +1,6 @@
 <!-- With sizes to show, what a size is stands behind "more" at the heading: the lines say it by themselves to who
      has read it once. Without sizes the sentence is all there is, and it is shown. -->
-<h4>{{ title }}<app-more *ngIf="marked && lines.length > 0" key="details.fits" what="what these sizes are"></app-more></h4>
+<h4>{{ title }}<span class="unit" *ngIf="marked && lines.length > 0"> · its size, as a share of each portfolio</span><app-more *ngIf="!marked || lines.length > 0" key="details.fits" what="what these sizes are"></app-more></h4>
 <ng-container *ngIf="marked; else unmarked">
   <ng-container *ngIf="lines.length > 0; else worthNothing">
     <ul>
@@ -13,5 +13,7 @@
   </ng-template>
 </ng-container>
 <ng-template #unmarked>
-  <p class="hint">{{ notMarked }}</p>
+  <!-- A few words for the fact; why it is so is behind "more" at the heading. -->
+  <p class="hint short">{{ noSize }}</p>
+  <p class="hint" appMoreRest="details.fits">{{ notMarked }}</p>
 </ng-template>

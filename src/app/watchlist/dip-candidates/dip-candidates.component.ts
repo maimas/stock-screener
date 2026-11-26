@@ -8,7 +8,7 @@ import {NgForOf, NgIf} from "@angular/common";
 import {MatCardModule} from "@angular/material/card";
 import {MatTooltipModule} from "@angular/material/tooltip";
 import {DIP_PERCENT, MarketFear} from "../signal";
-import {CARD_NOTE, EVIDENCE, FEAR_HIGH_SHORT} from "../evidence";
+import {CARD_NOTE, EVIDENCE, FEAR_HIGH_SHORT, oneIn} from "../evidence";
 
 /** A stock marked DIP BUY, as this box shows it. */
 export type DipCandidate = {
@@ -251,8 +251,19 @@ export class DipCandidatesComponent implements AfterViewInit, OnDestroy {
       {label: 'DIP BUY, the typical one', value: gained(EVIDENCE.dipBuy.median)},
       {label: 'Any stock that dropped', value: gained(EVIDENCE.everyDip.mean)},
       {label: 'The market', value: gained(EVIDENCE.sp500.mean)},
-    ],
+      // The risk stands with the gains: shown alone, the gains were the upside in sight and the downside a click away.
+      {label: 'DIP BUYs that fell a further 20% first', value: oneIn(EVIDENCE.dipBuy.fellPercent), risk: true},
+    ] as { label: string, value: string, risk?: boolean }[],
+    limits: `The typical one is the middle stock: half did better, half worse. Tested ${EVIDENCE.firstBuy.slice(0, 4)}–${EVIDENCE.lastBuy.slice(0, 4)} only.`,
   };
+
+  /** Asked for by the link that skips the box: the keyboard goes on to the lists. */
+  @Output() skipToLists = new EventEmitter<void>();
+
+  skip(event: Event): void {
+    event.preventDefault();
+    this.skipToLists.emit();
+  }
   readonly fearHighShort = FEAR_HIGH_SHORT;
   /** Rows drawn while the first prices are arriving. */
   readonly placeholders = [1, 2, 3, 4, 5];

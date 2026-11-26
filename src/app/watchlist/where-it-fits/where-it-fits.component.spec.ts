@@ -16,7 +16,8 @@ describe('WhereItFitsComponent ("Where it fits", in a stock\'s details)', () => 
 
   it('lists the stock\'s size in each portfolio, a line each, and says where the same is listed', () => {
     const el = create(['Brokerage: 20.1% ($2,013)', 'Retirement: you own it; add 8.4% ($840)'], true);
-    expect(say(el.querySelector('h4'))).toBe('Where it fits');
+    // Found by a review: "Brokerage: 20.1% ($2,013)" did not say of what. The heading says it now.
+    expect(say(el.querySelector('h4'))).toBe('Where it fits · its size, as a share of each portfolio');
     expect(Array.from(el.querySelectorAll('li')).map(say)).toEqual(['Brokerage: 20.1% ($2,013)', 'Retirement: you own it; add 8.4% ($840)']);
     expect(say(el.querySelector('p.hint'))).toBe(
       'Its size in each of your portfolios, as a share of what that portfolio is worth. The Portfolio view lists it under "Could add".');
@@ -28,10 +29,12 @@ describe('WhereItFitsComponent ("Where it fits", in a stock\'s details)', () => 
   it('works out no amount for a stock that is not marked DIP BUY, and says why', () => {
     const el = create([], false);
     expect(el.querySelector('ul')).toBeNull();
-    expect(say(el.querySelector('p.hint'))).toBe(
+    expect(say(el.querySelector('p.hint.short'))).withContext('the fact, in a few words').toBe('No size: it is not marked DIP BUY.');
+    const why = el.querySelector('p.hint:not(.short)') as HTMLElement;
+    expect(say(why)).toBe(
       'Only a stock marked DIP BUY gets a size: the tests measured no others, so the app works out no amount for this one.');
-    expect((el.querySelector('p.hint') as HTMLElement).hidden).withContext('all there is to say: shown').toBeFalse();
-    expect(el.querySelector('h4 app-more')).toBeNull();
+    expect(why.hidden).withContext('why it is so: one "more" away, under every stock without the mark').toBeTrue();
+    expect(el.querySelector('h4 app-more button')).not.toBeNull();
   });
 
   it('says how to get a size while no portfolio is worth anything', () => {

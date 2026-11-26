@@ -1,6 +1,10 @@
-<mat-card class="evidence" id="plan-evidence" tabindex="-1">
+<!-- The plan's last line ("How it was tested") scrolls here and puts the keyboard on the box: it opens then. -->
+<mat-card class="evidence" id="plan-evidence" tabindex="-1" (focus)="openOnJump($event)">
   <mat-card-content>
     <h2 class="title">How the plan was tested</h2>
+    <!-- The box is all explanation, so it is its title and one control until it is asked for (the owner, of a page
+         of careful sentences: "too much text and not much signal"). What the reader opened is remembered. -->
+    <app-about class="whole" key="evidence.box" label="The plan in full, its tests, and the reasons of today's steps">
     <!-- The plan as a whole first, across the box and by itself: opened, its account is long, and in one list with
          the reasons below it moved them from column to column. -->
     <dl class="the-plan">
@@ -50,5 +54,6 @@
         <dd><app-more [key]="'evidence.' + reason.verb" [text]="reason.why"></app-more></dd>
       </div>
     </dl>
+    </app-about>
   </mat-card-content>
 </mat-card>

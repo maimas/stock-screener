@@ -41,7 +41,7 @@
 <app-dip-candidates [candidates]="candidates" [marks]="marks" [loaded]="loaded" [indexLine]="indexLine" [fear]="fear"
                     [oneBet]="oneBet" [tied]="tiedCandidates" [trackText]="trackText" [recorderText]="recorderText" [evidenceText]="evidenceText"
                     [folded]="paneFolded" (foldedChange)="foldPane($event)" [instead]="noPrices ? noPricesShort : ''" (retry)="loadAll()"
-                    (open)="showStock($event)" (exportLog)="exportLog()">
+                    (open)="showStock($event)" (exportLog)="exportLog()" (skipToLists)="toLists()">
 </app-dip-candidates>
 
 <!-- The lists and the one control that is about all of them: which columns their tables show. -->

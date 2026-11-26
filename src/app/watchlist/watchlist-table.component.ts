@@ -685,6 +685,16 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
     document.getElementById('find-stock')?.focus();
   }
 
+  /**
+   * "Skip to your lists" in "Dip candidates": the keyboard goes past the box (a stop a stock) to the first control
+   * of the lists, the choice of columns, and the lists come into view.
+   */
+  toLists(): void {
+    const first = document.querySelector<HTMLElement>('.lists-bar button, .lists-bar input');
+    first?.focus();
+    first?.scrollIntoView({block: 'start'});
+  }
+
   /** "/" was pressed on the portfolio's view: the keyboard goes into "Find a stock" once the watchlist is shown. */
   private findAfterShown = false;
 

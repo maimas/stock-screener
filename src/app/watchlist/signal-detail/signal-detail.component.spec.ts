@@ -22,10 +22,10 @@ describe('verdictFacts (the two facts a mark rests on, as rows)', () => {
   it('names each fact, gives its figure, and says whether it is enough for DIP BUY', () => {
     expect(verdictFacts(signalOf(20))).toEqual([
       {label: 'Growing', value: signalOf(20).growthText, ok: true},
-      {label: 'Dropped', value: '20.0% below its highest price of the past year', needs: 'DIP BUY needs 15% or more', ok: true},
+      {label: 'Dropped', value: '20.0% below its highest price of the past year', needs: 'needs 15%', ok: true},
     ]);
     expect(verdictFacts(signalOf(9))[1]).toEqual(
-      {label: 'Dropped', value: '9.0% below its highest price of the past year', needs: 'DIP BUY needs 15% or more', ok: false});
+      {label: 'Dropped', value: '9.0% below its highest price of the past year', needs: 'needs 15%', ok: false});
   });
 });
 
@@ -98,7 +98,8 @@ describe('"Why it dropped" (the fall on the chart, the headlines of that week, a
       const clean = (it: Element) => it.textContent?.replace(/\s+/g, ' ').trim() ?? '';
       return {
         lines: Array.from(section.querySelectorAll('p, li')).map(clean),
-        buttons: Array.from(section.querySelectorAll('button')).map(clean),
+        // What can be done here: not the "more" at the end of a line, which opens the rest of what is said.
+        buttons: Array.from(section.querySelectorAll('button:not(.toggle)')).map(clean),
       };
     }
 
@@ -262,7 +263,9 @@ describe('SignalDetailComponent: what is about this stock, what is about you, an
     ]);
     const risk = Array.from(el.querySelectorAll('.about-stock section')).find(it => it.querySelector('h4')?.textContent === 'Risk of this stock')!;
     expect(risk.querySelectorAll('li').length).withContext('its own lines only').toBe(fixture.debugElement.query(By.directive(SignalDetailComponent)).componentInstance.risks.length);
-    expect(el.querySelector('.the-rule .same')?.textContent?.trim()).toBe('The same under every stock marked DIP BUY.');
+    // The line that opens the rule says what is behind it; that it is the same under every such stock comes second.
+    expect(el.querySelector('.the-rule .same .rule-title')?.textContent?.trim()).toBe('What the tests say, and what to do after you buy');
+    expect(el.querySelector('.the-rule .same .rule-same')?.textContent?.trim()).toBe('The same under every stock marked DIP BUY.');
   });
 
   // The owner, of these details: "too much text and not much signal". They opened with a sentence and two bullets
@@ -273,17 +276,23 @@ describe('SignalDetailComponent: what is about this stock, what is about you, an
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     const clean = (it: Element | null) => it?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
-    const rows = Array.from(el.querySelectorAll('.about-stock dl.facts > div')).map(row => [row.className, clean(row.querySelector('dt')), clean(row.querySelector('dd'))]);
+    const rows = Array.from(el.querySelectorAll('.about-stock section:first-child dl.mark-facts > div')).map(row => [row.className, clean(row.querySelector('dt')), clean(row.querySelector('dd'))]);
     expect(rows).toEqual([
       ['met', 'Growing (enough for the mark)', 'expected profit per share 0.0%, sales +20.0% on a year ago'],
-      ['met', 'Dropped (enough for the mark)', '20.0% below its highest price of the past year · DIP BUY needs 15% or more'],
+      ['met', 'Dropped (enough for the mark)', '20.0% below its highest price of the past year · needs 15%'],
     ]);
     const lead = el.querySelector('.about-stock .lead') as HTMLElement;
     expect(lead.hidden).withContext('the sentence that says the same in words is one "more" away').toBeTrue();
     expect(clean(lead)).toMatch(/^A growing company, 20\.0% below its highest price of the past year/);
     expect(el.querySelector('.about-stock h4 app-more button')).not.toBeNull();
-    const risks = Array.from(el.querySelectorAll('.about-stock section li app-more'));
-    expect(risks.length).withContext('a risk line shows its first sentence').toBeGreaterThan(0);
+    // Found by a review: the tested figure about this stock's risk was behind "more", and the line in sight
+    // repeated the row above it. The two figures are rows now; the sentence that says them is behind "more".
+    const risk = Array.from(el.querySelectorAll('.about-stock section')).find(it => it.querySelector('h4')?.textContent?.trim() === 'Risk of this stock')!;
+    const figures = Array.from(risk.querySelectorAll('dl.mark-facts > div')).map(row => [clean(row.querySelector('dt')), clean(row.querySelector('dd'))]);
+    expect(figures.map(it => it[0])).toEqual(['Price swings', 'Fell a further 20%']);
+    expect(figures[0][1]).toMatch(/^\d+% a year · (calm|volatile)$/);
+    expect(figures[1][1]).toMatch(/^.+ such stocks, within 13 weeks of the mark · (calm|volatile) ones: .+$/);
+    expect((risk.querySelector('ul') as HTMLElement).hidden).withContext('the sentence is one "more" away').toBeTrue();
   });
 
   it('has no group for the rule where no rule applies: a stock without a mark', () => {

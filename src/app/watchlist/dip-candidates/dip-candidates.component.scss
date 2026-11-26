@@ -64,6 +64,10 @@
   order: -1;
 }
 
+.folded .tied {
+  display: none;
+}
+
 .folded .legend {
   display: flex;
   flex-wrap: wrap;
@@ -268,7 +272,8 @@ tbody tr:hover .symbol,
 }
 
 .legend dt {
-  border-radius: 9px;
+  padding-bottom: 2px;
+  border-bottom: 1px dotted var(--ink-3);
   cursor: help;
 }
 
@@ -325,6 +330,39 @@ tbody tr:hover .symbol,
   font-size: var(--text-meta);
   font-weight: 500;
   color: var(--ink-2);
+}
+
+// The risk among them takes the row to itself, under the four gains it belongs with.
+.tested-figures .risk {
+  grid-column: 1 / -1;
+}
+
+// What the numbers do not say by themselves: a caption under them.
+.tested-limits {
+  margin: 6px 0 0;
+  font-size: var(--text-meta);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+// What the three marks mean, behind "How to read this": the mark as it looks in the lists, then its sentence.
+.meanings {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 0;
+  max-width: var(--measure);
+  font-size: var(--text-body);
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+.meanings > div {
+  display: contents;
+}
+
+.meanings dd {
+  margin: 0;
 }
 
 // Two by two at every width: left to wrap, the fourth number stood alone under the other three.

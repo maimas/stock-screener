@@ -126,12 +126,23 @@ section {
   color: var(--ink-2);
 }
 
-// The line that says so, over the group.
+// The line that opens it: what is behind it, set like a heading of the details, then, quieter, that it is the
+// same under every such stock (so it can be passed over the second time).
 .the-rule .same {
   margin: 16px 0 -8px;
+  max-width: none;
   font-size: var(--text-meta);
-  font-weight: 500;
   color: var(--ink-2);
+}
+
+.the-rule .rule-title {
+  font-size: var(--text-data);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.the-rule .rule-same {
+  margin-left: 10px;
 }
 
 // A section's heading is what the eye jumps between in three columns of sentences: it is set in the full ink and
@@ -156,7 +167,9 @@ p {
 // What the mark rests on: a row a fact. The name of the fact stands first, in bold, in a column of its own, so
 // the names read down and the figures read down; a tick stands before a fact that is enough for DIP BUY, a dash
 // before one that is not (never red: red is a loss on this page, and a WATCH is not one).
-.facts {
+// (Not the page's `dl.facts`, which sets figures one after the other on a line: these are a grid of names and
+// phrases, read down.)
+.mark-facts {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
   gap: 3px 14px;
@@ -164,20 +177,25 @@ p {
   max-width: 70ch;
 }
 
-.facts > div {
+.mark-facts > div {
   display: contents;
 }
 
-.facts dt {
+.mark-facts dt {
   position: relative;
   padding-left: 18px;
   font-weight: 600;
   white-space: nowrap;
 }
 
+// Rows with nothing to judge (the risk's two figures): no room kept for a sign before the name.
+.mark-facts.plain dt {
+  padding-left: 0;
+}
+
 // A fact that is not enough for the mark: a dash. A fact with nothing to judge (since when it has the mark) has
 // no sign before it.
-.facts .unmet dt::before {
+.mark-facts .unmet dt::before {
   content: "";
   position: absolute;
   left: 2px;
@@ -186,7 +204,7 @@ p {
   border-top: 2px solid var(--ink-3);
 }
 
-.facts .met dt::before {
+.mark-facts .met dt::before {
   content: "";
   position: absolute;
   top: 0.38em;
@@ -198,11 +216,11 @@ p {
   transform: rotate(45deg);
 }
 
-.facts dd {
+.mark-facts dd {
   margin: 0;
 }
 
-.facts .needs {
+.mark-facts .needs {
   color: var(--ink-2);
 }
 

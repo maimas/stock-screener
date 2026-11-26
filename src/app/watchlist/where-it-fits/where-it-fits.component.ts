@@ -25,5 +25,7 @@ export class WhereItFitsComponent {
   readonly title = FITS_TITLE;
   readonly note = FITS_NOTE;
   readonly notMarked = FITS_NOT_MARKED;
+  /** The fact in a few words, for a stock without the mark; `notMarked` says why, behind "more". */
+  readonly noSize = 'No size: it is not marked DIP BUY.';
   readonly noPortfolio = FITS_NO_PORTFOLIO;
 }

@@ -196,10 +196,44 @@ describe('DipCandidatesComponent: the stocks marked DIP BUY, one to a row', () =
       const box = el.querySelector('.about .tested-figures')!;
       expect(text(box.querySelector('h3'))).toMatch(/^In tests on \d+ stocks, over 6 months$/);
       const figures = Array.from(box.querySelectorAll('dl > div')).map(it => [text(it.querySelector('dt')), text(it.querySelector('dd'))]);
-      expect(figures.map(it => it[0])).toEqual(['DIP BUY, on average', 'DIP BUY, the typical one', 'Any stock that dropped', 'The market']);
-      expect(figures.every(it => /^[+−]\d+\.\d%$/.test(it[1]))).withContext(JSON.stringify(figures)).toBeTrue();
+      expect(figures.map(it => it[0])).toEqual(
+        ['DIP BUY, on average', 'DIP BUY, the typical one', 'Any stock that dropped', 'The market', 'DIP BUYs that fell a further 20% first']);
+      expect(figures.slice(0, 4).every(it => /^[+−]\d+\.\d%$/.test(it[1]))).withContext(JSON.stringify(figures)).toBeTrue();
       const sentence = text(el.querySelector('app-about .tested'));
-      expect(figures.filter(it => sentence.includes(it[1])).length).withContext('the same figures as the sentence behind the control').toBe(4);
+      expect(figures.filter(it => sentence.includes(it[1])).length).withContext('the same figures as the sentence behind the control').toBe(5);
+    });
+
+    // Found by a review: the four gains stood in sight and what limits them was a click away.
+    it('shows the risk and the reach of the tests with the gains, in sight', () => {
+      const {el} = shown({candidates: [candidate('AMD')], marks: {dipBuy: 1, watch: 0, pass: 0, none: 0}});
+      const box = el.querySelector('.about .tested-figures')!;
+      expect(text(box.querySelector('dl .risk dt'))).toBe('DIP BUYs that fell a further 20% first');
+      expect(text(box.querySelector('dl .risk dd'))).toMatch(/^(1 in \d+|\d+%)$/);
+      expect(text(box.querySelector('.tested-limits'))).toMatch(/^The typical one is the middle stock: half did better, half worse\. Tested \d{4}–\d{4} only\.$/);
+      expect(box.closest('app-about')).withContext('not behind the control').toBeNull();
+    });
+
+    it('says what the three marks mean first behind "How to read this", for a reader without a pointer', () => {
+      const {el} = shown({candidates: [candidate('AMD')], marks: {dipBuy: 1, watch: 0, pass: 0, none: 0}});
+      const meanings = Array.from(el.querySelectorAll('app-about .about-body > dl.meanings > div')).map(it => [text(it.querySelector('dt')), text(it.querySelector('dd'))]);
+      expect(meanings).toEqual([
+        ['DIP BUY', 'The price dropped 15% or more from its highest of the past year while the business keeps growing.'],
+        ['WATCH', 'Growing, but no such drop yet.'],
+        ['PASS', 'Not growing enough.'],
+      ]);
+      expect(el.querySelector('app-about .about-body')!.firstElementChild!.className).withContext('before the other notes').toBe('meanings');
+    });
+
+    it('offers the keyboard a way past the box, to the lists', () => {
+      const {fixture, card, el} = shown({candidates: [candidate('AMD')]});
+      const asked = jasmine.createSpy('skipToLists');
+      card.skipToLists.subscribe(asked);
+      const link = el.querySelector('a.skip-over') as HTMLAnchorElement;
+      expect(text(link)).toBe('Skip to your lists');
+      expect(link.compareDocumentPosition(el.querySelector('tbody button')!) & Node.DOCUMENT_POSITION_FOLLOWING).withContext('before the first stock').toBeTruthy();
+      link.click();
+      fixture.detectChanges();
+      expect(asked).toHaveBeenCalledTimes(1);
     });
 
     it('keeps how to read the table behind one control, whole, and out of the folded box', () => {

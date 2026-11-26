@@ -1,5 +1,6 @@
 import {money, signedMoney, signedPercent} from "./format";
 import {PositionView, TESTED_DAYS} from "./positions";
+import type {Fact} from "./recommendations";
 
 /**
  * "Your portfolio against the market": what the money that went into the stocks would have made had it gone into
@@ -78,6 +79,32 @@ export function againstMarketLines(it: AgainstMarket | undefined): string[] {
     lines.push(`Too early to mean much: on average this money has been in for ${timeIn(it.days)}. The tests looked at 6 months.`);
   }
   return lines;
+}
+
+/**
+ * The comparison as figures with their names, for the place beside the "What you own" headline: how far the stocks
+ * are from the market (named with how many of them it is about, when it cannot count them all), and, until the
+ * money has been in for the 6 months the tests looked at, how long it has been in and that this is too early to
+ * mean much. Each carries the sentences of `againstMarketLines` it comes from as its tip.
+ */
+export function againstMarketFacts(it: AgainstMarket | undefined): Fact[] {
+  if (!it) {
+    return [];
+  }
+  const lines = againstMarketLines(it);
+  const early = Math.round(it.days) < TESTED_DAYS;
+  // Under half a cent shows as $0: then they are level.
+  const level = Math.abs(it.ahead) < 0.005;
+  const facts: Fact[] = [{
+    label: it.compared === it.held ? 'Against the market' : `Against the market, ${it.compared} of ${it.held} stocks`,
+    value: level ? 'level' : `${money(it.ahead)} ${it.ahead > 0 ? 'ahead' : 'behind'}`,
+    // The sentences about the comparison itself: all but the one about the time.
+    tip: (early ? lines.slice(0, -1) : lines).join(' '),
+  }];
+  if (early) {
+    facts.push({label: 'Money in for', value: `${timeIn(it.days)}: too early to mean much`, tip: lines[lines.length - 1]});
+  }
+  return facts;
 }
 
 /** "less than a day", "1 day", "13 days", then whole weeks: "2 weeks". */

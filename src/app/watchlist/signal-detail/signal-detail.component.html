@@ -21,7 +21,7 @@
       <p class="lead" *ngIf="!facts.length">{{ lead }}</p>
       <p class="lead" *ngIf="facts.length" appMoreRest="details.lead">{{ lead }}</p>
       <!-- What the mark rests on, a row a fact: its name, its figure, and a tick where it is enough for DIP BUY. -->
-      <dl class="facts" *ngIf="facts.length">
+      <dl class="mark-facts" *ngIf="facts.length">
         <div *ngFor="let fact of facts; trackBy: trackByLabel" [class.met]="fact.ok === true" [class.unmet]="fact.ok === false">
           <dt>{{ fact.label }}<span class="visually-hidden" *ngIf="fact.ok !== undefined">{{ fact.ok ? ' (enough for the mark)' : ' (not enough for the mark)' }}</span></dt>
           <dd>{{ fact.value }}<span class="needs" *ngIf="fact.needs"> · {{ fact.needs }}</span></dd>
@@ -32,9 +32,20 @@
     <!-- What is risky about this one stock: how much its price swings, that it is unlike most tested ones, that its
          results are due. Its own lines, so with the stock and in the full ink; each shows its first sentence. -->
     <section *ngIf="risks.length">
-      <h4>Risk of this stock</h4>
-      <ul>
-        <li *ngFor="let line of risks; trackBy: trackByText"><app-more key="details.risk" [text]="line"></app-more></li>
+      <h4>Risk of this stock<app-more *ngIf="riskFacts.length" key="details.risk" what="the risk in a sentence"></app-more></h4>
+      <!-- How much the price swings, and how often such stocks fell further in the tests: the two figures, in
+           sight. A review found the tested figure behind "more" while the line in sight repeated the row above. -->
+      <dl class="mark-facts plain" *ngIf="riskFacts.length">
+        <div *ngFor="let fact of riskFacts; trackBy: trackByLabel">
+          <dt>{{ fact.label }}</dt>
+          <dd>{{ fact.value }}<span class="needs" *ngIf="fact.needs"> · {{ fact.needs }}</span></dd>
+        </div>
+      </dl>
+      <ul *ngIf="swings" appMoreRest="details.risk">
+        <li>{{ swings }}</li>
+      </ul>
+      <ul *ngIf="otherRisks.length">
+        <li *ngFor="let line of otherRisks; trackBy: trackByText"><app-more key="details.risk.more" [text]="line"></app-more></li>
       </ul>
     </section>
 
@@ -55,7 +66,9 @@
       <p>{{ fall }}</p>
       <!-- The headlines are shown until the Claude Code on this computer was asked to read the news; then its reading is. -->
       <app-drop-reading [symbol]="symbol" [name]="name" [drop]="news?.drop">
-        <p *ngIf="headlinesIntro">{{ headlinesIntro }}</p>
+        <!-- Why the headlines are there is one "more" away, at the line that leads into them (and gone with them
+             once the news was read). -->
+        <p *ngIf="headlinesIntro">{{ headlinesIntro }}<app-more *ngIf="headlines.length" key="details.dropped" what="why the headlines are here"></app-more></p>
         <ul *ngIf="headlines.length">
           <li *ngFor="let h of headlines">
             <a *ngIf="h.link; else plainTitle" [href]="h.link" target="_blank" rel="noopener noreferrer">{{ h.title }}</a>
@@ -63,7 +76,7 @@
             <span class="source" *ngIf="h.source"> {{ h.source }}<ng-container *ngIf="h.date">, {{ day(h.date) }}</ng-container></span>
           </li>
         </ul>
-        <p class="hint" *ngIf="headlines.length">A one-off scare and a change in the business look the same on a chart. The headlines are there to tell them apart.</p>
+        <p class="hint" *ngIf="headlines.length" appMoreRest="details.dropped">A one-off scare and a change in the business look the same on a chart. The headlines are there to tell them apart.</p>
       </app-drop-reading>
     </section>
   </div>
@@ -75,7 +88,8 @@
 
   <div class="group the-rule" *ngIf="tests.length || afterBuying.length">
     <!-- Said once, so that who opens several stocks in a row knows this part can be skipped the second time. -->
-    <p class="same">The same under every stock marked DIP BUY.<app-more key="details.rule" what="what the tests say, and what to do after you buy"></app-more></p>
+    <p class="same"><span class="rule-title">What the tests say, and what to do after you buy</span><app-more key="details.rule" what="what the tests say, and what to do after you buy"></app-more>
+      <span class="rule-same">The same under every stock marked DIP BUY.</span></p>
     <div class="rule-parts">
       <section *ngIf="tests.length" appMoreRest="details.rule">
         <h4>What the tests say</h4>

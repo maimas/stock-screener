@@ -74,6 +74,60 @@ describe('PositionsCardComponent, in everyday words', () => {
     expect(cardWith([]).marketLines).toEqual([]);
   });
 
+  // The owner: "too much text and not much signal". Beside the headline the comparison is figures with their names;
+  // the sentences they come from are where the pointer rests, and with the explanations of the box.
+  it('gives that comparison as figures for the place beside the headline', () => {
+    const card = cardWith([dated('NVDA'), dated('AMD')]);
+    expect(card.ownFacts.map(it => [it.label, it.value])).toEqual([
+      ['Against the market', '$280 behind'], ['Money in for', '14 weeks: too early to mean much'],
+    ]);
+    expect(card.ownFacts.map(it => it.tip)).toEqual(card.marketLines);
+    expect(cardWith([]).ownFacts).toEqual([]);
+  });
+
+  it('says in that place what the comparison needs, while no stock has a purchase date', () => {
+    const card = cardWith([nvda, amd]);
+    expect(card.ownFacts).toEqual([{label: 'Against the market', value: 'needs a purchase date', tip: card.undatedText}]);
+    expect(cardWith([dated('NVDA'), amd]).ownFacts[0].label).withContext('one can be compared: the figure is about it').toBe('Against the market, 1 of 2 stocks');
+  });
+
+  // The two cases of all the marked stocks at once were two sentences beside the table: they are the sums of two
+  // of its columns, so they are a row at its foot.
+  it('adds the two cases of the marked stocks up for a row at the foot of the table, from two of them', () => {
+    const card = cardWith([nvda, amd]);
+    expect(card.totals).toEqual({
+      label: 'Both marked DIP BUY at once', bad: '−$2,583', share: '6.5% of this portfolio', good: '+$5,355', tip: card.togetherLines.join(' '),
+    });
+    expect(cardWith([nvda, amd, row('ARM')]).totals!.label).toBe('All 3 marked DIP BUY at once');
+    expect(cardWith([amd]).totals).withContext('one marked stock: its own row has the two figures').toBeUndefined();
+    expect(cardWith([row('SPCX', {marked: false})]).totals).toBeUndefined();
+  });
+
+  it('gives what the entries come to as figures under the fields: the worth with cash, the cash share, the limit in dollars', () => {
+    const card = cardWith([row('NVDA', {shares: 60})], {cash: 500});
+    const share = /the cash is ([\d.]+%) of it/.exec(card.cashText)![1];
+    expect(card.settingFacts.map(it => [it.label, it.value])).toEqual([
+      ['Worth with cash', '$40,000'], ['In cash', share], ['Limit on one stock', '$800'],
+    ]);
+    expect(card.settingFacts.map(it => it.tip)).toEqual([card.cashText, card.cashText, card.limitText]);
+    expect(cardWith([row('NVDA', {shares: 60})], {cash: 500, starting: true}).settingFacts.map(it => it.value))
+      .withContext('a limit the user did not set is named as the starting value').toContain('$800 (starting value)');
+    expect(cardWith([row('NVDA', {shares: 60})]).settingFacts.map(it => it.label)).withContext('no cash entered').toEqual(['Limit on one stock']);
+    card.unvalued = true;
+    expect(card.settingFacts).withContext('no price arrived: nothing is worked out').toEqual([]);
+  });
+
+  it('gives the share kept outside stocks in dollars among those figures, with whether the cash covers it', () => {
+    const facts = (cash: number, short: number, atLeast = false) => cardWith([nvda], {
+      cash, reserve: {percent: 20, dollars: 8000, cash, short, cashPercent: cash / 400, atLeast},
+    }).settingFacts.filter(it => it.label === 'Kept outside stocks');
+    expect(facts(5000, 3000).map(it => it.value)).toEqual(['$8,000: cash is $3,000 short']);
+    expect(facts(9000, 0).map(it => it.value)).toEqual(['$8,000: cash covers it']);
+    expect(facts(5000, 3000, true).map(it => it.value)).withContext('a stock has no price').toEqual(['at least $8,000: cash is at least $3,000 short']);
+    expect(facts(9000, 0, true).map(it => it.value)).toEqual(['at least $8,000']);
+    expect(cardWith([nvda], {cash: 5000}).settingFacts.map(it => it.label)).withContext('no share set: nothing to show').not.toContain('Kept outside stocks');
+  });
+
   // Under the field "Keep outside stocks", which shows the share: the sentence adds what the field does not show,
   // what that share is in dollars and whether the cash covers it.
   it('says what the share to keep outside stocks comes to in dollars, and where the cash stands against it', () => {
@@ -599,6 +653,19 @@ describe('PositionsCardComponent, as shown: one box for a portfolio\'s plan and 
         expect(card.profitText).toBe(said!);
       });
 
+      // Both sides of the level in its test stay in sight with the level, as two figures: how often a stock ended
+      // with a loss, and what it made on average, each beside what keeping gave.
+      it('shows both sides of that level in the test as figures under the fields, while it is picked', () => {
+        const {el, card} = box({takeProfitPercent: 15});
+        const figures = Array.from(el.querySelectorAll('.figures dl.facts > div')).map(it => [text(it.querySelector('dt')), text(it.querySelector('dd'))]);
+        const level = figures.filter(([label]) => label!.includes('+15%') || label === 'on average');
+        expect(level.map(([label]) => label)).toEqual(['At +15% in the test, ended with a loss', 'on average']);
+        expect(level[0][1]).toMatch(/^\d+% to \d+%, kept \d+%$/);
+        expect(level[1][1]).toMatch(/^\+[\d.]+% to \+[\d.]+%, kept \+[\d.]+%$/);
+        expect(card.settingFacts.filter(it => it.label.includes('+15%'))[0].tip).toBe(card.profitText);
+        expect(box().card.settingFacts.some(it => it.label.includes('in the test'))).withContext('no level picked').toBeFalse();
+      });
+
       it('keeps the level when another setting is saved', () => {
         const {el, saved, fixture} = box({takeProfitPercent: 15});
         const cash = el.querySelector('input[name="cash"]') as HTMLInputElement;
@@ -681,22 +748,70 @@ describe('PositionsCardComponent, as shown: one box for a portfolio\'s plan and 
     const today = shown().querySelector('.today')!;
     expect(Array.from(today.children).map(part => part.className)).toEqual(['plan-lines', 'figures']);
     expect(today.querySelector('.plan-lines .lines')).withContext('the lines handed in by the page').not.toBeNull();
-    expect(text(today.querySelector('.figures .budget:not(.worth)'))).withContext('what the limit comes to stays with its field').toContain('of this portfolio is $');
+    expect(Array.from(today.querySelectorAll('.figures dl.facts dt')).map(text)).withContext('what the entries come to stays with the fields, as figures')
+      .toEqual(['Worth with cash', 'In cash', 'Limit on one stock']);
+    expect(today.querySelector('.figures p.budget')).withContext('and no sentence under the fields').toBeNull();
   });
 
-  it('puts the comparison with the market right under that headline, a paragraph a thought, and draws nothing without one', () => {
+  it('puts the comparison with the market beside that headline as figures, and its sentences with the explanations', () => {
     const el = shown(page => page.card = cardWith([dated('AMD'), dated('AMZN')]));
-    const own = el.querySelector('h3')!.parentElement!;
+    const figures = Array.from(el.querySelectorAll('.own dl.facts > div')).map(it => [text(it.querySelector('dt')), text(it.querySelector('dd'))]);
+    expect(figures).toEqual([['Against the market', '$280 behind'], ['Money in for', '14 weeks: too early to mean much']]);
     const lines = Array.from(el.querySelectorAll('p.market'));
     expect(lines.map(text)).toEqual([
       'The same money in the market on the same days: +$80 (+4.0%). Your stocks are $280 behind it.',
       'Too early to mean much: on average this money has been in for 14 weeks. The tests looked at 6 months.',
     ]);
-    expect(own.nextElementSibling).withContext('directly after the heading and its headline').toBe(lines[0]);
-    // The result above it is often a loss in red; the sentence that puts it in proportion is not left in grey.
-    expect(lines.map(line => line.classList.contains('early'))).toEqual([false, true]);
-    expect(lines[1].nextElementSibling?.querySelector('table')).withContext('and before the table').not.toBeNull();
-    expect(shown().querySelectorAll('p.market').length).withContext('these two have no purchase date').toBe(0);
+    expect(lines.every(line => !!line.closest('.about-body'))).withContext('the sentences are behind the one control').toBeTrue();
+    expect(Array.from(shown().querySelectorAll('.own dl.facts dd')).map(text)).withContext('these two have no purchase date').toEqual(['needs a purchase date']);
+  });
+
+  // The owner: "too much text and not much signal". The box had three sentences under its fields, three under the
+  // headline, one under the table and up to seven beside it. One is left in sight, the instruction.
+  it('keeps one sentence in sight in the whole box, what to do next, and the rest behind one control', () => {
+    const el = shown(page => page.card = cardWith([dated('AMD'), row('AMZN'), row('NVDA', {shares: 60})], {cash: 500}));
+    // (The plan's own lines are handed in by the page, and where the portfolios are saved is said at the foot.)
+    const inSight = Array.from(el.querySelectorAll('mat-card p'))
+      .filter(p => !p.closest('[hidden]') && !p.classList.contains('saved') && !p.classList.contains('lines')).map(text);
+    expect(inSight).toEqual(['Bought or sold? Click the stock\'s symbol, here or in "Could add", to record it.']);
+    const control = el.querySelector<HTMLButtonElement>('button.about-toggle')!;
+    expect(text(control)).toBe('How to read this box');
+    expect(el.querySelectorAll('button.about-toggle').length).toBe(1);
+    expect(el.querySelector('mat-card app-more')).withContext('no "more" a sentence').toBeNull();
+    const body = el.querySelector<HTMLElement>('.about-body')!;
+    expect(body.hidden).toBeTrue();
+    // Nothing is taken away: what the entries come to, the comparison, the two cases and what they add up to.
+    expect(body.querySelectorAll('p.budget').length).toBeGreaterThan(1);
+    expect(body.querySelectorAll('p.market').length).toBeGreaterThan(0);
+    expect(text(body)).toContain('"Bad case" and "good case": in tests, 1 in 10 stocks like these');
+    expect(text(body)).toContain('If the bad case hit both of your stocks marked DIP BUY at once');
+  });
+
+  it('gives the two cases of the marked stocks at once as a row at the foot of the table', () => {
+    const el = shown(page => page.card = cardWith([row('AMD'), row('NVDA', {shares: 60})], {cash: 500}));
+    const foot = el.querySelector('table tfoot tr.together')!;
+    // The share of the portfolio stands with the row's name: in the cell it made the column, and the table, wider.
+    expect(text(foot.querySelector('th'))).toBe('Both marked DIP BUY at once · bad case 6.5% of this portfolio');
+    expect(Array.from(foot.querySelectorAll('td')).map(text)).toEqual(['−$2,583', '+$5,355']);
+    const columns = el.querySelectorAll('table thead th').length;
+    const spanned = Array.from(foot.children).reduce((sum, cell) => sum + Number(cell.getAttribute('colspan') ?? 1), 0);
+    expect(spanned).withContext('the row is as wide as the table').toBe(columns);
+    expect(shown().querySelector('table tfoot')).withContext('one marked stock: no row for it').toBeNull();
+  });
+
+  it('offers, in the row of a stock without a purchase date, to add the date where the weeks would stand', () => {
+    const opened: string[] = [];
+    const fixture = TestBed.createComponent(PageWithTheBox);
+    fixture.componentInstance.card = cardWith([dated('AMD'), row('AMZN')]);
+    fixture.detectChanges();
+    fixture.debugElement.query(By.directive(PositionsCardComponent)).componentInstance.open.subscribe((symbol: string) => opened.push(symbol));
+    const el: HTMLElement = fixture.nativeElement;
+    const cells = Array.from(el.querySelectorAll('tbody td.held'));
+    expect(cells.map(text)).toEqual(['week 15 of 26', 'add date']);
+    const add = cells[1].querySelector('button')!;
+    expect(add.getAttribute('aria-label')).toBe('Add the purchase date of AMZN');
+    add.click();
+    expect(opened).toEqual(['AMZN']);
   });
 
   it('says in each row what the plan says about the stock, and does not say under the table what the pointer shows', () => {
@@ -766,8 +881,7 @@ describe('PositionsCardComponent, as shown: one box for a portfolio\'s plan and 
 
   // Once a portfolio holds something, nothing on this view said where a purchase or a sale is recorded.
   it('says, under the table, how to change what is recorded for a stock', () => {
-    expect(text(shown().querySelector('p.note.how'))).toBe(
-      'After you buy or sell, tell the page: click the stock\'s symbol, here or in "Could add". Its details take the purchase or the sale and work out the rest.');
+    expect(text(shown().querySelector('p.note.how'))).toBe('Bought or sold? Click the stock\'s symbol, here or in "Could add", to record it.');
     expect(shown().querySelector('.holdings-main p.note.how')).withContext('with the table, not at the foot of the box').not.toBeNull();
     expect(shown(page => page.card = cardWith([])).querySelector('p.note.how')).withContext('the empty portfolio has its own sentence').toBeNull();
   });

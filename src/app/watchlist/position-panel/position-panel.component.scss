@@ -134,4 +134,13 @@ input:focus-visible {
 // "Remove" takes a holding away: it stays in the line of the other three (a wider gap dropped it to a line of its own).
 .actions .remove {
   margin-left: 0;
+  // What it does cannot be put back from here: the red of "Delete list".
+  color: var(--loss);
+}
+
+// "Edit" and "Remove" are the lesser two of the four: closer set, so that all four stand in one row of the
+// details' column ("Remove" used to wrap to a row of its own).
+.actions button[mat-button] {
+  min-width: 0;
+  padding: 0 10px;
 }

@@ -4,7 +4,7 @@ import {Component, EventEmitter, HostListener, Input, OnChanges, Output} from "@
 import {NgForOf, NgIf} from "@angular/common";
 import {Stock} from "../../api/microsoft-money.service";
 import {DIP_PERCENT, revenueConsensusMillions, signalFor, SignalResult} from "../signal";
-import {AFTER_BUYING_NOTES, DIP_BUY_TEST_NOTES, volatilityNote} from "../evidence";
+import {AFTER_BUYING_NOTES, DIP_BUY_TEST_NOTES, EVIDENCE, inTen, volatilityNote} from "../evidence";
 import {BIG_DROP_PERCENT, DropNews, Headline} from "../drop-news";
 import {dipBuySince, SnapshotLog, valueBefore} from "../snapshot-log";
 import {NoVerdict} from "../cells/signal/signal-cell.component";
@@ -78,6 +78,12 @@ export class SignalDetailComponent implements OnChanges {
   facts: MarkFact[] = [];
   tests: readonly string[] = [];
   risks: string[] = [];
+  /** The risk of this one stock as figures: how much its price swings, and how often such stocks fell further in the tests. */
+  riskFacts: MarkFact[] = [];
+  /** The sentence that says those two figures in words: behind "more" while the figures are shown. */
+  swings = '';
+  /** The other lines about its risk (unlike most tested stocks; results due): each shows its first sentence. */
+  otherRisks: string[] = [];
   afterBuying: readonly string[] = [];
   context: ContextLine[] = [];
   symbol = '';
@@ -119,11 +125,13 @@ export class SignalDetailComponent implements OnChanges {
     this.facts = signal ? [...verdictFacts(signal), ...(since ? [since] : [])] : [];
     this.tests = isDipBuy ? DIP_BUY_TEST_NOTES : [];
     this.afterBuying = isDipBuy ? AFTER_BUYING_NOTES : [];
-    this.risks = [
-      signal?.volatilityTier && signal.volatility !== undefined ? volatilityNote(signal.volatilityTier, signal.volatility) : '',
+    this.swings = signal?.volatilityTier && signal.volatility !== undefined ? volatilityNote(signal.volatilityTier, signal.volatility) : '';
+    this.riskFacts = signal?.volatilityTier && signal.volatility !== undefined ? swingFacts(signal.volatilityTier, signal.volatility) : [];
+    this.otherRisks = [
       signal?.rareInTests ?? '',
       signal?.earningsInDays !== undefined ? resultsSoonLine(signal.earningsInDays) : '',
     ].filter(it => !!it);
+    this.risks = [this.swings, ...this.otherRisks].filter(it => !!it);
 
     this.context = [
       ...(signal?.factors ?? []).map(it => ({mark: it.points > 0 ? 'plus' : it.points < 0 ? 'minus' : 'neutral', text: it.reason} as ContextLine)),
@@ -239,8 +247,25 @@ export function verdictFacts(signal: SignalResult): MarkFact[] {
       ? {label: 'Dropped', value: 'its highest price of the past year is not known'}
       : {
         label: 'Dropped', value: `${signal.belowHigh.toFixed(1)}% below its highest price of the past year`,
-        needs: `DIP BUY needs ${DIP_PERCENT}% or more`, ok: signal.belowHigh >= DIP_PERCENT,
+        needs: `needs ${DIP_PERCENT}%`, ok: signal.belowHigh >= DIP_PERCENT,
       },
+  ];
+}
+
+/**
+ * How much the price swings and what that meant in the tests, as two rows: the stock's own figure with the group
+ * it puts the stock in, then how many stocks of that group fell a further 20% within 13 weeks of the mark, with
+ * the other group's figure beside it. The same figures as `volatilityNote`, which says them in a sentence.
+ */
+export function swingFacts(tier: 'high' | 'low', volatility: number): MarkFact[] {
+  const fell = EVIDENCE.fresh.fellPercent;
+  const own = tier === 'high' ? fell.volatile : fell.calm, other = tier === 'high' ? fell.calm : fell.volatile;
+  return [
+    {label: 'Price swings', value: `${volatility.toFixed(0)}% a year`, needs: tier === 'high' ? 'volatile' : 'calm'},
+    {
+      label: 'Fell a further 20%', value: `${inTen(own)} such stocks, within 13 weeks of the mark`,
+      needs: `${tier === 'high' ? 'calm' : 'volatile'} ones: ${inTen(other)}`,
+    },
   ];
 }
 

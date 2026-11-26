@@ -403,9 +403,11 @@ input:focus-visible {
   color: var(--ink-3);
 }
 
-// What to do after acting on the plan: under the table and its legend, at the size of the sentences around it.
+// What to do after acting on the plan: under the table, at the size of the sentences around it, and on one line
+// where the box has the room.
 .note.how {
   margin-top: 12px;
+  max-width: none;
 }
 
 // A heading that explains itself when pointed at or reached with the keyboard is marked as in the lists: a dotted
@@ -438,11 +440,68 @@ th[appTipOnFocus] > span {
   max-width: 100%;
 }
 
-// The notes stay beside the table down to a column of about 40 characters: in the box beside "Could add" on a wide
-// window they used to drop under a long table and run to the foot of the screen, with a blank band beside the rows.
-.holdings > .notes-about {
-  flex: 1 1 264px;
-  max-width: var(--measure);
+// The foot of the table: the two "case" columns added up for the marked stocks, as if their cases came true
+// together. A line sets it off from the rows; its name is quiet, its two figures as strong as a total is.
+tfoot .together th,
+tfoot .together td {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  border-top: 1px solid var(--ink-3);
+  border-bottom: 0;
+}
+
+tfoot .together th {
+  text-align: right;
+  font-size: var(--text-meta);
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
+tfoot .together td.num {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+tfoot .together th .sub {
+  font-size: inherit;
+}
+
+// In the row of a stock without a purchase date, where the weeks would stand: the way to add the date.
+.add-date {
+  font-size: var(--text-data);
+}
+
+// The comparison with the market, and what the entries come to under the fields: figures with their names
+// (`dl.facts`, styles.scss). The comparison has the line under the headline to itself, so that the choice of
+// columns stays at the end of the headline's line, above the table's own end, at every width.
+.own-facts {
+  order: 1;
+  flex: 1 0 100%;
+}
+
+.settings-facts {
+  margin-top: 8px;
+  max-width: 580px;
+}
+
+// The one control of the box's explanations, at its foot. Opened in a wide box they run in columns (in one column
+// of 56 characters they stood beside an empty box): each block keeps together. The body belongs to the control's
+// own view, hence ::ng-deep.
+.about {
+  margin-top: 6px;
+}
+
+@media (min-width: 1200px) {
+  .about ::ng-deep .about-body {
+    columns: 2 440px;
+    column-gap: 56px;
+  }
+
+  .about ::ng-deep .about-body > * {
+    break-inside: avoid;
+    margin-top: 0;
+    margin-bottom: 10px;
+  }
 }
 
 // The table scrolls sideways inside this box when the box is narrower than the table (a phone). The box is the

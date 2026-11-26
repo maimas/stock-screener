@@ -291,3 +291,33 @@ form button[type="submit"].mat-mdc-outlined-button:not(:disabled) {
   border-color: var(--brand);
   color: var(--brand-ink);
 }
+
+/* Figures with their names (`dl.facts`): what a sentence used to carry, set so that the number is found at a
+   glance. One after the other on a line, and onto the next where the box is narrow: the name quiet and small, the
+   figure in full ink and strong. Used beside a box's headline, under its fields and for the answer to a tick. */
+dl.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 28px;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+dl.facts > div {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-height: 28px;
+}
+
+dl.facts dt {
+  font-size: var(--text-meta);
+  color: var(--ink-2);
+}
+
+dl.facts dd {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--ink);
+}

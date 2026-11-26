@@ -5,6 +5,7 @@ import {EVIDENCE, Figures, textsFor} from "./evidence";
 import {money, signedPercent, signedWholeMoney} from "./format";
 import {PortfolioView} from "./portfolio-view";
 import {CASH_LABEL, KEEP_OUT_LABEL, LIMIT_SLACK, PLAN_BOX, TestedCases} from "./sizing";
+import {tickedTogether, TiedGroups} from "./tied-groups";
 
 /**
  * A recommendation: one stock marked DIP BUY, sized for one portfolio. The watchlist finds the stock (the mark is
@@ -47,6 +48,25 @@ export function couldAddLead(count: number, portfolio: string, owned = 0): strin
     : `${count} stocks are ${marked} and are not in ${portfolio} yet. ` +
       'The page ranks none of them: the tests found no way to tell which will do best. ' +
       'Each size is for adding that one stock alone: once a stock is added, the others are sized again.';
+}
+
+/**
+ * A figure with its name: what a sentence used to carry, set so that the number is found at a glance (the owner, of
+ * a page of careful sentences: "too much text and not much signal"). `tip` is the sentence it comes from, for the
+ * pointer and the keyboard, so that nothing is said only in short.
+ */
+export type Fact = { label: string, value: string, tip?: string };
+
+/**
+ * Beside the title, in place of the lead's first sentence: how many stocks the table lists, whose they are not
+ * yet, and that the page ranks none of them. The lead itself is with the explanations of the box.
+ */
+export function couldAddHeadline(count: number, portfolio: string, owned = 0): string {
+  if (count === 0) {
+    return owned === 0 ? '' : `${portfolio} holds every stock marked DIP BUY · ${owned} could be added to`;
+  }
+  // One stock: no order to speak of.
+  return count === 1 ? `1 stock marked DIP BUY, not in ${portfolio} yet` : `${count} stocks marked DIP BUY, not in ${portfolio} yet · not ranked`;
 }
 
 /**
@@ -98,7 +118,8 @@ function moneyNamed(own: boolean, counted: boolean): { mid: string, start: strin
 }
 
 /**
- * Under the lead: that ticking is the way in, and how much there is to split (or where to enter the cash).
+ * The one sentence the box keeps in sight: an instruction, that ticking is the way in and how much there is to
+ * split, or why there is nothing to split yet and where to enter the cash.
  *
  * @param freed   what selling would free, once the user asked for it to be counted in the split (`toSell`); else 0
  * @param offered the plan says to sell some of a stock and that money is not counted: where there is nothing to
@@ -107,31 +128,30 @@ function moneyNamed(own: boolean, counted: boolean): { mid: string, start: strin
  *                it is split. 0 when they set no share
  */
 export function tickHint(cash: number | undefined, freed = 0, offered = false, keep = 0, keepUnknown = false): string {
-  const tick = 'Tick the ones you are thinking of buying';
+  const tick = 'Tick stocks to split';
   if (keep > 0 && keepUnknown) {
-    return `${tick}. O${KEEP_UNKNOWN.slice(1)}`;
+    // No "tick": nothing would come of it yet.
+    return `O${KEEP_UNKNOWN.slice(1)}`;
   }
   const own = cash !== undefined && cash > 0 ? cash : 0;
   const there = own + (freed > 0 ? freed : 0);
   if (!(there > 0)) {
     // With a share kept, "enter it" alone would mislead: cash up to that amount still leaves nothing to split.
     return keep > 0
-      ? `${tick}. This portfolio has no cash entered, and only cash above the ${money(keep)} you keep outside stocks is split: ` +
-        `enter it in ${CASH_FIELD}${orCount(offered)}.`
-      : `${tick}. This portfolio has no cash entered, so there is nothing to split yet: enter it in ${CASH_FIELD}${orCount(offered)}.`;
+      ? `No cash to split yet, and only cash above the ${money(keep)} you keep outside stocks is split: enter it in ${CASH_FIELD}${orCount(offered)}.`
+      : `No cash to split yet: enter it in ${CASH_FIELD}${orCount(offered)}.`;
   }
-  const what = freed > 0 ? (own > 0 ? `this portfolio's cash and what selling would free` : 'what selling would free') : `this portfolio's cash`;
+  const named = moneyNamed(own > 0, freed > 0);
   if (!(keep > 0)) {
-    return `${tick}: the page then splits ${what} (${money(there)}) between them.`;
+    return `${tick} ${named.mid} (${money(there)}) between them.`;
   }
   if (there - keep < CENT) {
-    const named = moneyNamed(own > 0, freed > 0);
-    return `${tick}. ${named.start} (${money(there)}) ${named.is} within the ${money(keep)} you keep outside stocks, ` +
-      `so there is nothing to split yet.${offered ? ` Or tick "${COUNT_SOLD}".` : ''}`;
+    return `Nothing to split yet: ${named.mid} (${money(there)}) ${named.is} within the ${money(keep)} you keep outside stocks.` +
+      (offered ? ` Or tick "${COUNT_SOLD}".` : '');
   }
   // With the cash alone the clause reads on; with two kinds of money it is set off, so that it is about both.
   const above = `above the ${money(keep)} you keep outside stocks (${money(there - keep)})`;
-  return freed > 0 ? `${tick}: the page then splits ${what}, ${above}, between them.` : `${tick}: the page then splits ${what} ${above} between them.`;
+  return freed > 0 ? `${tick} ${named.mid}, ${above}, between them.` : `${tick} ${named.mid} ${above} between them.`;
 }
 
 /**
@@ -305,6 +325,70 @@ export function splitLines(split: CashSplit, o: SplitSaid = {}): string[] {
 }
 
 /**
+ * The answer to a tick as figures with their names, for the place beside the lead: what the ticked stocks are short
+ * of, the money there is to split, what would stay cash, how many stocks the portfolio would hold, and what a bad
+ * half-year could cost today and after. Each carries the sentence of `splitLines` it comes from as its tip.
+ *
+ * Where those sentences have one line that says why nothing is split (no cash, everything within what is kept, a
+ * stock without a price), or that the ticked stocks are at their shares already, that line is the answer
+ * (`instead`) and there are no figures.
+ */
+export function splitFacts(split: CashSplit, o: SplitSaid = {}): { facts: Fact[], instead: string } {
+  const lines = splitLines(split, o);
+  const short = split.parts.filter(part => part.gap > 0).length;
+  // One line, or no ticked stock short of anything: the first sentence is the whole answer.
+  if (lines.length < 2 || short === 0) {
+    return {facts: [], instead: lines[0] ?? ''};
+  }
+  const freed = o.freed ?? 0, counted = freed > 0;
+  const own = (o.cash ?? split.cash - freed) >= CENT;
+  const facts: Fact[] = [
+    {label: short === 1 ? 'Short of its share' : 'Short of their shares', value: money(split.gap), tip: lines[0]},
+    // Where the money is from is the last of the sentences.
+    {label: !counted ? 'Cash to split' : own ? 'Cash and sale money to split' : 'Sale money to split', value: money(split.cash),
+      tip: lines[lines.length - 1]},
+  ];
+  // What is over, said only where the sentence says it: the money covers all, as the two amounts print.
+  if (split.left >= CENT && money(split.placed) === money(split.gap)) {
+    facts.push({label: counted ? 'Would be left as cash' : 'Stays cash', value: money(split.left), tip: lines[0]});
+  }
+  const {stocksBefore: before, stocksAfter: after} = split;
+  if (after > before) {
+    facts.push({
+      label: 'Stocks held', value: before > 0 ? `${before} today, ${after} after` : `${after} after`,
+      tip: lines.find(line => line.startsWith('You would hold')),
+    });
+  }
+  const bad = badHalfYearLine(split, o);
+  if (bad) {
+    const today = signedWholeMoney(-split.togetherLossBefore), then = signedWholeMoney(-split.togetherLossAfter);
+    facts.push(split.togetherLossBefore > 0
+      ? {label: 'Bad half-year, every marked stock at once', value: `${today} today, ${then} after${counted ? ' selling and buying' : ''}`, tip: bad}
+      : {label: 'Bad half-year, what you would buy', value: then, tip: bad});
+  }
+  return {facts, instead: ''};
+}
+
+/**
+ * Which of the ticked stocks moved together over the past year, as one more figure of the answer to a tick: the
+ * stocks with their group, or that none of them did. Its sentence (`tickedTogether`) is the tip. Nothing for fewer
+ * than two ticked stocks, or while no stock on the page is in a group. A fact about the past year; it picks nothing.
+ */
+export function tiedFact(ticked: string[], tied: TiedGroups): Fact | undefined {
+  const tip = tickedTogether(ticked, tied);
+  if (!tip) {
+    return undefined;
+  }
+  const names = (symbols: string[]) => symbols.length < 2 ? symbols.join('') : `${symbols.slice(0, -1).join(', ')} and ${symbols[symbols.length - 1]}`;
+  const shared = tied.groups.map(group => ({letter: group.letter, symbols: group.symbols.filter(symbol => ticked.includes(symbol))}))
+    .filter(it => it.symbols.length > 1);
+  return {
+    label: 'Moved together', tip,
+    value: shared.length === 0 ? `none of the ${ticked.length}` : shared.map(it => `${names(it.symbols)} (group ${it.letter})`).join('; '),
+  };
+}
+
+/**
  * What a bad half-year could cost today and after the ticked purchase, in a sentence: the one line of the split
  * that is about risk. The box shows it under the table among the other lines (`splitLines`) and again beside the
  * answer to a tick, so it is a value of its own. Nothing while nothing would be bought: no money to split, or every
@@ -416,6 +500,15 @@ export function sellNote(sell: ToSell[]): string {
 
 /** Beside the box under that sentence: the money those sales would free is then split with the cash. */
 export const COUNT_SOLD = 'Count that money in the split';
+
+/**
+ * Above the table, what those sales would free as a figure with its name, beside the box that counts it. The
+ * sentence that names the stocks (`sellNote`) is its tip. Nothing while the plan asks to sell nothing.
+ */
+export function sellFact(sell: ToSell[]): Fact | undefined {
+  return sell.length === 0 ? undefined
+    : {label: 'SELL SOME would free', value: money(sell.reduce((sum, it) => sum + it.free, 0)), tip: sellNote(sell)};
+}
 
 /** In the row of a stock that is owned, where the others say what the portfolio holds that is like them. */
 export function ownedFit(value: number): string {

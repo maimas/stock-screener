@@ -6,8 +6,9 @@
     <li><app-says [text]="resultText"></app-says></li>
     <li>{{ timeText }}</li>
     <li *ngIf="weightText">{{ weightText }}</li>
-    <li *ngIf="riskText" [class.over]="row.risk?.overBudget"><app-says [text]="riskText"></app-says></li>
-    <li *ngIf="rangeText"><app-says [text]="rangeText"></app-says></li>
+    <!-- The two longest lines show their first sentence; the rest is one "more" away. -->
+    <li *ngIf="riskText" [class.over]="row.risk?.overBudget"><app-more key="details.own" [text]="riskText"></app-more></li>
+    <li *ngIf="rangeText"><app-more key="details.own" [text]="rangeText"></app-more></li>
   </ul>
   <!-- A purchase and a sale are what the plan asks for, so they come first; "Edit" corrects what is recorded. -->
   <div class="actions">

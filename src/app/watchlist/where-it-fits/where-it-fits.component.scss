@@ -25,6 +25,12 @@ li {
   font-variant-numeric: tabular-nums;
 }
 
+// What the figures in the lines are, beside the heading: a caption, not part of the heading's weight.
+.unit {
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
 .hint {
   margin: 6px 0 0;
   max-width: 70ch;

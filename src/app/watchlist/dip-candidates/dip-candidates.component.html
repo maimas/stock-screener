@@ -2,6 +2,8 @@
   <mat-card-content>
     <!-- The title, and the choice between the whole box and the least of it: folded, the box is a narrow strip and
          the lists beside it get the room. -->
+    <!-- A way past the box for the Tab key (every stock in it is a stop): out of sight until it has the keyboard. -->
+    <a class="skip-over" href="" (click)="skip($event)">Skip to your lists</a>
     <div class="head">
       <h2 class="title">Dip candidates</h2>
       <button type="button" class="link-button fold" [attr.aria-expanded]="!folded" (click)="foldedChange.emit(!folded)"
@@ -128,16 +130,24 @@
         <div class="tested-figures" *ngIf="candidates.length > 0 && !folded">
           <h3 class="tested-title">{{ tested.title }}</h3>
           <dl>
-            <div *ngFor="let it of tested.figures">
+            <div *ngFor="let it of tested.figures" [class.risk]="it.risk">
               <dt>{{ it.label }}</dt>
               <dd>{{ it.value }}</dd>
             </div>
           </dl>
+          <!-- What the numbers do not say by themselves: which stock "the typical one" is, and how far the tests reach. -->
+          <p class="tested-limits">{{ tested.limits }}</p>
         </div>
         <!-- How to read the box: what was tested and its limits, what the letters are and are not, and whose an
              order of the rows is. Behind the box's one control, whole, where sentences wrap (in the table's own
              block, which is as wide as its widest line, one sentence made the box as wide as itself). -->
         <app-about key="dip.about" label="How to read this" *ngIf="candidates.length > 0 && !folded">
+          <!-- What the marks mean comes first: it is on each mark too, but only for a pointer or the Tab key. -->
+          <dl class="meanings">
+            <div><dt><span class="verdict-pill dip">DIP BUY</span></dt><dd>{{ meanings.dipBuy }}</dd></div>
+            <div><dt><span class="verdict-pill watch">WATCH</span></dt><dd>{{ meanings.watch }}</dd></div>
+            <div><dt><span class="verdict-pill pass">PASS</span></dt><dd>{{ meanings.pass }}</dd></div>
+          </dl>
           <p class="note tested">{{ cardNote }}</p>
           <p class="note tied-note" *ngIf="groups.groups.length > 0">{{ tiedNote }}</p>
           <p class="note order-note" *ngIf="candidates.length > 1">{{ orderNote }}</p>

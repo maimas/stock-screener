@@ -10,16 +10,15 @@ import {Position} from "../positions";
 import {ADD_TIP, PurchaseDraft, PurchaseFormComponent} from "../purchase-form/purchase-form.component";
 import {PurchaseLine, PurchasesFormComponent} from "../purchases-form/purchases-form.component";
 import {
-  Addition, afterSelling, badCaseTip, badHalfYearLine, COLUMN_HELP, COLUMNS, COULD_ADD, couldAddLead, COUNT_SOLD, FIT_NOTE, fitBrief, goodCaseTip, NO_SIZE_NOTE,
-  nothingToAdd, ORDER_NOTE, ownedFit, OWNED_ROWS, readingTitleOf, Recommendation, RowReading, sellNote, shareText, SIZE_RULES, sizeTip, SizingInput, splitCell,
-  splitLines, tickHint, toSell, ToSell, CENT
+  Addition, afterSelling, badCaseTip, badHalfYearLine, COLUMN_HELP, COLUMNS, COULD_ADD, couldAddHeadline, couldAddLead, COUNT_SOLD, Fact, FIT_NOTE, fitBrief,
+  goodCaseTip, NO_SIZE_NOTE, nothingToAdd, ORDER_NOTE, ownedFit, OWNED_ROWS, readingTitleOf, Recommendation, RowReading, sellFact, sellNote, shareText,
+  SIZE_RULES, sizeTip, SizingInput, splitCell, splitFacts, splitLines, tickHint, tiedFact, toSell, ToSell, CENT
 } from "../recommendations";
 import {TestedCases} from "../sizing";
 import {SaysComponent} from "../says/says.component";
 import {byGroup, GROUP_HELP, groupBySymbol, groupTip, NO_GROUPS, tickedTogether, TIED_NOTE, TiedGroup, TiedGroups} from "../tied-groups";
 import {ariaSort, inOrder, numberIn, orderAfterClick, RowOrder} from "../row-order";
-import {MoreComponent} from "../more/more.component";
-import {MoreRestDirective} from "../more/more-rest.directive";
+import {AboutComponent} from "../more/about.component";
 import {FACT_COLUMNS, FACT_HELP, FACTS_NOTE, StockFacts} from "../stock-facts";
 
 /** One row, as it is shown: every cell worked out once, when what the box is given changes. */
@@ -106,7 +105,7 @@ const FROM_THE_TOP = new Set<AddColumn>(['symbol', 'group', 'sector', 'moves']);
   selector: "app-could-add",
   standalone: true,
   imports: [NgIf, NgForOf, NgTemplateOutlet, MatCardModule, MatTooltipModule, SaysComponent, PurchaseFormComponent,
-    PurchasesFormComponent, MoreComponent, MoreRestDirective],
+    PurchasesFormComponent, AboutComponent],
   templateUrl: "./could-add.component.html",
   styleUrls: ["./could-add.component.scss"]
 })
@@ -306,8 +305,11 @@ export class CouldAddComponent implements OnChanges {
   rows: Row[] = [];
   newRows: Row[] = [];
   ownedRows: Row[] = [];
+  /** Which stocks these are, that the page ranks none and that each size stands alone: the first of the explanations. */
   lead = '';
-  /** Under the lead: that ticking is the way to a split of the cash. Nothing while there are no sizes to split by. */
+  /** Beside the title: the same in a count and a few words. */
+  headline = '';
+  /** The one sentence in sight: that ticking is the way to a split of the cash. Nothing while there are no sizes to split by. */
   hint = '';
   /** Under the example: what holds for every row, or how to get sizes while there are none. */
   sizeNote = SIZE_RULES;
@@ -349,17 +351,45 @@ export class CouldAddComponent implements OnChanges {
   private cells = new Map<string, CashCell>();
   splitSays: string[] = [];
   /**
-   * The line about a bad half-year, of those lines, by itself: for the answer to a tick beside the lead. Empty while
-   * nothing is ticked or nothing would be bought.
+   * The line about a bad half-year, of those lines, by itself. Empty while nothing is ticked or nothing would be
+   * bought.
    */
   badCaseSays = '';
+  /**
+   * The answer to a tick as it stands beside the instruction: figures with their names, each with the sentence it
+   * comes from, or the one sentence that says why nothing is split.
+   */
+  splitFigures: Fact[] = [];
+  splitInstead = '';
+
+  /** Those figures and, with two or more ticked, which of the ticked stocks moved together over the past year. */
+  get answerFacts(): Fact[] {
+    const tied = tiedFact(this.rows.map(row => row.symbol).filter(symbol => this.isTicked(symbol)), this.groups);
+    if (!tied) {
+      return this.splitFigures;
+    }
+    const kept = this.answerKept;
+    if (kept && kept.figures === this.splitFigures && kept.tied.value === tied.value) {
+      return kept.facts;
+    }
+    this.answerKept = {figures: this.splitFigures, tied, facts: [...this.splitFigures, tied]};
+    return this.answerKept.facts;
+  }
+
+  private answerKept?: { figures: Fact[], tied: Fact, facts: Fact[] };
+
+  trackByLabel(_: number, fact: Fact): string {
+    return fact.label;
+  }
 
   /** The stocks the plan says to sell some of (SELL SOME), each with what that would free. */
   private sell: ToSell[] = [];
-  /** The sell side in a sentence; nothing while the portfolio is worth nothing. */
+  /** The sell side in a sentence, with the explanations; nothing while the portfolio is worth nothing. */
   sellSays = '';
-  /** The plan asks to sell something: the sentence then stands above the table, with a box to count the money. */
+  /** The plan asks to sell something: what that would free then stands above the table, with a box to count the money. */
   hasSale = false;
+  /** What those sales would free, as a figure with its name; none while the plan asks to sell nothing. */
+  saleFact?: Fact;
   /** The user asked for what those sales would free to be split with the cash. Looked at, not saved, like the ticks. */
   countSold = false;
   /** The stocks the plan named when that was ticked: the tick is for that sale, and does not count another. */
@@ -408,6 +438,7 @@ export class CouldAddComponent implements OnChanges {
     this.canRecord = this.rows.some(row => this.prices[row.symbol] > 0);
     this.sizeNote = this.hasSizes ? SIZE_RULES : NO_SIZE_NOTE;
     this.lead = couldAddLead(fresh.length, this.portfolio, more.length);
+    this.headline = couldAddHeadline(fresh.length, this.portfolio, more.length);
     this.emptyText = nothingToAdd(this.marked);
 
     // The sell side, from the same figures as the sizes. Once the plan asks to sell nothing there is no freed
@@ -416,6 +447,7 @@ export class CouldAddComponent implements OnChanges {
     this.sell = this.hasSizes ? toSell(this.sizing) : [];
     this.sellSays = this.hasSizes ? sellNote(this.sell) : '';
     this.hasSale = this.sell.length > 0;
+    this.saleFact = sellFact(this.sell);
     this.countSold = this.countSold && this.hasSale && this.namedToSell() === this.countedFor;
 
     // A stock that left the table (its mark changed, or all of its share was bought) takes its tick with it. One
@@ -572,9 +604,9 @@ export class CouldAddComponent implements OnChanges {
   /** The form for the ticked stocks was cancelled: the keyboard goes back to the button that opened it. */
   cancelBatch(): void {
     this.batching = false;
-    // The one of the two buttons that is on the screen: beside the answer in a wide box, at the foot otherwise.
-    // With one row left ticked there is no such button: the keyboard then goes to that row's tick, and failing
-    // that to the box itself. It is never left on nothing.
+    // Back to the button the form was opened with, which stands with the answer to a tick. With one row left
+    // ticked there is no such button: the keyboard then goes to that row's tick, and failing that to the box
+    // itself. It is never left on nothing.
     setTimeout(() => {
       const box = this.host.nativeElement;
       const to = Array.from(box.querySelectorAll<HTMLElement>('button.batch')).find(button => button.offsetParent !== null)
@@ -638,6 +670,8 @@ export class CouldAddComponent implements OnChanges {
       this.cells = new Map();
       this.splitSays = [];
       this.badCaseSays = '';
+      this.splitFigures = [];
+      this.splitInstead = '';
       this.batchLines = [];
       this.batching = false;
       return;
@@ -666,5 +700,8 @@ export class CouldAddComponent implements OnChanges {
     const alone = Object.fromEntries(ticked.flatMap(row => row.alone === undefined ? [] : [[row.symbol, row.alone] as const]));
     this.splitSays = splitLines(this.split, {freed, offered, alone, keep, cash, keepUnknown});
     this.badCaseSays = badHalfYearLine(this.split, {freed, keep, keepUnknown});
+    const answer = splitFacts(this.split, {freed, offered, alone, keep, cash, keepUnknown});
+    this.splitFigures = answer.facts;
+    this.splitInstead = answer.instead;
   }
 }
