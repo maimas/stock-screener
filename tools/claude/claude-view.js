@@ -30,6 +30,7 @@ const word = (values, label, tested = false) => ({kind: 'enum', values, label, s
 const signed = value => `${value > 0 ? '+' : ''}${value}%`;
 const percent = value => `${value}%`;
 const plain = value => String(value);
+const days = count => `${count} day${count === 1 ? '' : 's'}`;
 
 /**
  * Every figure a request may carry: what it may be, and how the question names it. A figure marked as tested is
@@ -43,9 +44,11 @@ const FACT_FIELDS = {
   swingGroup: word(['high', 'low', 'middle'], 'Swings compared with other marked stocks', true),
   fellFurther: number(0, 10, 'Marked stocks with such swings that fell a further 20% within 13 weeks', value => `${value} in 10`, true),
   salesGrowth: number(-100, 10000, 'Sales, latest quarter against a year earlier', signed),
+  profitGrowth: number(-1000, 10000, 'Profit per share expected, against the past year', signed),
   eps: number(-1000, 1000, 'Profit per share over the past year', plain, false, 2),
   debtToEquity: number(0, 1000, 'Debt to equity', plain, false, 2),
-  pe: number(-1000, 10000, 'Price to expected earnings (forward P/E)', plain),
+  // The P/E the details show beside its range: the price for the profit of the past year, not for the profit expected.
+  pe: number(-1000, 10000, 'Price for its yearly profit (P/E)', plain),
   peLow: number(-1000, 10000, 'Lowest P/E of the past five years', plain),
   peHigh: number(-1000, 10000, 'Highest P/E of the past five years', plain),
   targetPercent: number(-100, 1000, 'Analysts\' middle price target, from today\'s price', signed),
@@ -54,8 +57,15 @@ const FACT_FIELDS = {
   from200: number(-100, 1000, 'Price against its average of the past 200 days', signed),
   rising200: word(['yes', 'no'], 'That 200-day average is rising'),
   ownersInProfit: number(0, 100, 'Owners who paid less than today\'s price', percent),
-  resultsInDays: number(-400, 400, 'Results', value => value < 0 ? `reported ${-value} days ago` : value === 0 ? 'due today' : `due in ${value} days`),
+  ownersPaid: number(-100, 10000, 'What the average owner paid, against today\'s price', signed),
+  resultsInDays: number(0, 400, 'Next results', value => value === 0 ? 'due today' : `due in ${days(value)}`),
+  reportedDaysAgo: number(0, 400, 'Last results', value => value === 0 ? 'reported today' : `reported ${days(value)} ago`),
   beat: number(-1000, 10000, 'Last results against what analysts expected', signed),
+  // "The business", in the details' own words, each beside its industry: averages of five years, not tested.
+  keepsOfSales: number(-1000, 1000, 'Keeps of its sales (gross margin, average of 5 years)', percent),
+  industryKeepsOfSales: number(-1000, 1000, 'Its industry keeps of its sales', percent),
+  earnsOnMoney: number(-1000, 1000, 'Earns on money invested (return on capital, average of 5 years)', percent),
+  industryEarnsOnMoney: number(-1000, 1000, 'Its industry earns on money invested', percent),
   bigDropDay: {kind: 'day', label: 'Day of its biggest one-day fall since that highest price', say: plain, tested: false},
   bigDropPercent: number(-100, 0, 'Size of that fall', percent),
   dropAbout: word(['company', 'industry', 'market', 'unclear'], 'What that fall was about, as read from the news earlier'),

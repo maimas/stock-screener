@@ -1,8 +1,10 @@
 import {
   ASK_BUTTON, ASKING, cellOf, COMPARING, FACT_LIMITS, factsFor, HELD_NOTE, parseViews, PICK_HELP, pickOf, View, VIEW_HEADING, VIEW_HELP, ViewFacts,
 } from "./claude-view";
+import {costDistributionFor} from "./market-math";
 import {computeSignal} from "./signal";
 import {flatCloses, makeStock, NOW, reportedQuarters} from "./testing/fixtures";
+import {Stock} from "../api/microsoft-money.service";
 
 // The owner of the page asked for the details of a stock "summarized by AI and added to a column as an AI suggestion
 // to act on the stock". One button a list asks Claude Code about every stock of it; this is what the page sends
@@ -261,5 +263,78 @@ describe("Claude's pick among stocks that move together", () => {
     expect(PICK_HELP).toContain('the page\'s marks rank no stock');
     expect(COMPARING('A')).toBe('Comparing group A…');
     expect(VIEW_HELP.endsWith(PICK_HELP)).withContext('the heading of the column says it').toBeTrue();
+  });
+});
+
+// The owner of the page, with a stock's details open: "is claude considering this info when analizyng". What the page
+// sends now follows the details: the business beside its industry, the profit expected, both dates of results, what
+// the average owner paid, and the P/E that the details show beside its range.
+describe("factsFor: every figure a stock's details show", () => {
+  const details = (): Stock => {
+    const stock = makeStock({
+      symbol: 'ACME', price: 80, high52: 100, quarters: reportedQuarters(8, {baseRevenue: 100, latestRevenue: 120}), closes: flatCloses(250, 80),
+      providerForwardEps: 8,
+    });
+    const loose = stock as any;
+    loose.quote.peRatio = 14.6;
+    loose.equity.analysis.companyMetrics = {
+      ...loose.equity.analysis.companyMetrics, pE5YearLowRatio: 18.9, pE5YearHighRatio: 29, averageGrossMargin5Year: 58.2, returnOnCapital5YearAverage: 27.4,
+    };
+    loose.equity.analysis.industryMetrics = {averageGrossMargin5Year: 51.1, returnOnCapital5YearAverage: 12.3};
+    loose.forecast.ExpectedReportDate = new Date(NOW.getTime() + 68 * 86_400_000).toISOString();
+    loose.forecast.LastActual = {EarningReleaseDate: new Date(NOW.getTime() - 28 * 86_400_000).toISOString(), EpsSurprisePercent: 3.14};
+    return stock;
+  };
+
+  it('sends the P/E the details show beside its range of five years: the price for the yearly profit, not for the profit expected', () => {
+    const facts = factsFor(details(), NOW);
+    expect(facts.pe).withContext('80 for an expected profit of 8 would be 10').toBe(14.6);
+    expect([facts.peLow, facts.peHigh]).toEqual([18.9, 29]);
+  });
+
+  it('sends when the next results are due, however far off, and when the last ones came, as two figures', () => {
+    const facts = factsFor(details(), NOW);
+    expect(facts.resultsInDays).toBe(68);
+    expect(facts.reportedDaysAgo).toBe(28);
+    expect(facts.beat).toBe(3.1);
+  });
+
+  it('sends what the business keeps of its sales and earns on the money invested, each beside its industry', () => {
+    const facts = factsFor(details(), NOW);
+    expect([facts.keepsOfSales, facts.industryKeepsOfSales]).toEqual([58.2, 51.1]);
+    expect([facts.earnsOnMoney, facts.industryEarnsOnMoney]).toEqual([27.4, 12.3]);
+  });
+
+  it('sends no industry figure without the company\'s own: there is nothing to set it beside', () => {
+    const stock = details();
+    (stock as any).equity.analysis.companyMetrics.averageGrossMargin5Year = undefined;
+    const facts = factsFor(stock, NOW);
+    expect(facts.keepsOfSales).toBeUndefined();
+    expect(facts.industryKeepsOfSales).toBeUndefined();
+    expect(facts.industryEarnsOnMoney).toBe(12.3);
+  });
+
+  it('sends the profit expected against the past year', () => {
+    expect(factsFor(details(), NOW).profitGrowth).withContext('four quarters of 1 expected after four of 1').toBe(0);
+  });
+
+  it('sends what the average owner paid against today\'s price, as the details say it', () => {
+    /** Half a year at 100, half a year at 80, and the price at 80: the average owner paid more than today's price. */
+    const stock = makeStock({symbol: 'FELL', price: 80, high52: 100, closes: [...flatCloses(125, 100), ...flatCloses(125, 80)]});
+    (stock as any).equity.analysis.shareStatistics = {sharesOutstanding: 1_000_000_000};
+    const cost = costDistributionFor(stock)!;
+    expect(cost).withContext('the made-up year of trading gives a cost').toBeTruthy();
+    const facts = factsFor(stock, NOW);
+    expect(facts.ownersPaid).toBeGreaterThan(0);
+    expect(facts.ownersPaid).toBeCloseTo((cost.averageCost / 80 - 1) * 100, 1);
+    expect(facts.ownersInProfit).toBeCloseTo(cost.profitRatio, 1);
+  });
+
+  it('leaves each of them out for a stock that has none of it', () => {
+    const bare = factsFor(makeStock({symbol: 'BARE', price: 50, high52: 50}), NOW);
+    for (const missing of ['profitGrowth', 'pe', 'ownersPaid', 'resultsInDays', 'reportedDaysAgo', 'keepsOfSales', 'industryKeepsOfSales',
+      'earnsOnMoney', 'industryEarnsOnMoney'] as (keyof ViewFacts)[]) {
+      expect(bare[missing]).withContext(missing).toBeUndefined();
+    }
   });
 });

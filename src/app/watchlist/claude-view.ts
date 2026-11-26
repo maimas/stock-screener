@@ -4,7 +4,7 @@ import {EVIDENCE} from "./evidence";
 import {costDistributionFor, trendFor, volatilityFor} from "./market-math";
 import {ReadingAbout} from "./reading";
 import {
-  computeSignal, daysUntilEarnings, debtToEquity, forwardPE, growthOutlook, lastEarnings, peFiveYearRange, percentBelow52wHigh,
+  computeSignal, daysUntilEarnings, debtToEquity, growthOutlook, lastEarnings, peFiveYearRange, percentBelow52wHigh,
   revenueGrowthPercent,
 } from "./signal";
 
@@ -87,6 +87,7 @@ export type ViewFacts = {
   swingGroup?: 'high' | 'low' | 'middle',
   fellFurther?: number,
   salesGrowth?: number,
+  profitGrowth?: number,
   eps?: number,
   debtToEquity?: number,
   pe?: number,
@@ -98,8 +99,14 @@ export type ViewFacts = {
   from200?: number,
   rising200?: 'yes' | 'no',
   ownersInProfit?: number,
+  ownersPaid?: number,
   resultsInDays?: number,
+  reportedDaysAgo?: number,
   beat?: number,
+  keepsOfSales?: number,
+  industryKeepsOfSales?: number,
+  earnsOnMoney?: number,
+  industryEarnsOnMoney?: number,
   bigDropDay?: string,
   bigDropPercent?: number,
   dropAbout?: ReadingAbout,
@@ -120,6 +127,7 @@ export const FACT_LIMITS = {
   swings: [0, 500, 1],
   fellFurther: [0, 10, 1],
   salesGrowth: [-100, 10000, 1],
+  profitGrowth: [-1000, 10000, 1],
   eps: [-1000, 1000, 2],
   debtToEquity: [0, 1000, 2],
   pe: [-1000, 10000, 1],
@@ -130,8 +138,14 @@ export const FACT_LIMITS = {
   analysts: [0, 200, 1],
   from200: [-100, 1000, 1],
   ownersInProfit: [0, 100, 1],
-  resultsInDays: [-400, 400, 1],
+  ownersPaid: [-100, 10000, 1],
+  resultsInDays: [0, 400, 1],
+  reportedDaysAgo: [0, 400, 1],
   beat: [-1000, 10000, 1],
+  keepsOfSales: [-1000, 1000, 1],
+  industryKeepsOfSales: [-1000, 1000, 1],
+  earnsOnMoney: [-1000, 1000, 1],
+  industryEarnsOnMoney: [-1000, 1000, 1],
   bigDropPercent: [-100, 0, 1],
 } as const;
 
@@ -139,8 +153,6 @@ type NumberFact = keyof typeof FACT_LIMITS;
 
 /** As few analysts as the details ask for before they quote a target or a rating. */
 const MIN_ANALYSTS = 3;
-/** Results due within this many days are "due"; otherwise the last ones reported are what there is to say. */
-const RESULTS_AHEAD_DAYS = 30;
 const STALE_AFTER_DAYS = 7;
 
 export const VIEW_HEADING = 'Claude · not tested';
@@ -209,10 +221,13 @@ export function factsFor(stock: Stock, now: Date = new Date(), dropAbout?: Readi
       put('fellFurther', Math.round((signal.volatilityTier === 'high' ? fell.volatile : fell.calm) / 10));
     }
   }
-  put('salesGrowth', growthOutlook(stock, now)?.revenueGrowth ?? revenueGrowthPercent(stock));
+  const growth = growthOutlook(stock, now);
+  put('salesGrowth', growth?.revenueGrowth ?? revenueGrowthPercent(stock));
+  put('profitGrowth', growth?.epsOutlook);
   put('eps', stock.equity?.analysis?.keyMetrics?.eps);
   put('debtToEquity', debtToEquity(stock));
-  put('pe', forwardPE(stock));
+  // The P/E the details show beside its range of five years: the price for the profit of the past year.
+  put('pe', stock.quote?.peRatio);
   const range = peFiveYearRange(stock);
   put('peLow', range?.low);
   put('peHigh', range?.high);
@@ -234,15 +249,28 @@ export function factsFor(stock: Stock, now: Date = new Date(), dropAbout?: Readi
       facts.rising200 = trend.ma200SlopePercent > 0 ? 'yes' : 'no';
     }
   }
-  put('ownersInProfit', costDistributionFor(stock)?.profitRatio);
-
-  const ahead = daysUntilEarnings(stock, now), last = lastEarnings(stock, now);
-  if (isNum(ahead) && ahead <= RESULTS_AHEAD_DAYS) {
-    put('resultsInDays', ahead);
-  } else if (isNum(last?.daysAgo)) {
-    put('resultsInDays', -last!.daysAgo!);
+  const cost = costDistributionFor(stock);
+  put('ownersInProfit', cost?.profitRatio);
+  if (cost && isNum(price) && price > 0) {
+    put('ownersPaid', (cost.averageCost / price - 1) * 100);
   }
+
+  // Both dates of results, as the details have them: when the next ones are due, and when the last ones came.
+  const last = lastEarnings(stock, now);
+  put('resultsInDays', daysUntilEarnings(stock, now));
+  put('reportedDaysAgo', last?.daysAgo);
   put('beat', last?.surprisePercent);
+
+  // "The business" of the details: what it keeps of its sales and earns on the money invested, beside its industry.
+  const own = stock.equity?.analysis?.companyMetrics, industry = stock.equity?.analysis?.industryMetrics;
+  put('keepsOfSales', own?.averageGrossMargin5Year);
+  put('earnsOnMoney', own?.returnOnCapital5YearAverage);
+  if (facts.keepsOfSales !== undefined) {
+    put('industryKeepsOfSales', industry?.averageGrossMargin5Year);
+  }
+  if (facts.earnsOnMoney !== undefined) {
+    put('industryEarnsOnMoney', industry?.returnOnCapital5YearAverage);
+  }
 
   const drop = biggestDropSinceHigh(stock);
   if (drop && !Number.isNaN(drop.date.getTime())) {

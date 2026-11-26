@@ -23,6 +23,8 @@ const MAX_GROUPS = 8;
 const MAX_MEMBERS = 10;
 const MAX_WHY_WORDS = 25;
 const MAX_NAME = 40;
+/** As long as a question may be: what the reader takes (reader-service.js) with room to spare. */
+const MAX_QUESTION = 3900;
 /** A group's letter as the page gives it: "A" for the largest group, "AA" should there ever be more than 26. */
 const LETTER = /^[A-Z]{1,2}$/;
 
@@ -82,7 +84,10 @@ function groupsFrom(body) {
 
 const signed = value => `${value > 0 ? '+' : ''}${value}%`;
 
-/** The few figures a stock is compared by, each said in a few words; the others stay with the stock's own view. */
+/**
+ * The few figures a stock is compared by, each said in a few words, what matters most first; the others stay with
+ * the stock's own view. When a large group would not fit one question, the last ones are left out, for every stock alike.
+ */
 const COMPARED = [
   ['mark', value => `mark ${value}`],
   ['belowHigh', value => `${value}% below its highest price of the past year`],
@@ -91,26 +96,35 @@ const COMPARED = [
   ['eps', value => `profit per share ${value}`],
   ['debtToEquity', value => `debt to equity ${value}`],
   ['pe', value => `P/E ${value}`],
+  ['keepsOfSales', value => `keeps ${value}% of its sales`],
+  ['earnsOnMoney', value => `earns ${value}% on the money invested`],
   ['targetPercent', value => `analysts' target ${signed(value)}`],
-  ['resultsInDays', value => FACT_FIELDS.resultsInDays.say(value).replace(/^/, 'results ')],
+  ['resultsInDays', value => `results ${FACT_FIELDS.resultsInDays.say(value)}`],
+  ['reportedDaysAgo', value => `results ${FACT_FIELDS.reportedDaysAgo.say(value)}`],
 ];
+/** However large the group, a stock is said with at least its mark, its drop, its swings and its growth. */
+const LEAST_COMPARED = 4;
 
 /**
  * The question about one group: its stocks side by side, each with its key figures and the view Claude gave of it.
  * @param views by symbol: {view, short}; a stock without one is said to have none yet
  */
 function comparePrompt(letter, members, views) {
-  const lines = members.map(({symbol, name, facts}) => {
-    const figures = COMPARED.filter(([field]) => Object.hasOwn(facts, field)).map(([field, say]) => say(facts[field]));
-    const view = views?.[symbol];
-    return `- ${name.slice(0, MAX_NAME).trim()} (${symbol}): ${figures.length ? figures.join('; ') : 'no figures'}. ` +
-      `Your view: ${view ? `${view.view} (${view.short})` : 'none yet'}`;
-  });
-  return [
+  const asked = compared => [
     `These ${members.length} stocks moved closely together over the past year (group ${letter}), so buying several of them is close to one bet.`,
-    ...lines,
+    ...members.map(({symbol, name, facts}) => {
+      const figures = compared.filter(([field]) => Object.hasOwn(facts, field)).map(([field, say]) => say(facts[field]));
+      const view = views?.[symbol];
+      return `- ${name.slice(0, MAX_NAME).trim()} (${symbol}): ${figures.length ? figures.join('; ') : 'no figures'}. ` +
+        `Your view: ${view ? `${view.view} (${view.short})` : 'none yet'}`;
+    }),
     'If you were to buy only one of them now, which one would you take first, and what sets it apart from the others?',
   ].join('\n');
+  let question = asked(COMPARED);
+  for (let count = COMPARED.length - 1; question.length > MAX_QUESTION && count >= LEAST_COMPARED; count--) {
+    question = asked(COMPARED.slice(0, count));
+  }
+  return question;
 }
 
 /**

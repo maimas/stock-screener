@@ -11,7 +11,7 @@ const stock = {
   symbol: 'ABCD', name: 'Example Corp',
   facts: {
     mark: 'DIP BUY', growing: 'yes', belowHigh: 41.7, swings: 62, swingGroup: 'high', fellFurther: 4, salesGrowth: 31.2, eps: -0.05,
-    targetPercent: 55.3, rating: 1.8, analysts: 22, from200: -22.7, rising200: 'yes', ownersInProfit: 17.7, resultsInDays: -14, beat: 16.7,
+    targetPercent: 55.3, rating: 1.8, analysts: 22, from200: -22.7, rising200: 'yes', ownersInProfit: 17.7, reportedDaysAgo: 14, beat: 16.7,
     bigDropDay: '2026-11-03', bigDropPercent: -17, dropAbout: 'industry',
   },
 };
@@ -73,7 +73,8 @@ test('refuses a figure it does not know, or one outside what the figure can be',
 
 test('nothing about what anybody owns is a figure', () => {
   for (const field of Object.keys(FACT_FIELDS)) {
-    assert.doesNotMatch(field, /held|hold|own(?!ersInProfit)|share|cash|portfolio|amount|dollar/i, field);
+    // "ownersInProfit" and "ownersPaid" are about everybody who owns the stock (worked out from a year of trading), not the reader.
+    assert.doesNotMatch(field, /held|hold|own(?!ers(InProfit|Paid)$)|share|cash|portfolio|amount|dollar/i, field);
   }
 });
 
@@ -204,4 +205,55 @@ test('asks Claude to go by the news when it contradicts a figure, and to say whi
   assert.match(recipe.system, /figures come from a data provider and can be wrong or out of date/);
   assert.match(recipe.system, /contradicts one of them/);
   assert.match(recipe.system, /go by the news and begin "why" by saying which figure is wrong/);
+});
+
+// The owner of the page, with a stock's details open: "is claude considering this info when analizyng". It was not
+// given all of it: the two figures of "The business", the profit expected, when the next results come if that is
+// more than a month away, what the average owner paid; and the P/E it was given was not the one the details show.
+test('takes every figure a stock\'s details show: the business beside its industry, the profit expected, both dates of results', () => {
+  const facts = {
+    profitGrowth: 1.9, pe: 14.6, peLow: 18.9, peHigh: 29, ownersInProfit: 1.4, ownersPaid: 20.9, resultsInDays: 68, reportedDaysAgo: 28, beat: 3.1,
+    keepsOfSales: 58, industryKeepsOfSales: 51, earnsOnMoney: 27, industryEarnsOnMoney: 12,
+  };
+  const taken = listFrom({list: [{symbol: 'ABCD', name: 'Example Corp', facts}]});
+  assert.equal(taken.ok, true);
+  assert.deepEqual(taken.list[0].facts, facts);
+  const question = promptFor(taken.list[0], '');
+  for (const line of [
+    'Profit per share expected, against the past year: +1.9%',
+    'Price for its yearly profit (P/E): 14.6',
+    'What the average owner paid, against today\'s price: +20.9%',
+    'Next results: due in 68 days',
+    'Last results: reported 28 days ago',
+    'Keeps of its sales (gross margin, average of 5 years): 58%',
+    'Its industry keeps of its sales: 51%',
+    'Earns on money invested (return on capital, average of 5 years): 27%',
+    'Its industry earns on money invested: 12%',
+  ]) {
+    assert.ok(question.includes(`- ${line}\n`), `${line}\n in:\n${question}`);
+  }
+});
+
+test('results that are due and results that were reported are two figures, neither of them a minus', () => {
+  const withFact = facts => listFrom({list: [{symbol: 'ABCD', name: 'Example Corp', facts}]});
+  for (const bad of [{resultsInDays: -14}, {reportedDaysAgo: -3}, {resultsInDays: 401}, {keepsOfSales: 2000}, {ownersPaid: '20'}]) {
+    assert.equal(withFact(bad).ok, false, JSON.stringify(bad));
+  }
+  assert.match(promptFor(withFact({resultsInDays: 0}).list[0], ''), /Next results: due today/);
+  assert.match(promptFor(withFact({reportedDaysAgo: 0}).list[0], ''), /Last results: reported today/);
+  assert.match(promptFor(withFact({reportedDaysAgo: 1}).list[0], ''), /Last results: reported 1 day ago/);
+  assert.match(promptFor(withFact({resultsInDays: 1}).list[0], ''), /Next results: due in 1 day\n/);
+});
+
+test('a question with every figure still fits what the reader takes', () => {
+  const every = {
+    mark: 'DIP BUY', growing: 'yes', belowHigh: 71.7, swings: 112.3, swingGroup: 'high', fellFurther: 4, salesGrowth: 1126.9, profitGrowth: -123.4,
+    eps: -123.45, debtToEquity: 123.45, pe: 1234.5, peLow: 12.3, peHigh: 456.7, targetPercent: 175.3, rating: 1.77, analysts: 22, from200: -52.7,
+    rising200: 'yes', ownersInProfit: 17.7, ownersPaid: 126.7, resultsInDays: 187, reportedDaysAgo: 187, beat: 160.7, keepsOfSales: 58.4,
+    industryKeepsOfSales: 51.2, earnsOnMoney: 27.3, industryEarnsOnMoney: 12.1, bigDropDay: '2026-07-01', bigDropPercent: -17, dropAbout: 'industry',
+  };
+  const asked = listFrom({list: [{symbol: 'ABCDEFGH.I', name: 'x'.repeat(80), facts: every}]}).list[0];
+  assert.deepEqual(Object.keys(asked.facts), Object.keys(FACT_FIELDS), 'every figure there is');
+  const question = promptFor(asked, testedHeadline(FIGURES));
+  assert.ok(question.length <= 4000, `${question.length} characters`);
 });

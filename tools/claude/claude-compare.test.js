@@ -76,7 +76,8 @@ test('ten stocks with every figure and a long name still fit one question', () =
   const full = {
     mark: 'DIP BUY', growing: 'yes', belowHigh: 71.7, swings: 112.3, swingGroup: 'high', fellFurther: 4, salesGrowth: 1126.9, eps: -123.45,
     debtToEquity: 123.45, pe: 1234.5, peLow: 12.3, peHigh: 456.7, targetPercent: 175.3, rating: 1.77, analysts: 22, from200: -52.7,
-    rising200: 'yes', ownersInProfit: 17.7, resultsInDays: -187, beat: 160.7, bigDropDay: '2026-07-01', bigDropPercent: -17, dropAbout: 'industry',
+    rising200: 'yes', ownersInProfit: 17.7, resultsInDays: 187, reportedDaysAgo: 187, beat: 160.7, keepsOfSales: 58.4, industryKeepsOfSales: 51.2,
+    earnsOnMoney: 27.3, industryEarnsOnMoney: 12.1, bigDropDay: '2026-07-01', bigDropPercent: -17, dropAbout: 'industry',
   };
   const members = Array.from({length: 10}, (_, i) => ({symbol: `ABCDEFGH${i}`, name: 'A Very Long Company Name Holdings International Corporation Limited'.slice(0, 80), facts: full}));
   const all = Object.fromEntries(members.map(it => [it.symbol, {view: 'BUY SOME', short: 'six words of reason right here'}]));
@@ -102,4 +103,27 @@ test('refuses an answer that names no stock of the group, or gives no reason', (
 test('cuts the sentence to 25 words', () => {
   const words = n => Array.from({length: n}, (_, i) => `w${i + 1}`).join(' ');
   assert.equal(pickFrom({first: 'ABCD', why: words(40)}, group().members, NOW).pick.why, `${words(25)}.`);
+});
+
+test('compares the stocks also by what they keep of their sales and earn on the money invested', () => {
+  const question = comparePrompt('A', [member('ABCD', {keepsOfSales: 58, earnsOnMoney: 27, reportedDaysAgo: 14}), member('EFGH', {resultsInDays: 0})], {});
+  assert.match(question, /- ABCD Corp \(ABCD\): keeps 58% of its sales; earns 27% on the money invested; results reported 14 days ago\. /);
+  assert.match(question, /- EFGH Corp \(EFGH\): results due today\. /);
+});
+
+test('when ten stocks with every figure would not fit one question, the same last figures are left out for all of them', () => {
+  const full = {
+    mark: 'DIP BUY', belowHigh: 71.7, swings: 112.3, salesGrowth: 1126.9, eps: -123.45, debtToEquity: 123.45, pe: 1234.5, targetPercent: 175.3,
+    resultsInDays: 187, reportedDaysAgo: 187, keepsOfSales: 58.4, earnsOnMoney: 27.3,
+  };
+  const members = Array.from({length: 10}, (_, i) => ({symbol: `ABCDEFGH${i}`, name: 'A Very Long Company Name Holdings International', facts: full}));
+  const all = Object.fromEntries(members.map(it => [it.symbol, {view: 'BUY SOME', short: 'six words of reason right here'}]));
+  const question = comparePrompt('A', members, all);
+  assert.ok(question.length <= 4000, `${question.length} characters`);
+  const lines = question.split('\n').filter(line => line.startsWith('- '));
+  assert.equal(lines.length, 10);
+  assert.ok(lines.every(line => line.includes('mark DIP BUY') && line.includes('swings 112.3% a year') && line.includes('Your view: BUY SOME')), 'what matters most stays');
+  const kept = line => ['reported', 'due in', 'analysts'].map(word => line.includes(word)).join();
+  assert.ok(lines.every(line => kept(line) === kept(lines[0])), 'every stock is said with the same figures');
+  assert.ok(comparePrompt('A', members.slice(0, 3), all).includes('results reported 187 days ago'), 'and three stocks are said in full');
 });
