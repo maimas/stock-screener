@@ -143,19 +143,18 @@ function factsFrom(given) {
   return facts;
 }
 
-/** What the page asked for, checked: 1 to 10 different stocks, each with its name and its figures. */
-function listFrom(body) {
-  const list = isObject(body) ? body.list : undefined;
-  if (!Array.isArray(list) || !list.length || list.length > MAX_STOCKS) {
-    return {ok: false, error: `Send a list of 1 to ${MAX_STOCKS} stocks.`};
-  }
+/**
+ * Stocks as the page names them, checked: each a symbol, a name that is cleaned, and figures this page sends; none
+ * twice. Used for a list that is asked about and for the stocks of a group that are compared (claude-compare.js).
+ */
+function stocksFrom(items) {
   const asked = [];
-  for (const item of list) {
+  for (const item of items) {
     if (!isObject(item) || typeof item.symbol !== 'string' || !SYMBOL.test(item.symbol)) {
       return {ok: false, error: 'That is not a stock symbol.'};
     }
     if (asked.some(it => it.symbol === item.symbol)) {
-      return {ok: false, error: `${item.symbol} is in the list twice.`};
+      return {ok: false, error: `${item.symbol} is there twice.`};
     }
     const facts = factsFrom(item.facts);
     if (!facts) {
@@ -163,7 +162,17 @@ function listFrom(body) {
     }
     asked.push({symbol: item.symbol, name: plainName(item.name, item.symbol), facts});
   }
-  return {ok: true, list: asked};
+  return {ok: true, stocks: asked};
+}
+
+/** What the page asked for, checked: 1 to 10 different stocks, each with its name and its figures. */
+function listFrom(body) {
+  const list = isObject(body) ? body.list : undefined;
+  if (!Array.isArray(list) || !list.length || list.length > MAX_STOCKS) {
+    return {ok: false, error: `Send a list of 1 to ${MAX_STOCKS} stocks.`};
+  }
+  const checked = stocksFrom(list);
+  return checked.ok ? {ok: true, list: checked.stocks} : checked;
 }
 
 const isNumber = value => typeof value === 'number' && Number.isFinite(value);
@@ -222,4 +231,4 @@ function viewFrom(output, links, now) {
   };
 }
 
-module.exports = {recipe, VIEWS, FACT_FIELDS, MAX_STOCKS, listFrom, testedHeadline, promptFor, viewFrom};
+module.exports = {recipe, VIEWS, FACT_FIELDS, MAX_STOCKS, listFrom, stocksFrom, testedHeadline, promptFor, viewFrom};
