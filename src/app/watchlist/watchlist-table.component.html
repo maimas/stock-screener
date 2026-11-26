@@ -126,6 +126,9 @@
     <ng-template #heldHint>
       <span class="held-hint">Stocks you hold that are in none of your lists. Add one to a list with "Edit list".</span>
     </ng-template>
+    <!-- One button asks Claude Code for its view of every stock of the list (the column "Claude · not tested").
+         Not for the stocks held outside every list: that list is made of what is owned, and nothing owned is sent. -->
+    <app-claude-ask *ngIf="watchList !== heldOutside" [stocks]="watchList.dataSource.data"></app-claude-ask>
   </app-sector-distribution-widget>
 
   <ng-container *ngIf="watchList !== heldOutside && editingListId === watchList.id">
@@ -196,6 +199,11 @@
 
 <ng-template #volatilityCellTemplate let-templateData="templateData">
   <app-volatility-cell [volatility]="templateData.volatility" [tier]="templateData.tier"></app-volatility-cell>
+</ng-template>
+
+<!-- Claude's own view of the stock, not a tested mark: the word alone in the short view, so its rows stay one line. -->
+<ng-template #claudeViewCellTemplate let-templateData="templateData">
+  <app-claude-view-cell [symbol]="templateData.symbol" [held]="templateData.held" [today]="today" [compact]="view === 'decision'"></app-claude-view-cell>
 </ng-template>
 
 <ng-template #neutralPercentCellTemplate let-templateData="templateData">

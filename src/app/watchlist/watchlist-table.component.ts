@@ -23,6 +23,12 @@ import {SymbolCellComponent} from "./cells/symbol/symbol-cell.component";
 import {NoVerdict, SignalCellComponent} from "./cells/signal/signal-cell.component";
 import {GrowthCellComponent} from "./cells/growth/growth-cell.component";
 import {VolatilityCellComponent} from "./cells/volatility/volatility-cell.component";
+import {inject} from "@angular/core";
+import {ClaudeViewCellComponent} from "./cells/claude-view/claude-view-cell.component";
+import {ClaudeAskComponent} from "./claude-ask/claude-ask.component";
+import {VIEW_HEADING, VIEW_HELP, VIEW_WORDS, ViewsState} from "./claude-view";
+import {recordTip, viewRecord} from "./claude-view-record";
+import {ClaudeViewService} from "./claude-view.service";
 import {SignalDetailComponent} from "./signal-detail/signal-detail.component";
 import {BookNotice, PortfolioSettings, PositionsCardComponent, SavedIn} from "./positions-card/positions-card.component";
 import {PositionPanelComponent, Trade} from "./position-panel/position-panel.component";
@@ -102,7 +108,9 @@ export type ViewMode = 'decision' | 'all';
  * context no test used, and the range says again what stands beside the mark (how far the price dropped): both
  * are under "All columns".
  */
-const DECISION_COLUMNS = ['symbol', 'group', 'signal', 'price', 'growth', 'earnings', 'volatility', 'oneYear'];
+const DECISION_COLUMNS = ['symbol', 'group', 'signal', 'price', 'growth', 'earnings', 'volatility', 'oneYear', 'claudeView'];
+/** Where a click on "Claude · not tested" puts each of its words; a stock with no view comes last. */
+const VIEW_ORDER = new Map<string, number>(VIEW_WORDS.map((word, at) => [word, at]));
 const VIEW_STORAGE_KEY = 'watchlist.view';
 /** Where this browser keeps whether the "Dip candidates" box is folded. */
 const PANE_STORAGE_KEY = 'watchlist.candidates';
@@ -164,6 +172,7 @@ export type ListState = 'loading' | 'ready' | 'error' | 'empty';
     TrendCellComponent,
     GrowthCellComponent,
     VolatilityCellComponent,
+    ClaudeViewCellComponent, ClaudeAskComponent,
     MatButtonModule,
     MatButtonToggleModule,
     MatTooltipModule,
@@ -411,6 +420,11 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
   @ViewChild('signalCellTemplate', {static: true}) signalCellTemplate!: TemplateRef<any>;
   @ViewChild('growthCellTemplate', {static: true}) growthCellTemplate!: TemplateRef<any>;
   @ViewChild('volatilityCellTemplate', {static: true}) volatilityCellTemplate!: TemplateRef<any>;
+  @ViewChild('claudeViewCellTemplate', {static: true}) claudeViewCellTemplate!: TemplateRef<any>;
+  /** Claude's views of the stocks, asked for with the button above a list (the column "Claude · not tested"). */
+  private readonly claudeViews = inject(ClaudeViewService);
+  /** What the heading of that column says, kept while neither the views nor the daily log changed. */
+  private viewHelp?: { of: ViewsState, log: SnapshotLog, text: string };
   @ViewChild('earningsDateCellTemplate', {static: true}) earningsDateCellTemplate!: TemplateRef<any>;
   @ViewChild('debtEquityCellTemplate', {static: true}) debtEquityCellTemplate!: TemplateRef<any>;
   @ViewChild('costDistributionCellTemplate', {static: true}) costDistributionCellTemplate!: TemplateRef<any>;
@@ -1563,7 +1577,18 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
     return Object.keys(this.log.days).some(day => day < this.today && !!this.log.days[day].s[symbol]);
   }
 
+  /** What the heading of "Claude · not tested" says: what the column is, then how Claude's past views turned out. */
+  claudeViewHelp(): string {
+    const of = this.claudeViews.state$.value;
+    if (this.viewHelp?.of !== of || this.viewHelp.log !== this.log) {
+      const record = recordTip(viewRecord(of.history, this.log, this.today));
+      this.viewHelp = {of, log: this.log, text: record ? `${VIEW_HELP}\n\n${record}` : VIEW_HELP};
+    }
+    return this.viewHelp.text;
+  }
+
   private getTableDefinition(): TableDef[] {
+    const page = this;
     return [
       {
         columnName: 'symbol',
@@ -1797,6 +1822,20 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
         template: this.plainPercentCellTemplate,
         templateData: (it: Stock) => it.quote?.return1Year,
         sortValue: (it: Stock) => it.quote?.return1Year
+      },
+      {
+        // Claude's own view of the stock, asked for by the owner of the page. Not a tested mark, and said so in its
+        // name; it stands after the columns the tests are about. Its heading also says how its past views turned out.
+        columnName: 'claudeView',
+        columnDisplayName: VIEW_HEADING,
+        get columnTooltip(): string {
+          return page.claudeViewHelp();
+        },
+        template: this.claudeViewCellTemplate,
+        templateData: (it: Stock) => ({symbol: it.quote?.symbol ?? '', held: this.isHeld(it)}),
+        // Like every column, it can order the rows: BUY SOME first, then WAIT, AVOID, and the stocks with no view.
+        sortValue: (it: Stock) => VIEW_ORDER.get(this.claudeViews.state$.value.views[it.quote?.symbol ?? '']?.view ?? '') ?? VIEW_WORDS.length,
+        sortStart: 'asc',
       },
       {
         columnName: 'eps-ttm',

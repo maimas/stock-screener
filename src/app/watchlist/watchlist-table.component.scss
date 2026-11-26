@@ -47,18 +47,39 @@
 // starts at the same place in each list, so the lists can be read down the page as one table. The cells live
 // inside the smart table, hence ::ng-deep.
 ::ng-deep .smart-table.short {
-  .mat-column-symbol { width: 12%; }
-  // "Group" between the stock and its mark. The widths used to add up to the whole table without it, which left
-  // it in the page and 0px wide: no letter in sight, and a tab stop on nothing.
-  .mat-column-group { width: 6%; }
-  .mat-column-signal { width: 14%; }
-  .mat-column-price { width: 8%; }
-  .mat-column-growth { width: 21%; }
-  // "Next results" was cut in a list of two side by side ("Dec 9 in 13 days · re-check a"): it has the 2% that the
-  // symbol and the price did not need.
-  .mat-column-earnings { width: 19%; }
-  .mat-column-volatility { width: 11%; }
-  .mat-column-oneYear { width: 9%; }
+  // Nine columns since "Claude · not tested" came last among them: the shares add up to 100, each measured against
+  // its widest usual cell in a list of two side by side (1116px), where the cells stand 10px apart (see the smart
+  // table's stylesheet). A column added here has to take its share from these, or it is 0px wide.
+  // Measured there (of 1068px beside the row's own button): what each column's widest cell or heading needs is
+  // within 2px of its share, so a wider heading or a longer cell in one column is cut: change them together.
+  .mat-column-symbol { width: 10.8%; }
+  // "Group" between the stock and its mark: a dot and a letter; its heading is the wider of the two.
+  .mat-column-group { width: 5.9%; }
+  .mat-column-signal { width: 13.3%; }
+  .mat-column-price { width: 7.2%; }
+  // The widest cell of all: two figures with their ticks ("Profit +44.3% ✓ Sales +379.3% ✓").
+  .mat-column-growth { width: 20.5%; }
+  // "Next results" was cut in a list of two side by side ("Dec 9 in 13 days · re-check a") below about 194px.
+  .mat-column-earnings { width: 18.3%; }
+  .mat-column-volatility { width: 9.1%; }
+  .mat-column-oneYear { width: 7.2%; }
+  // One short word ("BUY SOME", "WAIT", "AVOID", "no answer") and nothing else in the key columns.
+  .mat-column-claudeView { width: 7.7%; }
+  // Its heading is two words longer than its cells ("Claude · not tested" over "WAIT"): it takes two lines there,
+  // so the column is as wide as its cells need and no wider.
+  th.mat-column-claudeView {
+    white-space: normal;
+    line-height: 1.25;
+  }
+}
+
+// In a list under 1100px wide (a window of about 1100px) nine key columns need more than the list has, and the
+// widest cells were cut. "Past year" gives way there: it is the one key column that is context and not what a mark
+// rests on, and it stays under "All columns".
+@container (max-width: 1099px) {
+  ::ng-deep .smart-table.short .mat-column-oneYear {
+    display: none;
+  }
 }
 
 // With every column shown a list is wider than any window and scrolls sideways. There each column has a least

@@ -33,6 +33,26 @@
   padding-right: 12px;
 }
 
+// In a box under 1200px (one of two lists side by side on a wide window is 1116px, and 1109px once the window's
+// own scroll bar takes its 15px; a list in a 1100 to 1250px window) the cells stand 7px each side: with nine key
+// columns that is the room the widest cells need. At 8px two cells were cut by 2px in a real window.
+@container (max-width: 1199px) {
+  .smart-table.short .mat-mdc-cell:not(.toggle-cell):not(.detail-cell),
+  .smart-table.short .mat-mdc-header-cell:not(.toggle-cell) {
+    padding-left: 7px;
+    padding-right: 7px;
+  }
+}
+
+// Under 1100px (a list in a window of about 1100px): 6px each side.
+@container (max-width: 1099px) {
+  .smart-table.short .mat-mdc-cell:not(.toggle-cell):not(.detail-cell),
+  .smart-table.short .mat-mdc-header-cell:not(.toggle-cell) {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+}
+
 // With every column shown the table is wider than any window and scrolls sideways under its two pinned columns:
 // there the cells stand closer still, so that less of the table is out of sight at a time.
 .smart-table:not(.short) .mat-mdc-cell:not(.toggle-cell):not(.detail-cell),
