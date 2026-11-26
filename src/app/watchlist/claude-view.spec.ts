@@ -1,4 +1,6 @@
-import {ASK_BUTTON, ASKING, cellOf, FACT_LIMITS, factsFor, HELD_NOTE, parseViews, View, VIEW_HEADING, ViewFacts} from "./claude-view";
+import {
+  ASK_BUTTON, ASKING, cellOf, COMPARING, FACT_LIMITS, factsFor, HELD_NOTE, parseViews, PICK_HELP, pickOf, View, VIEW_HEADING, ViewFacts,
+} from "./claude-view";
 import {computeSignal} from "./signal";
 import {flatCloses, makeStock, NOW, reportedQuarters} from "./testing/fixtures";
 
@@ -161,5 +163,102 @@ describe("Claude's view of a stock", () => {
     expect(ASK_BUTTON(5)).toBe('Ask Claude about these 5');
     expect(ASK_BUTTON(1)).toBe('Ask Claude about this one');
     expect(ASKING(2, 5)).toBe('Asking Claude… 2 of 5');
+  });
+});
+
+// The owner of the page: "claude needs to factor also the same group stocks so compare". After a list, Claude is asked
+// once about each group of stocks that move together, and names the one it would take first.
+describe("Claude's pick among stocks that move together", () => {
+  const view = (word: string, day: string): object => ({
+    view: word, short: 'Results due next week', why: 'It reports its results next week.', sources: [], asked: `${day}T15:00:00.000Z`,
+  });
+  const pick = (first: string, members: string[]) => ({first, why: 'It makes a profit and swings less.', members, asked: 'x', model: 'm', version: '1'});
+
+  describe('parseViews', () => {
+    it('reads the comparisons that are kept, the oldest first, each with its day and its letter', () => {
+      const state = parseViews({
+        views: {}, picks: {'2026-11-20': {A: pick('EFGH', ['ABCD', 'EFGH'])}, '2026-11-14': {B: pick('MNOP', ['MNOP', 'QRST', 'UVWX'])}},
+      });
+      expect(state.picks).toEqual([
+        {day: '2026-11-14', letter: 'B', first: 'MNOP', why: 'It makes a profit and swings less.', members: ['MNOP', 'QRST', 'UVWX']},
+        {day: '2026-11-20', letter: 'A', first: 'EFGH', why: 'It makes a profit and swings less.', members: ['ABCD', 'EFGH']},
+      ]);
+    });
+
+    it('drops a comparison that names no stock of its own, has one stock, no sentence, or no letter', () => {
+      const state = parseViews({picks: {
+        '2026-11-20': {A: pick('WXYZ', ['ABCD', 'EFGH']), B: pick('ABCD', ['ABCD']), C: {...pick('ABCD', ['ABCD', 'EFGH']), why: ' '}, c1: pick('ABCD', ['ABCD', 'EFGH'])},
+        'yesterday': {A: pick('ABCD', ['ABCD', 'EFGH'])}, '2026-11-21': 'A',
+      }});
+      expect(state.picks).toBeUndefined();
+      expect(state).toEqual({views: {}, history: {}, failed: {}});
+    });
+
+    it('says which groups are still to be compared', () => {
+      const state = parseViews({views: {}, queue: {symbols: ['ABCD'], done: ['ABCD'], failed: {}, comparing: ['A', 'B']}});
+      expect(state.queue).toEqual({symbols: ['ABCD'], done: ['ABCD'], failed: {}, comparing: ['A', 'B']});
+      expect(parseViews({queue: {symbols: ['ABCD'], done: [], failed: {}}}).queue).toEqual({symbols: ['ABCD'], done: [], failed: {}});
+    });
+  });
+
+  describe('pickOf (the comparison a stock was part of)', () => {
+    const picks = parseViews({picks: {
+      '2026-11-10': {A: pick('ABCD', ['ABCD', 'EFGH'])},
+      '2026-11-18': {A: pick('EFGH', ['ABCD', 'EFGH', 'IJKL'])},
+      '2026-11-19': {B: pick('MNOP', ['MNOP', 'QRST'])},
+    }}).picks;
+
+    it('is the newest one of the past week that the stock was in', () => {
+      expect(pickOf('ABCD', picks, '2026-11-20')).toEqual(jasmine.objectContaining({day: '2026-11-18', first: 'EFGH', mine: false}));
+      expect(pickOf('EFGH', picks, '2026-11-20')).toEqual(jasmine.objectContaining({day: '2026-11-18', letter: 'A', mine: true}));
+      expect(pickOf('QRST', picks, '2026-11-20')!.first).toBe('MNOP');
+    });
+
+    it('is nothing for a stock that was never compared, or longer ago than a week', () => {
+      expect(pickOf('WXYZ', picks, '2026-11-20')).toBeUndefined();
+      expect(pickOf('ABCD', picks, '2026-11-25')).withContext('7 days on: still shown').toBeDefined();
+      expect(pickOf('ABCD', picks, '2026-11-26')).withContext('8 days on').toBeUndefined();
+      expect(pickOf('ABCD', undefined, '2026-11-20')).toBeUndefined();
+    });
+  });
+
+  describe('cellOf', () => {
+    const state = parseViews({
+      views: {ABCD: {'2026-11-18': view('WAIT', '2026-11-18')}, EFGH: {'2026-11-18': view('BUY SOME', '2026-11-18')}},
+      picks: {'2026-11-18': {A: pick('EFGH', ['ABCD', 'EFGH', 'IJKL'])}},
+    });
+    const TODAY = '2026-11-20';
+
+    it('marks the stock Claude would take first of its group, and says under the pointer among which and why', () => {
+      const cell = cellOf(state.views['EFGH'], TODAY, false, undefined, pickOf('EFGH', state.picks, TODAY));
+      expect(cell.first).toBe('first of A');
+      expect(cell.word).toBe('BUY SOME');
+      expect(cell.tip).toBe('It reports its results next week. Asked Nov 18. Of the 3 stocks of group A that Claude compared ' +
+        '(ABCD, EFGH, IJKL), it would take this one first: It makes a profit and swings less. Compared Nov 18.');
+    });
+
+    it('says on the others of the group which one Claude would take first, and does not mark them', () => {
+      const cell = cellOf(state.views['ABCD'], TODAY, true, undefined, pickOf('ABCD', state.picks, TODAY));
+      expect(cell.first).toBeUndefined();
+      expect(cell.tip).toBe('It reports its results next week. Asked Nov 18. Of the 3 stocks of group A that Claude compared ' +
+        `(ABCD, EFGH, IJKL), it would take EFGH first: It makes a profit and swings less. Compared Nov 18. ${HELD_NOTE}`);
+    });
+
+    it('shows a stock that was not compared as before', () => {
+      expect(cellOf(state.views['ABCD'], TODAY, false)).toEqual({
+        word: 'WAIT', short: 'Results due next week', tip: 'It reports its results next week. Asked Nov 18.', stale: false, from: '',
+      });
+    });
+
+    it('marks nothing on a stock with no view, whatever was compared', () => {
+      expect(cellOf(undefined, TODAY, false, undefined, pickOf('EFGH', state.picks, TODAY)).first).toBeUndefined();
+    });
+  });
+
+  it('explains the star in the page\'s own words for a group, and says it is not tested and that the marks rank nothing', () => {
+    expect(PICK_HELP).toContain('moved closely together over the past year');
+    expect(PICK_HELP).toContain('not tested');
+    expect(PICK_HELP).toContain('the page\'s marks rank no stock');
+    expect(COMPARING('A')).toBe('Comparing group A…');
   });
 });

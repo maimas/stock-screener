@@ -40,7 +40,31 @@ export type View = {
 };
 
 /** The list being asked about: its stocks, those answered so far, and those that got no answer (with the reason). */
-export type ViewQueue = { symbols: string[], done: string[], failed: Record<string, string> };
+export type ViewQueue = {
+  symbols: string[], done: string[], failed: Record<string, string>,
+  /** The groups of stocks still to be compared, by letter, once the stocks are through. */
+  comparing?: string[],
+};
+
+/**
+ * Claude's pick among stocks that move together: the one of a group it would take first, with its sentence, from
+ * one question that set the group's stocks side by side (tools/claude/claude-compare.js). Its own opinion, like a
+ * view: not tested, and the page's marks still rank nothing.
+ */
+export type GroupPick = {
+  /** The day of the comparison (YYYY-MM-DD). */
+  day: string,
+  /** The group's letter that day. */
+  letter: string,
+  /** The stock Claude would take first. */
+  first: string,
+  why: string,
+  /** The stocks that were compared. */
+  members: string[],
+};
+
+/** A comparison as one of its stocks sees it: whether that stock is the pick, and with which others it was compared. */
+export type PickFor = GroupPick & { mine: boolean };
 
 export type ViewsState = {
   /** The newest view of each stock. */
@@ -50,6 +74,8 @@ export type ViewsState = {
   queue?: ViewQueue,
   /** Stocks that got no answer the last time they were asked about, with the reason. */
   failed: Record<string, string>,
+  /** Every comparison kept, the oldest first; not there when there is none. */
+  picks?: GroupPick[],
 };
 
 /** What the page sends about a stock. Each is left out when the stock does not have it. */
@@ -117,6 +143,10 @@ const STALE_AFTER_DAYS = 7;
 export const VIEW_HEADING = 'Claude · not tested';
 export const VIEW_HELP = 'Claude\'s own view of each stock, from the figures in its details and the recent news, asked for with the ' +
   'button above the list. It is an opinion, not a tested signal: it changes nothing else on the page.';
+/** What the star is, in the words the page has for a group ("Group": stocks with the same letter moved closely together). */
+export const PICK_HELP = 'A star marks the stock Claude would take first among the stocks with the same letter under "Group" ' +
+  '(they moved closely together over the past year) that it compared. That is its own pick, not tested: the page\'s marks rank no stock.';
+export const COMPARING = (letter: string): string => `Comparing group ${letter}…`;
 export const HELD_NOTE = 'Claude was not told what you hold; your plan and its limit still apply.';
 export const ASK_BUTTON = (stocks: number): string => stocks === 1 ? 'Ask Claude about this one' : `Ask Claude about these ${stocks}`;
 export const ASKING = (done: number, stocks: number): string => `Asking Claude… ${done} of ${stocks}`;
@@ -265,10 +295,25 @@ export function parseViews(body: unknown): ViewsState {
   if (isRecord(queue)) {
     const symbols = strings(queue['symbols']), done = strings(queue['done']);
     if (symbols && done) {
-      state.queue = {symbols, done, failed: reasons(queue['failed'])};
+      const comparing = strings(queue['comparing']);
+      state.queue = {symbols, done, failed: reasons(queue['failed']), ...(comparing ? {comparing} : {})};
     }
   }
   state.failed = reasons(body['failed']);
+  const picks: GroupPick[] = [];
+  Object.keys(isRecord(body['picks']) ? body['picks'] : {}).filter(day => DAY.test(day)).sort().forEach(day => {
+    const ofDay = (body['picks'] as Record<string, unknown>)[day];
+    Object.entries(isRecord(ofDay) ? ofDay : {}).forEach(([letter, value]) => {
+      const it = value as any, members = strings(it?.members);
+      if (/^[A-Z]{1,2}$/.test(letter) && members && members.length >= 2 && typeof it.first === 'string' && members.includes(it.first)
+        && typeof it.why === 'string' && it.why.trim()) {
+        picks.push({day, letter, first: it.first, why: it.why, members});
+      }
+    });
+  });
+  if (picks.length) {
+    state.picks = picks;
+  }
   return state;
 }
 
@@ -291,13 +336,31 @@ export type ViewCell = {
   stale: boolean,
   /** "from Nov 14", for a view that old. */
   from: string,
+  /** "first of A", on the stock Claude would take first among those of its group that it compared; not there otherwise. */
+  first?: string,
 };
+
+/**
+ * The newest comparison of the past week that the stock was part of, as that stock sees it. Nothing when it was
+ * never compared, or longer ago than the page shows a view without calling it old.
+ */
+export function pickOf(symbol: string, picks: GroupPick[] | undefined, today: string): PickFor | undefined {
+  const mine = (picks ?? []).filter(pick => pick.members.includes(symbol) && pick.day <= today && daysBetween(pick.day, today) <= STALE_AFTER_DAYS);
+  const newest = mine[mine.length - 1];
+  return newest ? {...newest, mine: newest.first === symbol} : undefined;
+}
+
+/** "Of the 3 stocks of group A that Claude compared (ABCD, EFGH, IJKL), it would take this one first: … Compared Nov 26." */
+function pickSentence(pick: PickFor): string {
+  return `Of the ${pick.members.length} stocks of group ${pick.letter} that Claude compared (${pick.members.join(', ')}), it would take ` +
+    `${pick.mine ? 'this one' : pick.first} first: ${pick.why} Compared ${shortDay(pick.day)}.`;
+}
 
 /**
  * What a row shows of Claude's view. `held`: the stock is in one of the reader's portfolios, which Claude was not
  * told. `failed`: why the stock got no answer the last time it was asked about; an earlier view then stays.
  */
-export function cellOf(view: View | undefined, today: string, held: boolean, failed?: string): ViewCell {
+export function cellOf(view: View | undefined, today: string, held: boolean, failed?: string, pick?: PickFor): ViewCell {
   if (!view) {
     return failed
       ? {word: 'no answer', short: '', tip: viewFailureText(failed), stale: false, from: ''}
@@ -307,7 +370,11 @@ export function cellOf(view: View | undefined, today: string, held: boolean, fai
   const tip = [
     view.why, `Asked ${shortDay(view.day)}.`,
     ...(failed ? [`Asked again since, without an answer: ${viewFailureText(failed)}`] : []),
+    ...(pick ? [pickSentence(pick)] : []),
     ...(held ? [HELD_NOTE] : []),
   ].join(' ');
-  return {word: view.view, short: view.short, tip, stale, from: stale ? `from ${shortDay(view.day)}` : ''};
+  return {
+    word: view.view, short: view.short, tip, stale, from: stale ? `from ${shortDay(view.day)}` : '',
+    ...(pick?.mine ? {first: `first of ${pick.letter}`} : {}),
+  };
 }
