@@ -148,6 +148,8 @@
             <div><dt><span class="verdict-pill watch">WATCH</span></dt><dd>{{ meanings.watch }}</dd></div>
             <div><dt><span class="verdict-pill pass">PASS</span></dt><dd>{{ meanings.pass }}</dd></div>
           </dl>
+          <!-- The figures in sight are the newest test's; the account of all the tested lists follows its lead-in. -->
+          <p class="note bridge">{{ tested.bridge }}</p>
           <p class="note tested">{{ cardNote }}</p>
           <p class="note tied-note" *ngIf="groups.groups.length > 0">{{ tiedNote }}</p>
           <p class="note order-note" *ngIf="candidates.length > 1">{{ orderNote }}</p>

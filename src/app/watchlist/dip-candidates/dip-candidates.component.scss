@@ -195,13 +195,9 @@ mat-card-content {
     margin-top: 0;
   }
 
-  // The five figures in one line; the risk among them keeps its place at the end and takes no row to itself.
+  // The four figures in one line, the risk last.
   .candidates:not(.folded) .tested-figures dl {
-    grid-template-columns: repeat(5, max-content);
-  }
-
-  .candidates:not(.folded) .tested-figures .risk {
-    grid-column: auto;
+    grid-template-columns: repeat(4, max-content);
   }
 
   // What the figures are of, and what they do not say by themselves, on one line over them.
@@ -414,11 +410,6 @@ tbody tr:hover .symbol,
   color: var(--ink-2);
 }
 
-// The risk among them takes the row to itself, under the four gains it belongs with.
-.tested-figures .risk {
-  grid-column: 1 / -1;
-}
-
 // What the numbers do not say by themselves: a caption under them.
 .tested-limits {
   margin: 6px 0 0;
@@ -447,7 +438,8 @@ tbody tr:hover .symbol,
   margin: 0;
 }
 
-// Two by two at every width: left to wrap, the fourth number stood alone under the other three.
+// Two by two at every width (the gain on average and the typical one, the market and the risk): left to wrap,
+// the fourth number stood alone under the other three.
 .tested-figures dl {
   display: grid;
   grid-template-columns: repeat(2, max-content);

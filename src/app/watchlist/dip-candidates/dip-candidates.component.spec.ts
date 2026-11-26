@@ -215,22 +215,25 @@ describe('DipCandidatesComponent: the stocks marked DIP BUY, one to a row', () =
     it('shows what the mark was worth in the tests as four numbers, the typical stock beside the average', () => {
       const {el} = shown({candidates: [candidate('AMD')], marks: {dipBuy: 1, watch: 0, pass: 0, none: 0}});
       const box = el.querySelector('.about .tested-figures')!;
-      expect(text(box.querySelector('h3'))).toMatch(/^In tests on \d+ stocks, over 6 months$/);
+      expect(text(box.querySelector('h3'))).toMatch(/^In tests on \d+ new stocks, over 6 months$/);
       const figures = Array.from(box.querySelectorAll('dl > div')).map(it => [text(it.querySelector('dt')), text(it.querySelector('dd'))]);
-      expect(figures.map(it => it[0])).toEqual(
-        ['DIP BUY, on average', 'DIP BUY, the typical one', 'Any stock that dropped', 'The market', 'DIP BUYs that fell a further 20% first']);
-      expect(figures.slice(0, 4).every(it => /^[+−]\d+\.\d%$/.test(it[1]))).withContext(JSON.stringify(figures)).toBeTrue();
-      const sentence = text(el.querySelector('app-about .tested'));
-      expect(figures.filter(it => sentence.includes(it[1])).length).withContext('the same figures as the sentence behind the control').toBe(5);
+      // The owner chose the newest test for the strip (one strip on both views); all the lists together are behind
+      // "How to read this", after a line that says which is which.
+      expect(figures.map(it => it[0])).toEqual(['DIP BUY, on average', 'DIP BUY, the typical one', 'The market', '1 in 10 DIP BUYs lost']);
+      expect(figures.slice(0, 3).every(it => /^[+−]\d+\.\d%$/.test(it[1]))).withContext(JSON.stringify(figures)).toBeTrue();
+      const behind = Array.from(el.querySelectorAll('app-about .about-body > p')).map(text);
+      const lead = behind.findIndex(it => it.startsWith('The figures above are from the newest test'));
+      expect(lead).toBeGreaterThanOrEqual(0);
+      expect(behind[lead + 1]).withContext('the account of all the tested lists comes right after its lead-in').toMatch(/^In tests on \d+ stocks/);
     });
 
     // Found by a review: the four gains stood in sight and what limits them was a click away.
     it('shows the risk and the reach of the tests with the gains, in sight', () => {
       const {el} = shown({candidates: [candidate('AMD')], marks: {dipBuy: 1, watch: 0, pass: 0, none: 0}});
       const box = el.querySelector('.about .tested-figures')!;
-      expect(text(box.querySelector('dl .risk dt'))).toBe('DIP BUYs that fell a further 20% first');
-      expect(text(box.querySelector('dl .risk dd'))).toMatch(/^(1 in \d+|\d+%)$/);
-      expect(text(box.querySelector('.tested-limits'))).toMatch(/^The typical one is the middle stock: half did better, half worse\. Tested \d{4}–\d{4} only\.$/);
+      expect(text(box.querySelector('dl .risk dt'))).toBe('1 in 10 DIP BUYs lost');
+      expect(text(box.querySelector('dl .risk dd'))).toMatch(/^\d+% or more$/);
+      expect(text(box.querySelector('.tested-limits'))).toMatch(/^The typical one is the middle stock: half did better, half worse\. The tests cover \d{4}–\d{4} only\.$/);
       expect(box.closest('app-about')).withContext('not behind the control').toBeNull();
     });
 
