@@ -130,9 +130,9 @@ describe('businessOf: what the company does, in the data source\'s words', () =>
 });
 
 describe('hasBusiness: whether there is anything to show', () => {
-  it('is so with a figure, or with a company listed beside it', () => {
+  it('is so with a figure', () => {
     expect(hasBusiness(businessOf(company({own: {grossMargin: 62.4}})))).toBeTrue();
-    expect(hasBusiness(businessOf(company({related: [{symbol: 'BOLT'}]})))).toBeTrue();
+    expect(hasBusiness(businessOf(company({own: {returnOnCapital: 18.6}, related: [{symbol: 'BOLT'}]})))).toBeTrue();
   });
 
   it('is not so for a fund, for a stock that did not load, or with a description alone', () => {
@@ -140,6 +140,12 @@ describe('hasBusiness: whether there is anything to show', () => {
     expect(hasBusiness(businessOf(fund))).toBeFalse();
     expect(hasBusiness(businessOf(undefined))).toBeFalse();
     expect(hasBusiness(businessOf(company({description: 'Acme Inc makes hand tools.'})))).toBeFalse();
+  });
+
+  // The similar companies are named only in the sentences the details' control opens (the owner's choice): with
+  // them alone the section would be a heading over nothing in sight.
+  it('is not so with listed companies alone', () => {
+    expect(hasBusiness(businessOf(company({related: [{symbol: 'BOLT'}]})))).toBeFalse();
   });
 });
 
