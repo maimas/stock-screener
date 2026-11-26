@@ -1,6 +1,6 @@
 import {discardPeriodicTasks, fakeAsync, TestBed, tick} from "@angular/core/testing";
 import {HttpClientTestingModule, HttpTestingController} from "@angular/common/http/testing";
-import {ClaudeViewService, MAX_VIEW_POLLS, ViewStep} from "./claude-view.service";
+import {ClaudeViewService, MAX_FAILED_POLLS, MAX_VIEW_POLLS, ViewStep} from "./claude-view.service";
 import {ViewRequest} from "./claude-view";
 import {POLL_MS} from "./reading.service";
 
@@ -129,7 +129,8 @@ describe("ClaudeViewService (asks Claude Code about the stocks of a list, throug
 });
 
 // The column's cells and the buttons above the lists all show the same thing: what the server last said. The service
-// keeps it for them, so a row fills in for every part of the page at once.
+// keeps it for them, and follows a list by itself, so a row fills in for every part of the page at once and goes on
+// filling in whatever becomes of the button that was pressed.
 describe('ClaudeViewService: what the page knows, kept for all its parts', () => {
   let service: ClaudeViewService;
   let http: HttpTestingController;
@@ -142,60 +143,137 @@ describe('ClaudeViewService: what the page knows, kept for all its parts', () =>
 
   afterEach(() => http.verify());
 
+  const kept = (body: object) => http.expectOne('/claude/views').flush(server(body));
+  const down = () => http.expectOne('/claude/views').flush('gateway down', {status: 504, statusText: 'Gateway Timeout'});
+  const taken = () => http.expectOne('/claude/views').flush(server({state: 'asking', queue: queue([])}), {status: 202, statusText: 'Accepted'});
+
   it('knows nothing, and asks nothing, until a part of the page starts it', () => {
     expect(service.state$.value).toEqual({views: {}, history: {}, failed: {}});
     http.expectNone('/claude/views');
   });
 
-  it('loads what is kept once, however many parts start it, and only where Claude Code can be asked', () => {
+  it('loads what is kept once, however many parts start it', () => {
     service.start();
     service.start();
-    http.expectOne('/claude/status').flush(server({claude: true}));
-    http.expectOne('/claude/views').flush(server({views: {ABCD: {'2026-11-26': view('WAIT')}}, failed: {}}));
+    kept({views: {ABCD: {'2026-11-26': view('WAIT')}}, failed: {}});
     service.start();
     expect(service.state$.value.views['ABCD'].view).toBe('WAIT');
   });
 
-  it('loads nothing where Claude Code cannot be asked', () => {
+  // Found by a review: with Claude Code out of reach when the page opened, the column was all dashes and its record
+  // gone, as if nothing had ever been asked. What is kept is in the database and needs no Claude Code to be read.
+  it('loads what is kept without asking first whether Claude Code can be reached', () => {
     service.start();
-    http.expectOne('/claude/status').flush(server({claude: false}));
-    http.expectNone('/claude/views');
+    http.expectNone('/claude/status');
+    kept({views: {ABCD: {'2026-11-26': view('AVOID')}}, failed: {}});
+    expect(service.state$.value.views['ABCD'].view).toBe('AVOID');
   });
 
   it('goes on following a list that was being asked about when the page was opened', fakeAsync(() => {
     service.start();
-    http.expectOne('/claude/status').flush(server({claude: true}));
-    http.expectOne('/claude/views').flush(server({views: {}, queue: queue([]), failed: {}}));
+    kept({views: {}, queue: queue([]), failed: {}});
     expect(service.state$.value.queue).toEqual(queue([]));
     tick(POLL_MS);
-    http.expectOne('/claude/views').flush(server({views: {ABCD: {'2026-11-26': view('WAIT')}}, failed: {}}));
+    kept({views: {ABCD: {'2026-11-26': view('WAIT')}}, failed: {}});
     expect(service.state$.value.queue).toBeUndefined();
     expect(Object.keys(service.state$.value.views)).toEqual(['ABCD']);
+    tick(POLL_MS * 3);                               // and asks no more
   }));
 
-  it('keeps what it knows up to date while a list is asked about, and hands a refusal to the one who asked', fakeAsync(() => {
+  it('keeps what it knows up to date while a list is asked about, and tells the one who asked once that it was taken', fakeAsync(() => {
     const steps: ViewStep[] = [];
     service.askAbout(list).subscribe(step => steps.push(step));
-    http.expectOne('/claude/views').flush(server({state: 'asking', queue: queue([])}), {status: 202, statusText: 'Accepted'});
+    taken();
     expect(service.state$.value.queue).toEqual(queue([]));
+    expect(steps.length).toBe(1);
     tick(POLL_MS);
-    http.expectOne('/claude/views').flush(server({views: {ABCD: {'2026-11-26': view('WAIT')}}, failed: {EFGH: 'timeout'}}));
+    kept({views: {ABCD: {'2026-11-26': view('WAIT')}}, failed: {EFGH: 'timeout'}});
     expect(service.state$.value.views['ABCD'].view).toBe('WAIT');
     expect(service.state$.value.failed).toEqual({EFGH: 'timeout'});
-
-    service.askAbout(list).subscribe(step => steps.push(step));
-    http.expectOne('/claude/views').flush(server({state: 'busy'}), {status: 429, statusText: 'Too Many Requests'});
-    expect(steps[steps.length - 1]).toEqual({refused: 'busy'});
-    expect(service.state$.value.views['ABCD'].view).withContext('a refusal changes nothing that is known').toBe('WAIT');
+    expect(steps.length).withContext('the rows are told through what the service knows, not through the one who asked').toBe(1);
   }));
 
-  it('does not blank the rows when a list is taken: the views it knew stay until the server says otherwise', () => {
+  it('does not blank the rows when a list is taken: the views it knew stay until the server says otherwise', fakeAsync(() => {
     service.start();
-    http.expectOne('/claude/status').flush(server({claude: true}));
-    http.expectOne('/claude/views').flush(server({views: {ABCD: {'2026-11-20': view('AVOID')}}, failed: {}}));
+    kept({views: {ABCD: {'2026-11-20': view('AVOID')}}, failed: {}});
     service.askAbout(list).subscribe();
-    http.expectOne('/claude/views').flush(server({state: 'asking', queue: queue([])}), {status: 202, statusText: 'Accepted'});
+    taken();
     expect(service.state$.value.views['ABCD'].view).toBe('AVOID');
     expect(service.state$.value.queue).toEqual(queue([]));
+    tick(POLL_MS);
+    kept({views: {ABCD: {'2026-11-20': view('AVOID')}}, failed: {}});
+  }));
+
+  // Found by a review: the following belonged to the button that was pressed. A list deleted while it was asked
+  // about, or a second click before the first answer, left "Asking Claude…" standing and the rows empty until a reload.
+  it('follows the list by itself, whatever becomes of the one who asked', fakeAsync(() => {
+    const asking = service.askAbout(list).subscribe();
+    taken();
+    asking.unsubscribe();
+    tick(POLL_MS);
+    kept({views: {ABCD: {'2026-11-26': view('WAIT')}}, queue: queue(['ABCD']), failed: {}});
+    expect(service.state$.value.queue).toEqual(queue(['ABCD']));
+    tick(POLL_MS);
+    kept({views: {ABCD: {'2026-11-26': view('WAIT')}, EFGH: {'2026-11-26': view('AVOID')}}, failed: {}});
+    expect(Object.keys(service.state$.value.views)).toEqual(['ABCD', 'EFGH']);
+    expect(service.state$.value.queue).toBeUndefined();
+  }));
+
+  it('looks where things stand when told "busy", and follows the list that is being asked about', fakeAsync(() => {
+    const steps: ViewStep[] = [];
+    service.askAbout(list).subscribe(step => steps.push(step));
+    http.expectOne('/claude/views').flush(server({state: 'busy'}), {status: 429, statusText: 'Too Many Requests'});
+    expect(steps).toEqual([{refused: 'busy'}]);
+    kept({views: {}, queue: {symbols: ['WXYZ'], done: [], failed: {}}, failed: {}});
+    expect(service.state$.value.queue).toEqual({symbols: ['WXYZ'], done: [], failed: {}});
+    tick(POLL_MS);
+    kept({views: {WXYZ: {'2026-11-26': view('WAIT')}}, failed: {}});
+    expect(service.state$.value.views['WXYZ'].view).toBe('WAIT');
+  }));
+
+  // Found by a review: one poll that failed (the app restarting, the database not answering for a moment) read as
+  // "nothing kept, nothing going on": every row of every list went to a dash and stayed there until a reload.
+  it('keeps what it knows, and goes on following, when the server does not answer for a moment', fakeAsync(() => {
+    service.start();
+    kept({views: {ABCD: {'2026-11-20': view('AVOID')}}, queue: queue([]), failed: {}});
+    tick(POLL_MS);
+    down();
+    expect(service.state$.value.views['ABCD'].view).withContext('nothing is blanked').toBe('AVOID');
+    expect(service.state$.value.queue).withContext('and the list is still being asked about').toEqual(queue([]));
+    tick(POLL_MS);
+    kept({views: {ABCD: {'2026-11-26': view('WAIT')}}, failed: {}});
+    expect(service.state$.value.views['ABCD'].view).toBe('WAIT');
+    expect(service.state$.value.queue).toBeUndefined();
+  }));
+
+  it('keeps nothing wrong when the first look fails: no views, and the page as it was', () => {
+    service.start();
+    down();
+    expect(service.state$.value).toEqual({views: {}, history: {}, failed: {}});
   });
+
+  it('stops following a server that stays silent, and frees the buttons: the views it knew stay', fakeAsync(() => {
+    service.start();
+    kept({views: {ABCD: {'2026-11-20': view('AVOID')}}, queue: queue([]), failed: {}});
+    for (let i = 0; i < MAX_FAILED_POLLS; i++) {
+      tick(POLL_MS);
+      down();
+    }
+    tick(POLL_MS * 3);
+    http.expectNone('/claude/views');
+    expect(service.state$.value.queue).withContext('nobody is told "Asking Claude…" for ever').toBeUndefined();
+    expect(service.state$.value.views['ABCD'].view).toBe('AVOID');
+  }));
+
+  it('frees the buttons when a list never ends, after twenty minutes of asking', fakeAsync(() => {
+    service.start();
+    kept({views: {}, queue: queue([]), failed: {}});
+    for (let i = 0; i < MAX_VIEW_POLLS; i++) {
+      tick(POLL_MS);
+      kept({views: {}, queue: queue([]), failed: {}});
+    }
+    tick(POLL_MS * 3);
+    http.expectNone('/claude/views');
+    expect(service.state$.value.queue).toBeUndefined();
+  }));
 });

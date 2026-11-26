@@ -1,7 +1,7 @@
 import {Component, Input, OnDestroy, OnInit} from "@angular/core";
 import {NgIf} from "@angular/common";
 import {MatTooltipModule} from "@angular/material/tooltip";
-import {forkJoin, Observable, of, Subscription} from "rxjs";
+import {finalize, forkJoin, Observable, of, Subscription} from "rxjs";
 import {Stock} from "../../api/microsoft-money.service";
 import {ASK_BUSY, ASK_BUTTON, ASK_TIP, ASKING, factsFor, shortDay, viewFailureText, ViewRequest, ViewsState} from "../claude-view";
 import {ClaudeViewService, isRefusal, ViewRefusal} from "../claude-view.service";
@@ -36,7 +36,7 @@ const REFUSED: Record<ViewRefusal['refused'], string> = {
   imports: [NgIf, MatTooltipModule, TipOnFocusDirective],
   template: `
     <ng-container *ngIf="available && stocks.length">
-      <button type="button" class="link-button ask-claude" [disabled]="mine" appTipOnFocus [matTooltip]="tip"
+      <button type="button" class="link-button ask-claude" [disabled]="mine || sending" appTipOnFocus [matTooltip]="tip"
               matTooltipClass="multiline-tooltip" (click)="ask()">{{ label }}</button>
       <span class="asked" *ngIf="asked">{{ asked }}</span>
       <span class="ask-note" role="status">{{ note }}</span>
@@ -56,6 +56,8 @@ export class ClaudeAskComponent implements OnInit, OnDestroy {
   available = false;
   /** Why the list was not taken, said beside the button until it is pressed again. */
   note = '';
+  /** The list is on its way to the server: a second press before the answer would send it again. */
+  sending = false;
 
   private state: ViewsState = {views: {}, history: {}, failed: {}};
   private watching = new Subscription();
@@ -112,6 +114,9 @@ export class ClaudeAskComponent implements OnInit, OnDestroy {
   }
 
   ask(): void {
+    if (this.sending) {
+      return;
+    }
     this.note = '';
     if (this.state.queue) {
       this.note = this.mine ? '' : ASK_BUSY;
@@ -124,13 +129,16 @@ export class ClaudeAskComponent implements OnInit, OnDestroy {
     // What a reading of the stock's biggest fall found is looked up first: only for a stock that had such a day.
     const kept: Observable<ReadingState>[] = stocks.map(it =>
       biggestDropSinceHigh(it) ? this.readings.state(it.quote!.symbol!) : of<ReadingState>({state: 'none'}));
+    this.sending = true;
     this.work?.unsubscribe();
     this.work = forkJoin(kept).subscribe(states => {
       const list: ViewRequest[] = stocks.map((stock, at) => ({
         symbol: stock.quote!.symbol!, name: stock.quote?.displayName || stock.quote!.symbol!,
         facts: factsFor(stock, now, aboutOf(states[at], stock)),
       }));
-      this.work = this.views.askAbout(list).subscribe(step => {
+      // The service follows the list from here; this button only says why a list was not taken.
+      this.work = this.views.askAbout(list).pipe(finalize(() => this.sending = false)).subscribe(step => {
+        this.sending = false;
         if (isRefusal(step)) {
           this.note = REFUSED[step.refused];
         }

@@ -85,6 +85,7 @@ describe('ClaudeAskComponent (the button that asks Claude about a list)', () => 
     expect(views.asked[0][0].facts.dropAbout).toBe('market');
     expect(views.asked[0][1].facts.dropAbout).toBeUndefined();
 
+    views.steps.next({refused: 'failed'});                // the first press was answered: the button can be pressed again
     readings.kept['FELL'] = {state: 'done', reading: {day: '2026-01-05', what: 'x', about: 'company', sources: [], readAt: '2026-11-20T10:00:00.000Z'}};
     button().click();
     expect(views.asked[1][0].facts.dropAbout).withContext('a reading of another day says nothing of this fall').toBeUndefined();
@@ -129,6 +130,23 @@ describe('ClaudeAskComponent (the button that asks Claude about a list)', () => 
     views.steps.next({refused: 'failed'});
     fixture.detectChanges();
     expect(say('.ask-note')).toBe('Claude could not be asked. Try again.');
+  });
+
+  // Found by a review: a second click before the first answer cancelled the first request and sent the list again;
+  // the server said "busy" about the list's own run, and its rows were not followed.
+  it('sends a list once, however fast the button is pressed again, and can be pressed anew after the answer', () => {
+    create();
+    button().click();
+    button().click();
+    button().click();
+    expect(views.asked.length).toBe(1);
+    fixture.detectChanges();
+    expect(button().disabled).withContext('while the list is on its way').toBeTrue();
+    views.steps.next({refused: 'failed'});
+    fixture.detectChanges();
+    expect(button().disabled).toBeFalse();
+    button().click();
+    expect(views.asked.length).toBe(2);
   });
 
   it('says when the list was last asked about', () => {
