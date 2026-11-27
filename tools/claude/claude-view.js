@@ -123,7 +123,9 @@ const recipe = {
     '- fall: about the stock\'s biggest one-day fall since its highest price, when the figures give its day: what, one sentence of at ' +
     'most 25 words in the past tense saying what happened that day, no advice and no forecast; about, "company" when the cause was ' +
     'this company\'s own news, "industry" when its whole industry fell for a shared reason, "market" when the whole stock market fell ' +
-    'that day, "unclear" when the news gives no clear reason (leave what empty then). When the figures give no such day: what empty, about "none".',
+    'that day, "unclear" when the news gives no clear reason (leave what empty then); sources, up to 3 pages about that day, each with the ' +
+    'title and the url exactly as the search returned them, never the pages about anything else. When the figures give no such day: what ' +
+    'empty, about "none", no sources.',
     '- sources: up to 3 pages you relied on, each with the title and the url exactly as the search returned them. ' +
     'Never invent a url. Leave it empty when your view rests on the figures alone.',
   ].join('\n'),
@@ -134,8 +136,14 @@ const recipe = {
       short: {type: 'string'},
       why: {type: 'string'},
       fall: {
-        type: 'object', additionalProperties: false, required: ['what', 'about'],
-        properties: {what: {type: 'string'}, about: {type: 'string', enum: [...FALL_ABOUT, 'none']}},
+        type: 'object', additionalProperties: false, required: ['what', 'about', 'sources'],
+        properties: {
+          what: {type: 'string'}, about: {type: 'string', enum: [...FALL_ABOUT, 'none']},
+          sources: {
+            type: 'array', maxItems: 3,
+            items: {type: 'object', additionalProperties: false, required: ['title', 'url'], properties: {title: {type: 'string'}, url: {type: 'string'}}},
+          },
+        },
       },
       sources: {
         type: 'array', maxItems: 3,
@@ -232,7 +240,7 @@ function testedHeadline(figures) {
   if (![stocks, mean, median, market].every(isNumber)) {
     return '';
   }
-  return `On the newest test list (${stocks} stocks never used to build the rule) such stocks gained ${signedOne(mean)} on average over ` +
+  return `On the newest test list (${stocks} stocks never used to build the rule) such stocks returned ${signedOne(mean)} on average over ` +
     `6 months and the typical one ${signedOne(median)}, against ${signedOne(market)} for the S&P 500 over the same weeks.`;
 }
 
@@ -250,11 +258,13 @@ function testedSummary(figures) {
   const said = [];
   if ([s?.stocks, s?.dipBuy?.mean, s?.dipBuy?.median, s?.dipBuy?.up, s?.dipBuy?.fell20, s?.everyDip?.mean, s?.sp500?.mean].every(isNumber)
     && yearOf(s.firstBuy) && yearOf(s.lastBuy)) {
-    said.push(`On ${s.stocks} stocks never used to build the rule (bought ${yearOf(s.firstBuy)} to ${yearOf(s.lastBuy)}) such stocks gained ` +
+    // "Returned", with its sign: a word like "gained" would outlive a result that turned into a loss.
+    said.push(`On ${s.stocks} stocks never used to build the rule (bought ${yearOf(s.firstBuy)} to ${yearOf(s.lastBuy)}) such stocks returned ` +
       `${signedOne(s.dipBuy.mean)} on average over 6 months, against ${signedOne(s.everyDip.mean)} for any stock that dropped and ` +
-      `${signedOne(s.sp500.mean)} for the S&P 500; the typical one gained ${signedOne(s.dipBuy.median)}, ${whole(s.dipBuy.up * 100)}% were up, ` +
+      `${signedOne(s.sp500.mean)} for the S&P 500; the typical one returned ${signedOne(s.dipBuy.median)}, ${whole(s.dipBuy.up * 100)}% were up, ` +
       `and ${whole(s.dipBuy.fell20 * 100)}% fell a further 20% first.`);
   }
+  const years = said.length > 0;
   const newest = testedHeadline(all);
   if (newest) {
     said.push(newest);
@@ -270,13 +280,13 @@ function testedSummary(figures) {
   if ([r?.stocks, r?.fromYear, r?.toYear, r?.growing, r?.others].every(isNumber)) {
     const versus = `(${signedOne(r.growing)} against ${signedOne(r.others)}`;
     said.push(r.growing <= r.others
-      ? `Not proven outside those years: a simpler version of the rule on ${r.stocks} stocks over ${r.fromYear} to ${r.toYear} showed no ` +
-        `advantage ${versus} for the other stocks that dropped).`
+      ? `${years ? 'Not proven outside those years: a' : 'Over a longer history a'} simpler version of the rule on ${r.stocks} stocks over ` +
+        `${r.fromYear} to ${r.toYear} showed no advantage ${versus} for the other stocks that dropped).`
       : `Over a longer history a simpler version of the rule on ${r.stocks} stocks over ${r.fromYear} to ${r.toYear} did better than the ` +
         `other stocks that dropped ${versus}).`);
   }
   if ([v?.stocks, v?.fromYear, v?.toYear, v?.vixHigh, v?.high?.mean, v?.low?.mean].every(isNumber)) {
-    said.push(`When the fear index was ${v.vixHigh} or more, stocks that dropped gained ${signedOne(v.high.mean)} over 6 months, against ` +
+    said.push(`When the fear index was ${v.vixHigh} or more, stocks that dropped returned ${signedOne(v.high.mean)} over 6 months, against ` +
       `${signedOne(v.low.mean)} at other times (${v.stocks} stocks, ${v.fromYear} to ${v.toYear}).`);
   }
   return said.join(' ');
@@ -311,7 +321,7 @@ function viewFrom(output, links, now) {
   if (!short || !sentence || [short, sentence].some(text => /https?:\/\//i.test(text))) {
     return {ok: false, reason: 'no-answer'};
   }
-  const fall = fallFrom(output.fall);
+  const fall = fallFrom(output.fall, links);
   return {
     ok: true,
     view: {
@@ -323,18 +333,20 @@ function viewFrom(output, links, now) {
 }
 
 /**
- * What the answer says of the stock's biggest one-day fall: what happened in one plain sentence, and which kind of
- * news it was. Nothing when it says nothing usable; a view is kept either way.
+ * What the answer says of the stock's biggest one-day fall: what happened in one plain sentence, which kind of news
+ * it was, and the pages about that day. Nothing when it says nothing usable; a view is kept either way.
  */
-function fallFrom(said) {
+function fallFrom(said, links) {
   if (!isObject(said) || !FALL_ABOUT.includes(said.about)) {
     return undefined;
   }
   if (said.about === 'unclear') {
-    return {what: '', about: 'unclear'};
+    return {what: '', about: 'unclear', sources: []};
   }
   const what = typeof said.what === 'string' ? sentenceOf(said.what, MAX_WHY_WORDS) : '';
-  return what && !/https?:\/\//i.test(what) ? {what, about: said.about} : undefined;
+  // The pages about that day, as the search returned them: not the pages the view rests on, which may be about
+  // something that happened months later.
+  return what && !/https?:\/\//i.test(what) ? {what, about: said.about, sources: returnedSources(said.sources, links)} : undefined;
 }
 
 module.exports = {recipe, VIEWS, FACT_FIELDS, MAX_STOCKS, listFrom, stocksFrom, testedHeadline, testedSummary, promptFor, viewFrom};

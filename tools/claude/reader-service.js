@@ -18,7 +18,7 @@ const {recipe} = require('./why-it-dropped');
 const {recipe: viewRecipe} = require('./claude-view');
 const {recipe: compareRecipe} = require('./claude-compare');
 
-/** A question with every indicator of a stock and what the tests say in full is about 5000 characters. */
+/** A question with every indicator of a stock and what the tests say in full is about 4000 characters: twice that is taken. */
 const MAX_PROMPT = 8000;
 const MAX_BODY = 32 * 1024;                          // a prompt of 8000 characters fits several times over
 

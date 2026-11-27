@@ -257,7 +257,7 @@ test('a question with every figure still fits what the reader takes', () => {
   };
   const asked = listFrom({list: [{symbol: 'ABCDEFGH.I', name: 'x'.repeat(80), facts: every}]}).list[0];
   assert.deepEqual(Object.keys(asked.facts), Object.keys(FACT_FIELDS), 'every figure there is');
-  const question = promptFor(asked, testedHeadline(FIGURES));
+  const question = promptFor(asked, testedSummary(require('../signal-backtest/quoted_figures.json')));
   assert.ok(question.length <= 8000, `${question.length} characters`);
 });
 
@@ -307,13 +307,13 @@ test('says what the tests say in full, from the figures the backtests record, an
   };
   const said = testedSummary(figures);
   for (const part of [
-    'On 994 stocks never used to build the rule (bought 2022 to 2026) such stocks gained +13.1% on average over 6 months, against +9.9% for any stock that dropped and +10.2% for the S&P 500',
-    'the typical one gained +3.6%, 55% were up, and 33% fell a further 20% first',
+    'On 994 stocks never used to build the rule (bought 2022 to 2026) such stocks returned +13.1% on average over 6 months, against +9.9% for any stock that dropped and +10.2% for the S&P 500',
+    'the typical one returned +3.6%, 55% were up, and 33% fell a further 20% first',
     'On the newest test list (202 stocks never used to build the rule)',
     'Within 13 weeks the typical one traded 13% below the price it was marked at',
     'Selling after a fall of 20% lowered the average result on one list of 234 stocks (+8.1% against +12.0% for keeping)',
     'Not proven outside those years: a simpler version of the rule on 424 stocks over 1994 to 2022 showed no advantage (+11.0% against +13.5% for the other stocks that dropped)',
-    'When the fear index was 25 or more, stocks that dropped gained +20.4% over 6 months, against +7.3% at other times (424 stocks, 1994 to 2026)',
+    'When the fear index was 25 or more, stocks that dropped returned +20.4% over 6 months, against +7.3% at other times (424 stocks, 1994 to 2026)',
   ]) {
     assert.ok(said.includes(part), `${part}\n in:\n${said}`);
   }
@@ -336,11 +336,15 @@ test('asks, with the view, why the stock fell on its worst day, and for a judgme
 test('makes, from one answer, the view and what happened on the day of the fall', () => {
   const made = viewFrom({
     view: 'WAIT', short: 'Biggest customer may leave', why: 'Its biggest customer plans to rent out its own computing power.',
-    fall: {what: ' A report said its biggest customer\nplanned to rent out its own computing power ', about: 'industry'},
+    fall: {what: ' A report said its biggest customer\nplanned to rent out its own computing power ', about: 'industry',
+      sources: [{title: 'made up', url: 'https://example.net/chips'}, {title: 'Never returned', url: 'https://elsewhere.example/made-up'}]},
     sources: [{title: 'x', url: 'https://news.example.com/business/example-forecast'}],
   }, links, NOW);
   assert.equal(made.ok, true);
-  assert.deepEqual(made.fall, {what: 'A report said its biggest customer planned to rent out its own computing power.', about: 'industry'});
+  assert.deepEqual(made.fall, {
+    what: 'A report said its biggest customer planned to rent out its own computing power.', about: 'industry',
+    sources: [{title: 'Chip makers slide', url: 'https://example.net/chips'}],
+  }, 'with the pages about that day, as the search returned them: not the pages the view rests on');
   assert.equal(made.view.fall, undefined, 'the view itself is kept as before');
 });
 
@@ -352,7 +356,7 @@ test('keeps the view when what is said of the fall is not usable, and says nothi
     assert.equal(made.ok, true, JSON.stringify(fall));
     assert.equal(made.fall, undefined, JSON.stringify(fall));
   }
-  assert.deepEqual(viewFrom({...good, fall: {what: 'whatever', about: 'unclear'}}, links, NOW).fall, {what: '', about: 'unclear'});
+  assert.deepEqual(viewFrom({...good, fall: {what: 'whatever', about: 'unclear'}}, links, NOW).fall, {what: '', about: 'unclear', sources: []});
 });
 
 // The project's rule: a sentence that says something the recorded figures could contradict follows the figures. The
@@ -364,8 +368,10 @@ test('says of selling early and of the longer history what the figures say, also
     sentiment: {stocks: 424, fromYear: 1994, toYear: 2026, vixHigh: 25, high: {mean: 20.4137}, low: {mean: 7.2881}},
   };
   assert.match(testedSummary(base), /Selling after a fall of 20% lowered the average result/);
-  assert.match(testedSummary(base), /Not proven outside those years: .* showed no advantage \(\+11\.0% against \+13\.5%/);
-  assert.match(testedSummary(base), /When the fear index was 25 or more, stocks that dropped gained \+20\.4% over 6 months, against \+7\.3% at other times/);
+  assert.match(testedSummary(base), /^Selling after a fall/, 'said in the order of the figures that are there');
+  assert.match(testedSummary(base), /Over a longer history a simpler version of the rule on 424 stocks over 1994 to 2022 showed no advantage \(\+11\.0% against \+13\.5%/);
+  assert.doesNotMatch(testedSummary(base), /Not proven outside those years/, '"those years" are said only after the sentence that names them');
+  assert.match(testedSummary(base), /When the fear index was 25 or more, stocks that dropped returned \+20\.4% over 6 months, against \+7\.3% at other times/);
 
   const turned = {
     fresh: {...base.fresh, withStop: 14.2},
@@ -377,9 +383,26 @@ test('says of selling early and of the longer history what the figures say, also
   assert.doesNotMatch(said, /lowered the average/);
   assert.match(said, /Over a longer history a simpler version of the rule on 424 stocks over 1994 to 2022 did better than the other stocks that dropped \(\+15\.1% against \+13\.5%\)/);
   assert.doesNotMatch(said, /no advantage|Not proven/);
-  assert.match(said, /When the fear index was 25 or more, stocks that dropped gained \+5\.1% over 6 months, against \+7\.3% at other times/);
+  assert.match(said, /When the fear index was 25 or more, stocks that dropped returned \+5\.1% over 6 months, against \+7\.3% at other times/);
 });
 
 test('the label of the fear figure does not promise more than its own figures say', () => {
   assert.equal(FACT_FIELDS.fearHigh.label, 'Market fear is high by the page\'s measure (25 or more)');
+});
+
+// Found by a review: fixed words outlived their figures ("gained -2.0%").
+test('says a result that is a loss as a loss, in the same words', () => {
+  const lost = testedSummary({
+    summary: {stocks: 994, firstBuy: '2022-06-03', lastBuy: '2026-05-22', dipBuy: {mean: -2.04, median: -3.5, up: 0.41, fell20: 0.5}, everyDip: {mean: -1.2}, sp500: {mean: 4}},
+    seventh: {stocks: 202, profit: {mean: -2, median: -3.6}, market: {sp500: 10.2}},
+  });
+  assert.match(lost, /such stocks returned -2\.0% on average over 6 months, against -1\.2% for any stock that dropped/);
+  assert.match(lost, /On the newest test list \(202 stocks never used to build the rule\) such stocks returned -2\.0% on average/);
+  assert.doesNotMatch(lost, /gained/);
+});
+
+test('asks for the pages about the day of the fall apart from the pages the view rests on', () => {
+  assert.deepEqual(recipe.schema.properties.fall.required, ['what', 'about', 'sources']);
+  assert.equal(recipe.schema.properties.fall.properties.sources.maxItems, 3);
+  assert.match(recipe.system, /sources, up to 3 pages about that day/);
 });

@@ -241,7 +241,7 @@ test('keeps what the AI found about the fall as the stock\'s reading', async () 
   const fell = stock('ABCD', {mark: 'DIP BUY', bigDropDay: '2026-11-03', bigDropPercent: -12});
   await post({list: [fell]});
   await asked(1);
-  runs[0].resolve({...answer(), output: {...answer().output, fall: {what: 'The company lowered its sales forecast', about: 'company'}}});
+  runs[0].resolve({...answer(), output: {...answer().output, fall: {what: 'The company lowered its sales forecast', about: 'company', sources: [page]}}});
   await finished();
   assert.deepEqual((await storage.read('readings')).value, {v: 1, readings: {ABCD: {
     what: 'The company lowered its sales forecast.', about: 'company', sources: [page], readAt: NOW.toISOString(),
@@ -254,11 +254,12 @@ test('keeps no reading for a stock with no such day, for a fall the answer does 
   const said = fall => ({...answer(), output: {...answer().output, fall}});
   await post({list: [stock('ABCD'), stock('EFGH', {bigDropDay: '2026-11-03', bigDropPercent: -12}), stock('IJKL', {bigDropDay: '2026-11-03', bigDropPercent: -12})]});
   await asked(1);
-  runs[0].resolve(said({what: 'The company lowered its sales forecast', about: 'company'}));          // no day of a fall was given
+  runs[0].resolve(said({what: 'The company lowered its sales forecast', about: 'company', sources: [page]}));   // no day of a fall was given
   await asked(2);
-  runs[1].resolve(said({what: '', about: 'none'}));
+  runs[1].resolve(said({what: '', about: 'none', sources: []}));
   await asked(3);
-  runs[2].resolve({...said({what: 'It fell with the market', about: 'market'}), output: {...said({what: 'It fell with the market', about: 'market'}).output, sources: []}});
+  // The view names a page, the fall names none: the view's page is about something else and is not borrowed.
+  runs[2].resolve(said({what: 'It fell with the market', about: 'market', sources: []}));
   const end = await finished();
   assert.deepEqual(Object.keys(end.views), ['ABCD', 'EFGH', 'IJKL'], 'each view is kept');
   assert.equal((await storage.read('readings')).value, null);
@@ -274,7 +275,7 @@ test('a reading that could not be kept does not cost the view', async () => {
     }
     return merge(key, patch);
   };
-  runs[0].resolve({...answer(), output: {...answer().output, fall: {what: 'The company lowered its sales forecast', about: 'company'}}});
+  runs[0].resolve({...answer(), output: {...answer().output, fall: {what: 'The company lowered its sales forecast', about: 'company', sources: [page]}}});
   const end = await finished();
   assert.deepEqual(end.failed, {});
   assert.deepEqual(Object.keys(end.views), ['ABCD']);
@@ -287,7 +288,7 @@ test('quotes the tests in full in the question', async () => {
   await post({list: [stock('ABCD')]});
   await asked(1);
   assert.match(runs[0].question, /202 stocks/);
-  assert.match(runs[0].question, /Not proven outside those years/);
+  assert.match(runs[0].question, /showed no advantage/);
   runs[0].resolve(answer());
   await finished();
 });
@@ -302,7 +303,7 @@ test('leaves a reading of the same day as it is, and takes the place of a readin
   await post({list: [fell('ABCD'), fell('EFGH')]});
   for (let i = 0; i < 2; i++) {
     await asked(i + 1);
-    runs[i].resolve({...answer(), output: {...answer().output, fall: {what: 'The company lowered its sales forecast', about: 'company'}}});
+    runs[i].resolve({...answer(), output: {...answer().output, fall: {what: 'The company lowered its sales forecast', about: 'company', sources: [page]}}});
   }
   await finished();
   const kept = (await storage.read('readings')).value.readings;
@@ -324,4 +325,40 @@ test('waits for Claude to be free for as long as a run can take before it gives 
   await asked(39);
   runs[38].resolve(answer());
   assert.deepEqual(Object.keys((await finished()).views), ['ABCD']);
+});
+
+// Seen on the page, and found by a review: a view that found no clear reason for the fall was kept as the stock's
+// reading, and "Claude found no clear reason…" took the place of the headlines the page had found itself.
+test('does not keep "no clear reason" from a view: what the page shows of the fall stays as it is', async () => {
+  await post({list: [stock('ABCD', {bigDropDay: '2026-11-03', bigDropPercent: -12})]});
+  await asked(1);
+  runs[0].resolve({...answer(), output: {...answer().output, fall: {what: '', about: 'unclear', sources: []}}});
+  await finished();
+  assert.equal((await storage.read('readings')).value, null);
+});
+
+test('a view\'s reading takes the place of a kept "no clear reason" of that day, and never of a reading of a later day', async () => {
+  const unclear = {what: '', about: 'unclear', sources: [], readAt: '2026-11-20T10:00:00.000Z', day: '2026-11-03', percent: 12, model: 'm', version: '1'};
+  const later = {what: 'About a later fall.', about: 'market', sources: [page], readAt: '2026-11-25T10:00:00.000Z', day: '2026-11-24', percent: 9, model: 'm', version: '1'};
+  await storage.merge('readings', {v: 1, readings: {ABCD: unclear, EFGH: later}});
+  const fell = symbol => stock(symbol, {bigDropDay: '2026-11-03', bigDropPercent: -12});
+  await post({list: [fell('ABCD'), fell('EFGH')]});
+  for (let i = 0; i < 2; i++) {
+    await asked(i + 1);
+    runs[i].resolve({...answer(), output: {...answer().output, fall: {what: 'The company lowered its sales forecast', about: 'company', sources: [page]}}});
+  }
+  await finished();
+  const kept = (await storage.read('readings')).value.readings;
+  assert.equal(kept.ABCD.what, 'The company lowered its sales forecast.');
+  assert.deepEqual(kept.EFGH, later, 'a page left open with older prices does not take a newer reading away');
+});
+
+test('keeps a sentence about the fall that had to be cut as it is: no full stop after its "…"', async () => {
+  await post({list: [stock('ABCD', {bigDropDay: '2026-11-03', bigDropPercent: -12})]});
+  await asked(1);
+  const long = Array.from({length: 40}, (_, i) => `w${i + 1}`).join(' ');
+  runs[0].resolve({...answer(), output: {...answer().output, fall: {what: long, about: 'company', sources: [page]}}});
+  await finished();
+  const what = (await storage.read('readings')).value.readings.ABCD.what;
+  assert.ok(what.endsWith('w25…'), what);
 });

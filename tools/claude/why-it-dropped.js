@@ -148,7 +148,7 @@ function readingFrom(output, links, now) {
   if (!sources.length) {
     return {ok: false, reason: 'no-source'};
   }
-  return {ok: true, reading: {what: /[.!?]$/.test(sentence) ? sentence : `${sentence}.`, about: output.about, sources, readAt}};
+  return {ok: true, reading: {what: /[.!?…]$/.test(sentence) ? sentence : `${sentence}.`, about: output.about, sources, readAt}};
 }
 
 /**

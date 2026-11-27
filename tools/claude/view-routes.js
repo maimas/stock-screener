@@ -128,20 +128,28 @@ function viewRoutes({
    */
   const keepReading = async (asked, fall, outcome) => {
     const {bigDropDay: day, bigDropPercent: size} = asked.facts;
-    if (!fall || !day || typeof size !== 'number') {
+    // "No clear reason" is not kept from a view: it would take the place of the headlines the page found itself, for
+    // every stock of a list. A reading asked for on its own may say it.
+    if (!fall || fall.about === 'unclear' || !day || typeof size !== 'number') {
       return;
     }
-    const made = readingFrom({what: fall.what, about: fall.about, sources: outcome.output?.sources}, outcome.links, now());
+    // Its pages are the ones named for the fall, not the ones the view rests on.
+    const made = readingFrom({what: fall.what, about: fall.about, sources: fall.sources}, outcome.links, now());
     if (!made.ok) {
       return;
     }
     const reading = {...made.reading, day, percent: Math.abs(size), model: outcome.model, version: outcome.version};
     try {
-      // A reading of this very day is there already (asked for on its own, or with an earlier view): it stays.
-      if ((await storage.read(READINGS)).value?.readings?.[asked.symbol]?.day === day) {
+      // What is kept stays when it says something about this day or a later one (asked for on its own, or with an
+      // earlier view; a page left open with older prices must not take a newer reading away).
+      const there = (await storage.read(READINGS)).value?.readings?.[asked.symbol];
+      if (there && typeof there.day === 'string' && there.day >= day && !(there.day === day && there.about === 'unclear')) {
         return;
       }
-      await storage.merge(READINGS, {v: 1, readings: {[asked.symbol]: reading}});
+      const kept = await storage.merge(READINGS, {v: 1, readings: {[asked.symbol]: reading}});
+      if (!kept.saved) {
+        throw new Error('not saved');
+      }
       log.log(`[claude] and read why ${asked.symbol} fell on ${day}`);
     } catch (error) {
       log.warn(`[claude] could not keep why ${asked.symbol} fell: ${error?.message}`);
