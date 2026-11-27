@@ -6,12 +6,13 @@ import {finalize, Subscription} from "rxjs";
 import {Stock} from "../../api/microsoft-money.service";
 import {
   ASK_BUSY, ASK_ONE, ASK_ONE_AGAIN, ASK_ONE_TIP, askedLine, ASKING_ONE, compareFailureText, COMPARING, DETAIL_TITLE, HELD_NOTE, NOT_IN_A_LIST,
-  pickOf, pickSentence, View, viewFailureText, ViewSource, ViewsState, wordSaid,
+  PickFor, pickOf, pickSentence, pickShort, View, viewFailureText, ViewSource, ViewsState, wordSaid,
 } from "../claude-view";
 import {groupsFor, requestFor} from "../claude-groups";
 import {ClaudeViewService, isRefusal, ViewRefusal} from "../claude-view.service";
 import {biggestDropSinceHigh, isoDay} from "../drop-news";
 import {siteOf, sourceTitle} from "../reading";
+import {MoreRestDirective} from "../more/more-rest.directive";
 import {ReadingService} from "../reading.service";
 import {TipOnFocusDirective} from "../tip-on-focus.directive";
 
@@ -44,17 +45,20 @@ const REFUSED: Record<ViewRefusal['refused'], string> = {
 @Component({
   selector: "app-claude-view-detail",
   standalone: true,
-  imports: [NgIf, NgForOf, MatButtonModule, MatTooltipModule, TipOnFocusDirective],
+  imports: [NgIf, NgForOf, MatButtonModule, MatTooltipModule, TipOnFocusDirective, MoreRestDirective],
   template: `
     <section *ngIf="shown">
       <h4>{{ title }}<span class="note"> · not tested</span></h4>
       <ng-container *ngIf="view as said">
         <p class="said"><span class="word">{{ word }}</span><span class="short"> · {{ said.short }}</span></p>
-        <p class="why">{{ said.why }}</p>
-        <p class="pick" *ngIf="pickLine">{{ pickLine }}</p>
-        <!-- The AI's word stands here in full: said under it, always, that it does not know what is held. -->
-        <p class="held">{{ heldNote }}</p>
-        <ul *ngIf="said.sources.length">
+        <!-- In sight: the word, the comparison in one line, and the line of when it was asked. The sentences, the pages
+             and the note in full open with the details' one control ("Read these details in sentences"), like every
+             other section's: with all of it in sight this part was as tall as the rest of the details together. -->
+        <p class="pick-line" *ngIf="pickBrief">{{ pickBrief }}</p>
+        <p class="why" appMoreRest="details.words">{{ said.why }}</p>
+        <p class="pick" *ngIf="pickLine" appMoreRest="details.words">{{ pickLine }}</p>
+        <p class="held" appMoreRest="details.words">{{ heldNote }}</p>
+        <ul *ngIf="said.sources.length" appMoreRest="details.words">
           <li *ngFor="let source of said.sources; trackBy: trackByUrl">
             <a [href]="source.url" target="_blank" rel="noopener noreferrer">{{ titleOf(source) }}</a>
             <span class="source"> {{ siteOf(source) }}</span>
@@ -84,7 +88,10 @@ const REFUSED: Record<ViewRefusal['refused'], string> = {
     /* The word in small letters and without colour: capitals and colour are the tested mark's. */
     .said { margin-top: 0; }
     .word { font-weight: 600; }
-    .short, .pick { color: var(--ink-2); }
+    .short, .pick, .pick-line { color: var(--ink-2); }
+    /* A link as the details set theirs (their rule is scoped to their own component, so it is said again here). */
+    a { color: var(--link); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: rgba(21, 101, 192, 0.35); }
+    a:hover { text-decoration-color: currentColor; }
     ul { margin: 6px 0 0; padding-left: 18px; max-width: 70ch; }
     .source, .by, .none, .busy, .held { font-size: var(--text-meta); color: var(--ink-3); }
     .failed { color: var(--warn); }
@@ -165,10 +172,20 @@ export class ClaudeViewDetailComponent implements OnChanges, OnInit, OnDestroy {
     return this.views.letterOf(this.symbol);
   }
 
-  /** Which stock of its group the AI would take first, when this stock was compared in the past week. */
+  private get pick(): PickFor | undefined {
+    return pickOf(this.symbol, this.state.picks, this.day, this.state.views, this.letter);
+  }
+
+  /** Which stock of its group the AI would take first, when this stock was compared in the past week: with its reason, */
   get pickLine(): string {
-    const pick = pickOf(this.symbol, this.state.picks, this.day, this.state.views, this.letter);
+    const pick = this.pick;
     return pick ? pickSentence(pick) : '';
+  }
+
+  /** and in one line. */
+  get pickBrief(): string {
+    const pick = this.pick;
+    return pick ? pickShort(pick) : '';
   }
 
   get shown(): boolean {

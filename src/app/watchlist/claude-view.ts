@@ -190,10 +190,21 @@ export const ASK_ONE_TIP = 'The AI (Claude Code on this computer) reads this sto
   'Up to a minute. Nothing about what you hold is sent.';
 export const ASKING_ONE = 'The AI is reading this stock\'s figures and the news about it. This takes up to a minute.';
 export const NOT_IN_A_LIST = 'Add this stock to one of your lists to ask the AI about it.';
-/** "Asked Nov 18 · not tested · 2 sources" */
+/** "Of ABCD, EFGH and IJKL the AI would take EFGH first." The comparison in one line, for where the reasons are folded away. */
+export function pickShort(pick: PickFor): string {
+  const which = pick.mine ? 'this one' : pick.first, members = pick.members;
+  const among = members.length <= 3
+    ? `Of ${members.slice(0, -1).join(', ')} and ${members[members.length - 1]}`
+    : `Of the ${members.length} stocks ${pick.letterNow ? `of group ${pick.letterNow}` : 'that moved together'} it compared,`;
+  return `${among} the AI would take ${which} first.`;
+}
+
+/**
+ * "Asked Nov 18 · not tested · it was not told what you hold": the line under the AI's word in a stock's details.
+ * That it does not know what is held is said in sight here, and in full with the sentences.
+ */
 export function askedLine(view: View): string {
-  const count = view.sources.length;
-  return `Asked ${shortDay(view.day)} · not tested` + (count ? ` · ${count} source${count === 1 ? '' : 's'}` : '');
+  return `Asked ${shortDay(view.day)} · not tested · it was not told what you hold`;
 }
 /** The AI's word as the page says it, quietly: "Buy some", "Wait", "Avoid". */
 export function wordSaid(word: string): string {

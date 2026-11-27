@@ -3,6 +3,7 @@ import {NoopAnimationsModule} from "@angular/platform-browser/animations";
 import {ClaudeViewDetailComponent} from "./claude-view-detail.component";
 import {ClaudeViewService} from "../claude-view.service";
 import {ASK_BUSY, ASK_ONE, ASK_ONE_AGAIN, ASKING_ONE, HELD_NOTE, NOT_IN_A_LIST} from "../claude-view";
+import {MORE_STORAGE_KEY, MoreService} from "../more/more.service";
 import {ReadingService} from "../reading.service";
 import {FakeClaudeViews, keptView} from "../testing/fake-claude-views";
 import {FakeReadings} from "../testing/fake-readings";
@@ -37,6 +38,7 @@ describe("ClaudeViewDetailComponent (the AI's view of a stock, in its details)",
   }
 
   beforeEach(() => {
+    localStorage.removeItem(MORE_STORAGE_KEY);
     views = new FakeClaudeViews();
     TestBed.configureTestingModule({
       imports: [ClaudeViewDetailComponent, NoopAnimationsModule],
@@ -69,7 +71,7 @@ describe("ClaudeViewDetailComponent (the AI's view of a stock, in its details)",
     create({known: {views: {ABCD: {'2026-11-18': withSources}}}});
     expect(say('.said')).toBe('Wait · Results due next week');
     expect(say('.why')).toBe('It reports its results next week.');
-    expect(say('.by .line')).toBe('Asked Nov 18 · not tested · 2 sources');
+    expect(say('.by .line')).toBe('Asked Nov 18 · not tested · it was not told what you hold');
     expect(buttons()).withContext('it can be asked again').toEqual([ASK_ONE_AGAIN]);
   });
 
@@ -86,7 +88,7 @@ describe("ClaudeViewDetailComponent (the AI's view of a stock, in its details)",
   it('has no list of pages for a view that rests on the figures alone', () => {
     create({known: {views: {ABCD: {'2026-11-18': keptView('AVOID')}}}});
     expect(el().querySelector('ul')).toBeNull();
-    expect(say('.by .line')).toBe('Asked Nov 18 · not tested');
+    expect(say('.by .line')).toBe('Asked Nov 18 · not tested · it was not told what you hold');
   });
 
   it('says which stock of its group the AI would take first, and why', () => {
@@ -183,7 +185,8 @@ describe("ClaudeViewDetailComponent (the AI's view of a stock, in its details)",
     expect(fixture.nativeElement.querySelector('.held')).withContext('nothing was said yet').toBeNull();
     views.knows({views: {ABCD: {'2026-11-18': keptView('BUY SOME')}}});
     fixture.detectChanges();
-    expect(say('.held')).toBe(HELD_NOTE);
+    expect(say('.by .line')).withContext('in sight, on the line under the word').toContain('it was not told what you hold');
+    expect(say('.held')).withContext('in full, with the sentences').toBe(HELD_NOTE);
   });
 
   it('says "Comparing group A…" only under a stock of that group', () => {
@@ -232,5 +235,74 @@ describe("ClaudeViewDetailComponent (the AI's view of a stock, in its details)",
     fixture.componentRef.setInput('stock', stock('EFGH'));
     fixture.detectChanges();
     expect(say('.said')).toBe('Avoid · Sales shrinking, heavy debt');
+  });
+});
+
+// The page's rule ("too much text and not much signal"): a section of the details shows its signal, and its
+// sentences open with the details' one control. With everything in sight this part was 400px tall and made a
+// stock's details twice as long.
+describe("ClaudeViewDetailComponent: its signal in sight, its sentences behind the details' one control", () => {
+  let views: FakeClaudeViews;
+  let fixture: ComponentFixture<ClaudeViewDetailComponent>;
+  const stock = (symbol: string) => makeStock({symbol, price: 80, high52: 100});
+  const page = {title: 'Example Corp lowers its sales forecast', url: 'https://news.example.com/forecast'};
+  const group = (symbols: string[]) => ({groups: [{letter: 'A', index: 0, symbols, level: 0.7, sector: ''}], alone: [], unknown: []});
+
+  function create(members = ['ABCD', 'EFGH', 'IJKL'], first = 'EFGH'): void {
+    TestBed.resetTestingModule();                    // a test here makes the part more than once
+    localStorage.removeItem(MORE_STORAGE_KEY);
+    views = new FakeClaudeViews();
+    TestBed.configureTestingModule({
+      imports: [ClaudeViewDetailComponent, NoopAnimationsModule],
+      providers: [{provide: ClaudeViewService, useValue: views}, {provide: ReadingService, useValue: new FakeReadings()}],
+    });
+    views.elsewhere = [stock('ABCD')];
+    views.setTied(group(members));
+    views.knows({
+      views: {ABCD: {'2026-11-18': {...keptView('WAIT') as object, sources: [page]}}},
+      picks: {'2026-11-18': {A: {first, why: 'It makes a profit and swings less.', members}}},
+    });
+    fixture = TestBed.createComponent(ClaudeViewDetailComponent);
+    fixture.componentRef.setInput('stock', stock('ABCD'));
+    fixture.componentRef.setInput('today', '2026-11-20');
+    fixture.detectChanges();
+  }
+
+  const el = (): HTMLElement => fixture.nativeElement;
+  const say = (selector: string): string => (el().querySelector(selector)?.textContent ?? '').replace(/\s+/g, ' ').trim();
+  const hidden = (selector: string): boolean => el().querySelector<HTMLElement>(selector)!.hidden;
+
+  it('shows the word with its short reason, the comparison in one line, and the line of when it was asked', () => {
+    create();
+    expect(say('.said')).toBe('Wait · Results due next week');
+    expect(say('.pick-line')).toBe('Of ABCD, EFGH and IJKL the AI would take EFGH first.');
+    expect(say('.by .line')).toBe('Asked Nov 18 · not tested · it was not told what you hold');
+    expect([hidden('.said'), hidden('.pick-line'), hidden('.by')]).toEqual([false, false, false]);
+  });
+
+  it('keeps the sentence, the reason of the comparison, the pages and the note in full for the details\' control', () => {
+    create();
+    expect([hidden('.why'), hidden('.pick'), hidden('ul'), hidden('.held')]).toEqual([true, true, true, true]);
+    TestBed.inject(MoreService).toggle('details.words');
+    expect([hidden('.why'), hidden('.pick'), hidden('ul'), hidden('.held')]).toEqual([false, false, false, false]);
+    expect(say('.why')).toBe('It reports its results next week.');
+    expect(say('.pick')).toContain('it would take EFGH first: It makes a profit and swings less.');
+  });
+
+  it('says the comparison in one line however many stocks were compared', () => {
+    create(['ABCD', 'EFGH'], 'ABCD');
+    expect(say('.pick-line')).toBe('Of ABCD and EFGH the AI would take this one first.');
+    create(['ABCD', 'EFGH', 'IJKL', 'MNOP', 'QRST'], 'QRST');
+    expect(say('.pick-line')).toBe('Of the 5 stocks of group A it compared, the AI would take QRST first.');
+  });
+
+  it('wears the links of the details: the page\'s colour for a link, underlined', () => {
+    document.documentElement.style.setProperty('--link', 'rgb(21, 101, 192)');
+    create();
+    TestBed.inject(MoreService).toggle('details.words');
+    const link = getComputedStyle(el().querySelector('ul a')!);
+    expect(link.color).toBe('rgb(21, 101, 192)');
+    expect(link.textDecorationLine).toBe('underline');
+    document.documentElement.style.removeProperty('--link');
   });
 });
