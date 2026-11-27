@@ -395,66 +395,23 @@
   }
 }
 
-// Watchlist, from 1800px: the stocks marked DIP BUY in a pane on the left that stays in view under the bar, and the
-// lists on the right. A click on a candidate opens its row in the lists beside it, with the candidates still there
-// to go on to the next one.
-@media (min-width: 1800px) {
-  .view-watchlist {
-    display: grid;
-    grid-template-columns: 480px minmax(0, 1fr);
-    grid-template-rows: auto 1fr;
-    grid-template-areas:
-      "candidates bar"
-      "candidates lists";
-    align-items: start;
-    column-gap: 24px;
-  }
+// Watchlist: one column at every width. "Dip candidates" is a box across the top with the table of the marked stocks
+// in it (the owner: "a table on the top where it becomes a table like the other ones"), and the lists follow under
+// it. (It used to be a pane beside the lists from 1800px, 232 to 900px wide and pinned under the bar.)
 
-  .view-watchlist > app-dip-candidates {
-    grid-area: candidates;
-    position: sticky;
-    top: calc(var(--bar-height) + 24px);
-    // On a screen too short for the whole pane, the pane scrolls by itself instead of being cut off at the bottom.
-    max-height: calc(100vh - var(--bar-height) - 48px);
-    overflow-y: auto;
-  }
-
-  .view-watchlist > .lists-bar {
-    grid-area: bar;
-    margin-top: 0;
-  }
-
-  .view-watchlist > .lists {
-    grid-area: lists;
-  }
-}
-
-// From 2300px the pane is wide enough for the candidates and what is said about them side by side.
-@media (min-width: 2300px) {
-  .view-watchlist {
-    grid-template-columns: 900px minmax(0, 1fr);
-  }
-}
-
-// ---- The pane folded ("Show less" in "Dip candidates") ----
-// Folded, the pane is a strip as wide as its two columns (a stock, how far it dropped): the lists get the rest.
-@media (min-width: 1800px) {
-  .view-watchlist.pane-folded {
-    grid-template-columns: 232px minmax(0, 1fr);
-  }
-}
-
-// With the pane folded, a wide window has room for two lists side by side while they show their key columns, and
-// most of the Watchlist is on one screen. With every column shown a list needs the whole width, so the lists stay
-// one under the other.
+// A wide window has room for two lists side by side while they show their key columns, and most of the Watchlist
+// is on one screen: the lists stand in two columns there, and
+// one under the other. From 2240px each of the two is 1,069px or more in a real window (the page's own 63px and
+// a scroll bar's 15px off, 24px between them): as wide as the narrowest pair of lists the page has shown side by
+// side so far. With every column shown a list needs the whole width, so the lists stay one under the other.
 //
 // The lists differ in length, and a grid lines its rows up across both columns: a short list beside a long one
 // left a hole under it. So the grid has many low rows (4px: `GRID_ROW_PX` in fills-column.directive.ts says the
 // same) and each list takes as many of them as it is tall (`appFillsColumn` measures it); the page says which
 // column a list is in (`columnOfList`), and "dense" sets each list at the first free place of its column. The
 // lists of a column then stand one right under the other, the same gap between them all the way down.
-@media (min-width: 2480px) {
-  .view-watchlist.pane-folded.key-columns > .lists {
+@media (min-width: 2240px) {
+  .view-watchlist.key-columns > .lists {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-auto-rows: 4px;
@@ -464,9 +421,101 @@
   }
 
   // The gap under a list is part of the rows it takes.
-  .view-watchlist.pane-folded.key-columns > .lists > .list {
+  .view-watchlist.key-columns > .lists > .list {
     margin-bottom: 0;
   }
+}
+
+// ---- The table at the top, in "Dip candidates" ----
+// The lists' own table with one more column, "List". It is handed into the box by this page, so its cells are
+// styled from here (inside the smart table, hence ::ng-deep).
+
+// Which list a stock is in: a quiet name. A long one takes a second line inside its row (two lines of this size
+// are lower than a row); one longer still is cut there, and its whole is at the pointer.
+.in-list {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: var(--text-meta);
+  line-height: 1.2;
+  color: var(--ink-2);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+// With every column shown a column is as wide as what is in it: the name stays on one line there.
+::ng-deep .smart-table:not(.short) .in-list {
+  white-space: nowrap;
+}
+
+// In a box under 1340px the nine key columns take all of it (a list's table at that width): "List" gives way
+// there, and the table stands on the lists' own shares. It stays under "All columns".
+@container (max-width: 1339px) {
+  ::ng-deep .dip-table .smart-table.short .mat-column-list {
+    display: none;
+  }
+}
+
+// From 1340px the ten columns share the box: each column's share is what its widest usual cell needs beside the
+// others, measured at 1340px with the cells 8px apart each side (220px for "Profit +25.6% ✓ Sales +138.1% ✓", 196px
+// for "Dec 9 in 13 days · re-check after", 91px for "112% volatile", and what is left for the name of a list,
+// which may take two lines), so they add up to 100.
+@container (min-width: 1340px) {
+  ::ng-deep .dip-table .smart-table.short {
+    .mat-column-symbol { width: 9.36%; }
+    .mat-column-group { width: 5.21%; }
+    .mat-column-signal { width: 11.51%; }
+    .mat-column-claudeView { width: 7.32%; }
+    .mat-column-price { width: 6.31%; }
+    .mat-column-growth { width: 18.8%; }
+    .mat-column-earnings { width: 16.88%; }
+    .mat-column-volatility { width: 8.3%; }
+    .mat-column-oneYear { width: 6.31%; }
+    .mat-column-list { width: 10%; }
+  }
+}
+
+// From 1500px the cells stand 12px apart each side, as in every table, and the name of a list has room for one
+// line (190px: "DATA CENTER GEAR & POWER" is 166px); the other columns keep what their widest cells need there.
+@container (min-width: 1500px) {
+  ::ng-deep .dip-table .smart-table.short {
+    .mat-column-symbol { width: 8.9%; }
+    .mat-column-group { width: 5.1%; }
+    .mat-column-signal { width: 10.9%; }
+    .mat-column-claudeView { width: 7%; }
+    .mat-column-price { width: 6.1%; }
+    .mat-column-growth { width: 17.4%; }
+    .mat-column-earnings { width: 15.6%; }
+    .mat-column-volatility { width: 8%; }
+    .mat-column-oneYear { width: 6.1%; }
+    .mat-column-list { width: 14.9%; }
+  }
+}
+
+// How far apart the cells stand in this table (the selectors name the table twice over, to weigh more than the
+// smart table's own rule for the same cells): 8px each side from 1340 to 1500px, which is what ten columns need
+// there, and 6px under it (as a list's cells stand under 1200px): at 12px a swing of three figures ("112%
+// volatile") was cut by 2px in a box of 1200 to 1250px.
+@container (min-width: 1340px) and (max-width: 1499px) {
+  ::ng-deep app-smart-table.dip-table .smart-table.short.mat-mdc-table .mat-mdc-cell:not(.toggle-cell):not(.detail-cell),
+  ::ng-deep app-smart-table.dip-table .smart-table.short.mat-mdc-table .mat-mdc-header-cell:not(.toggle-cell) {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+
+@container (max-width: 1339px) {
+  ::ng-deep app-smart-table.dip-table .smart-table.short.mat-mdc-table .mat-mdc-cell:not(.toggle-cell):not(.detail-cell),
+  ::ng-deep app-smart-table.dip-table .smart-table.short.mat-mdc-table .mat-mdc-header-cell:not(.toggle-cell) {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+}
+
+// With every column shown the column has a least width, like the others of a list.
+::ng-deep .dip-table .smart-table:not(.short) .mat-column-list {
+  min-width: 150px;
 }
 
 // "How the plan was tested" while the first prices arrive: in the page, keeping its room, and out of sight. The

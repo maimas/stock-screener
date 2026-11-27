@@ -33,15 +33,30 @@
 </div>
 
 <!-- The watchlist's view: what is marked, and your lists with each stock's details. -->
-<div class="view-watchlist" [hidden]="shows !== 'watchlist'"
-     [class.pane-folded]="paneFolded" [class.key-columns]="view === 'decision'">
+<div class="view-watchlist" [hidden]="shows !== 'watchlist'" [class.key-columns]="view === 'decision'">
 
-<!-- The stocks marked DIP BUY, with where the market stands and what the three marks mean. It can be folded to
-     the least of it, a narrow strip, so that the lists get the room. -->
-<app-dip-candidates [candidates]="candidates" [marks]="marks" [loaded]="loaded" [indexLine]="indexLine" [fear]="fear"
+<!-- "Dip candidates": a box across the top of the Watchlist. Its three lines say how many stocks carry each mark,
+     where the market stands and what the mark was worth in the tests; under them is the table of the stocks marked
+     DIP BUY, the lists' own table (the owner: "a table on the top where it becomes a table like the other ones"):
+     the columns and details of a list, one more column that says which list a stock is in, and an order of its own
+     (A to Z until a heading is clicked; the lists are ordered together, without it). The table can be put away,
+     which leaves the three lines. -->
+<app-dip-candidates [marks]="marks" [fresh]="freshToday" [loaded]="loaded" [indexLine]="indexLine" [fear]="fear"
                     [oneBet]="oneBet" [tied]="tiedCandidates" [trackText]="trackText" [recorderText]="recorderText" [evidenceText]="evidenceText"
                     [folded]="paneFolded" (foldedChange)="foldPane($event)" [instead]="noPrices ? noPricesShort : ''" (retry)="loadAll()"
-                    (open)="showStock($event)" (exportLog)="exportLog()" (skipToLists)="toLists()">
+                    (exportLog)="exportLog()" (skipToLists)="toLists()">
+  <!-- The AI is asked about the marked stocks of the reader's own lists: one that is on the page only because it is
+       held (outside every list) is in the table and not in the question. -->
+  <app-claude-ask *ngIf="dipAskable.length > 0" [stocks]="dipAskable" [tied]="tied"></app-claude-ask>
+  <app-smart-table class="dip-table" *ngIf="dipSource.data.length > 0"
+                   [tableDefinition]="dipDefinition"
+                   [dataSource]="dipSource"
+                   [visibleColumns]="dipColumns"
+                   [detailTemplate]="detailTemplate"
+                   [rowKey]="symbolOf"
+                   [rowLabel]="symbolOf" [rowTip]="rowTipOf" label="Dip candidates" (rowToggled)="rowToggled($event)"
+                   defaultSortColumn="symbol" defaultSortDirection="asc">
+  </app-smart-table>
 </app-dip-candidates>
 
 <!-- The lists and the one control that is about all of them: which columns their tables show. -->
@@ -84,7 +99,7 @@
   </div>
 </div>
 
-<!-- The lists, one after the other. Where the window has room for two tables side by side (the pane folded, key
+<!-- The lists, one after the other. Where the window has room for two tables side by side (a wide window, key
      columns), they stand in two columns: each list directly under the one above it in its column, whatever the
      length of the list beside it, so no hole is left under a short list. -->
 <!-- Not one price arrived: said once for all the lists, with one "Try again". It used to be said in every list,
@@ -188,6 +203,12 @@
                         (save)="savePosition($event)" (remove)="removePosition($event)" (trade)="recordTrade($event)">
     </app-position-panel>
   </app-signal-detail>
+</ng-template>
+
+<!-- In the table at the top only: which of the reader's lists the stock is in. A long name is cut with its end
+     shown at the pointer, so that the column keeps its width. -->
+<ng-template #listCellTemplate let-templateData="templateData">
+  <span class="in-list" [attr.title]="templateData">{{ templateData }}</span>
 </ng-template>
 
 <ng-template #priceCellTemplate let-templateData="templateData">

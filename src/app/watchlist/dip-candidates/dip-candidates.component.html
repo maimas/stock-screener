@@ -1,21 +1,104 @@
 <mat-card class="candidates" [class.folded]="folded">
   <mat-card-content>
-    <!-- The title, and the choice between the whole box and the least of it: folded, the box is a narrow strip and
-         the lists beside it get the room. -->
-    <!-- A way past the box for the Tab key (every stock in it is a stop): out of sight until it has the keyboard. -->
+    <!-- A way past the box for the Tab key (every row of its table is a stop): out of sight until it has the keyboard. -->
     <a class="skip-over" href="" (click)="skip($event)">Skip to your lists</a>
+
+    <!-- The first line: the title, the three marks with how many stocks on the page carry each, the stocks marked
+         today, and at its end what can be done with the table (ask the AI about its stocks, put it away). -->
     <div class="head">
       <h2 class="title">Dip candidates</h2>
-      <button type="button" class="link-button fold" [attr.aria-expanded]="!folded" (click)="foldedChange.emit(!folded)"
-              [matTooltip]="folded ? 'Show what the marks mean, the growth figures and how such stocks did in tests' : 'Fold this box to the least of it, so the lists get the room'">{{ folded ? 'Show more' : 'Show less: more room for the lists' }}</button>
+      <!-- Each mark as it looks in the lists. What a mark means is said on the mark itself, where the pointer rests
+           or the Tab key lands, and stays in the page for a screen reader. The owner: "too much text and not much
+           signal": a sentence beside each mark was read once and then stood in the way of the counts. -->
+      <dl class="legend" *ngIf="loaded">
+        <div class="mark">
+          <dt [matTooltip]="meanings.dipBuy" matTooltipClass="multiline-tooltip" tabindex="0"><span class="verdict-pill dip">DIP BUY</span><span class="mark-count">{{ marks.dipBuy }}</span></dt>
+          <dd class="visually-hidden">{{ meanings.dipBuy }}</dd>
+        </div>
+        <div class="mark">
+          <dt [matTooltip]="meanings.watch" matTooltipClass="multiline-tooltip" tabindex="0"><span class="verdict-pill watch">WATCH</span><span class="mark-count">{{ marks.watch }}</span></dt>
+          <dd class="visually-hidden">{{ meanings.watch }}</dd>
+        </div>
+        <div class="mark">
+          <dt [matTooltip]="meanings.pass" matTooltipClass="multiline-tooltip" tabindex="0"><span class="verdict-pill pass">PASS</span><span class="mark-count">{{ marks.pass }}</span></dt>
+          <dd class="visually-hidden">{{ meanings.pass }}</dd>
+        </div>
+        <!-- The stocks without a mark, counted in the same line: outlined, so it does not read as a fourth mark. -->
+        <div class="no-mark" *ngIf="marks.none > 0">
+          <dt [matTooltip]="unmarkedText" matTooltipClass="multiline-tooltip" tabindex="0"><span class="verdict-pill none">no mark</span><span class="mark-count">{{ marks.none }}</span></dt>
+          <dd class="unmarked visually-hidden">{{ unmarkedText }}</dd>
+        </div>
+      </dl>
+      <!-- The stocks that became a DIP BUY today, by name: the lists' table has no tag for it. -->
+      <span class="new-today" *ngIf="loaded && fresh.length > 0"
+            matTooltip="Marked DIP BUY today, on a stock the daily log already knew.">New today: <b>{{ fresh.join(', ') }}</b></span>
+      <span class="controls" *ngIf="loaded">
+        <!-- The page's button that asks the AI about these stocks: with the table, and put away with it. -->
+        <span class="ask" [hidden]="folded || marks.dipBuy === 0"><ng-content select="app-claude-ask"></ng-content></span>
+        <button type="button" class="link-button fold" *ngIf="marks.dipBuy > 0" [attr.aria-expanded]="!folded" (click)="foldedChange.emit(!folded)"
+                [matTooltip]="folded ? 'Show the stocks marked DIP BUY as a table again' : 'Put the table away, so that your lists begin right under these lines'">{{ folded ? 'Show the table' : 'Hide the table' }}</button>
+      </span>
     </div>
 
-    <!-- Where the market stands: two quiet lines under the title. -->
-    <p class="market index" *ngIf="indexLine">{{ indexLine }}.</p>
-    <p class="market" *ngIf="fear">
-      <span class="fear-label" [class.high]="fear.high" tabindex="0"
-            [matTooltip]="fear.text" matTooltipClass="multiline-tooltip">{{ fear.label }}</span><span *ngIf="fear.high">: {{ fearHighShort }}.</span>
-    </p>
+    <!-- The second line: where the market stands, and how fearful it is. -->
+    <div class="market-line" *ngIf="indexLine || fear">
+      <p class="market index" *ngIf="indexLine">{{ indexLine }}.</p>
+      <p class="market" *ngIf="fear">
+        <span class="fear-label" [class.high]="fear.high" tabindex="0"
+              [matTooltip]="fear.text" matTooltipClass="multiline-tooltip">{{ fear.label }}</span><span *ngIf="fear.high">: {{ fearHighShort }}.</span>
+      </p>
+    </div>
+
+    <!-- The third line: what the mark was worth in the tests, as numbers a reader can compare at a glance (the
+         average and the typical stock with the mark, the market, the risk), and the controls that open what is said
+         about them and about the table. The account in sentences, with its limits, is behind "How to read this";
+         which stocks move together is behind "Groups". Opened, each stands under the line, as wide as the box. -->
+    <div class="tested-line" *ngIf="loaded && marks.dipBuy > 0">
+      <div class="tested-figures">
+        <h3 class="tested-title">{{ tested.title }}</h3>
+        <dl class="facts">
+          <div *ngFor="let it of tested.figures" [class.risk]="it.risk">
+            <dt>{{ it.label }}</dt>
+            <dd>{{ it.value }}</dd>
+          </div>
+        </dl>
+        <!-- What the numbers do not say by themselves: which stock "the typical one" is, and how far the tests reach. -->
+        <p class="tested-limits">{{ tested.limits }}</p>
+      </div>
+      <app-about key="dip.about" label="How to read this">
+        <!-- What the marks mean comes first: it is on each mark too, but only for a pointer or the Tab key. -->
+        <dl class="meanings">
+          <div><dt><span class="verdict-pill dip">DIP BUY</span></dt><dd>{{ meanings.dipBuy }}</dd></div>
+          <div><dt><span class="verdict-pill watch">WATCH</span></dt><dd>{{ meanings.watch }}</dd></div>
+          <div><dt><span class="verdict-pill pass">PASS</span></dt><dd>{{ meanings.pass }}</dd></div>
+        </dl>
+        <!-- The figures in sight are the newest test's; the account of all the tested lists follows its lead-in. -->
+        <p class="note bridge">{{ tested.bridge }}</p>
+        <p class="note tested">{{ cardNote }}</p>
+        <p class="note tied-note" *ngIf="tied.groups.length > 0">{{ tiedNote }}</p>
+        <p class="note order-note" *ngIf="marks.dipBuy > 1">{{ orderNote }}</p>
+      </app-about>
+      <button type="button" class="groups-toggle" *ngIf="tied.groups.length > 0 && !folded"
+              [attr.aria-expanded]="groupsOpen" [attr.aria-controls]="groupsId" (click)="toggleGroups()">Groups</button>
+      <!-- Which of them are tied: a line a group, with the letter its rows carry in the table's "Group" column,
+           under the sentence that says how far these stocks are one bet. -->
+      <div class="tied" [id]="groupsId" *ngIf="tied.groups.length > 0" [hidden]="!groupsOpen || folded">
+        <p class="note one-bet" *ngIf="oneBet"><app-more key="dip.onebet" [text]="oneBet"></app-more></p>
+        <h3 class="tied-title">{{ tiedTitle }}</h3>
+        <ul>
+          <li *ngFor="let g of tied.groups; trackBy: trackByLetter">
+            <span class="tied-tag"><i [class]="'g' + g.index" aria-hidden="true"></i>{{ g.letter }}</span>
+            <span class="members">{{ g.symbols.join(', ') }}</span>
+            <span class="brief">{{ briefOf(g) }}</span>
+          </li>
+          <li *ngIf="tied.alone.length > 0">
+            <span class="tied-tag none">—</span>
+            <span class="members">{{ tied.alone.join(', ') }}</span>
+            <span class="brief">{{ tied.alone.length === 1 ? 'moved with none of the others' : 'each moved with none of the others' }}</span>
+          </li>
+        </ul>
+      </div>
+    </div>
 
     <!-- No price arrived at all: said here too, as in the lists, with the way on. The grey bars used to stay for good. -->
     <div class="failed" *ngIf="!loaded && instead" role="status">
@@ -26,141 +109,20 @@
       <span class="skeleton" *ngFor="let _ of placeholders"></span>
     </div>
 
-    <!-- The stocks on one side, what the marks mean and how such stocks did on the other; one under the other when narrow. -->
-    <div class="body" *ngIf="loaded">
-      <div class="stocks">
-        <!-- A row a stock, A to Z: no order among them has passed a test. A click anywhere on a row opens the stock.
-             One table, or, where the box is as wide as a window, two halves side by side: read down the first, then
-             down the second. -->
-        <div class="tables" *ngIf="candidates.length > 0; else none">
-        <table *ngFor="let part of tables; let first = first; trackBy: trackByPlace">
-          <caption class="visually-hidden">{{ first ? 'The stocks marked DIP BUY' : 'The stocks marked DIP BUY, continued' }}</caption>
-          <thead>
-          <tr>
-            <!-- Every heading is a button: a click orders the rows by its column, a second click turns them round
-                 (the owner: "all tables must have sortable columns"). The table starts A to Z; the page itself
-                 ranks nothing. -->
-            <th scope="col" [attr.aria-sort]="sortedAs('symbol')">
-              <button type="button" class="sort-head up" (click)="sortBy('symbol')">Stock</button></th>
-            <th scope="col" class="num" [attr.aria-sort]="sortedAs('dropped')">
-              <button type="button" class="sort-head has-help" (click)="sortBy('dropped')" [matTooltip]="help.dropped" matTooltipClass="multiline-tooltip">Dropped</button></th>
-            <th scope="col" [attr.aria-sort]="sortedAs('growing')">
-              <button type="button" class="sort-head has-help" (click)="sortBy('growing')" [matTooltip]="help.growing" matTooltipClass="multiline-tooltip">Growing</button></th>
-            <!-- Which stocks moved together: the same letter, the same group. Left out when the box is folded. -->
-            <th scope="col" class="group-head" *ngIf="groups.groups.length > 0 && !folded" [attr.aria-sort]="sortedAs('group')">
-              <button type="button" class="sort-head up has-help" (click)="sortBy('group')"
-                      [matTooltip]="groupHelp" matTooltipClass="multiline-tooltip">Group</button></th>
-            <th scope="col" *ngIf="anyReportsSoon" [attr.aria-sort]="sortedAs('soon')">
-              <button type="button" class="sort-head up has-help" (click)="sortBy('soon')" [matTooltip]="help.results" matTooltipClass="multiline-tooltip">Next results</button></th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr *ngFor="let c of part; trackBy: trackBySymbol" (click)="open.emit(c.symbol)">
-            <th scope="row">
-              <button type="button" class="symbol" [attr.aria-label]="'Open details for ' + c.symbol"
-                      [matTooltip]="tipOf(c)" matTooltipClass="multiline-tooltip">{{ c.symbol }}</button>
-              <span class="held" *ngIf="c.held" [attr.aria-label]="c.heldIn || 'You hold this'">held</span>
-              <span class="new-mark" *ngIf="c.isNew" aria-label="Marked DIP BUY today">new</span>
-            </th>
-            <td class="num">{{ dropText(c) }}</td>
-            <td>{{ c.growthText }}</td>
-            <td class="group-cell" *ngIf="groups.groups.length > 0 && !folded" [matTooltip]="groupTipOf(c.symbol)" matTooltipClass="multiline-tooltip">
-              <span class="tied-tag" *ngIf="group(c.symbol) as g; else noGroup" [attr.aria-label]="'Group ' + g.letter"><i [class]="'g' + g.index" aria-hidden="true"></i>{{ g.letter }}</span>
-              <ng-template #noGroup><span class="tied-tag none" aria-label="In no group">—</span></ng-template>
-            </td>
-            <td class="soon" *ngIf="anyReportsSoon"><span *ngIf="c.earningsSoon" [matTooltip]="help.soon" matTooltipClass="multiline-tooltip">within 2 weeks</span></td>
-          </tr>
-          </tbody>
-        </table>
-        </div>
-        <!-- How the table is used, said where the table is: not as the opening of a paragraph about tests. -->
-        <p class="note how" *ngIf="candidates.length > 0">Click a stock for its details.</p>
-        <ng-template #none>
-          <p class="note empty">
-            Nothing is marked DIP BUY right now: no growing company in your lists has dropped {{ dipPercent }}% or more from its
-            highest price of the past year.
-          </p>
-        </ng-template>
-      </div>
-
-      <div class="about">
-        <!-- The three marks, each as it looks in the lists, with how many stocks on the page carry it: one line of
-             marks and counts. What a mark means is said on the mark itself, where the pointer rests or the Tab key
-             lands, and stays in the page for a screen reader. The owner: "too much text and not much signal": a
-             sentence beside each mark was read once and then stood in the way of the counts every day after. -->
-        <dl class="legend">
-          <div class="mark">
-            <dt [matTooltip]="meanings.dipBuy" matTooltipClass="multiline-tooltip" tabindex="0"><span class="verdict-pill dip">DIP BUY</span><span class="mark-count">{{ marks.dipBuy }}</span></dt>
-            <dd class="visually-hidden">{{ meanings.dipBuy }}</dd>
-          </div>
-          <div class="mark">
-            <dt [matTooltip]="meanings.watch" matTooltipClass="multiline-tooltip" tabindex="0"><span class="verdict-pill watch">WATCH</span><span class="mark-count">{{ marks.watch }}</span></dt>
-            <dd class="visually-hidden">{{ meanings.watch }}</dd>
-          </div>
-          <div class="mark">
-            <dt [matTooltip]="meanings.pass" matTooltipClass="multiline-tooltip" tabindex="0"><span class="verdict-pill pass">PASS</span><span class="mark-count">{{ marks.pass }}</span></dt>
-            <dd class="visually-hidden">{{ meanings.pass }}</dd>
-          </div>
-          <!-- The stocks without a mark, counted in the same line: outlined, so it does not read as a fourth mark. -->
-          <div class="no-mark" *ngIf="marks.none > 0">
-            <dt [matTooltip]="unmarkedText" matTooltipClass="multiline-tooltip" tabindex="0"><span class="verdict-pill none">no mark</span><span class="mark-count">{{ marks.none }}</span></dt>
-            <dd class="unmarked visually-hidden">{{ unmarkedText }}</dd>
-          </div>
-        </dl>
-        <p class="note one-bet" *ngIf="candidates.length > 0 && oneBet"><app-more key="dip.onebet" [text]="oneBet"></app-more></p>
-        <!-- Which of them are tied: a line a group, with the letter its rows carry in the table. -->
-        <div class="tied" *ngIf="candidates.length > 0 && groups.groups.length > 0">
-          <h3 class="tied-title">{{ tiedTitle }}</h3>
-          <ul>
-            <li *ngFor="let g of groups.groups; trackBy: trackByLetter">
-              <span class="tied-tag"><i [class]="'g' + g.index" aria-hidden="true"></i>{{ g.letter }}</span>
-              <span class="members">{{ g.symbols.join(', ') }}</span>
-              <span class="brief">{{ briefOf(g) }}</span>
-            </li>
-            <li *ngIf="groups.alone.length > 0">
-              <span class="tied-tag none">—</span>
-              <span class="members">{{ groups.alone.join(', ') }}</span>
-              <span class="brief">{{ groups.alone.length === 1 ? 'moved with none of the others' : 'each moved with none of the others' }}</span>
-            </li>
-          </ul>
-        </div>
-        <!-- What the mark was worth in the tests, as numbers a reader can compare at a glance: the average and
-             the typical stock with the mark, beside any stock that dropped and the market. It was a sentence of
-             four lines; the sentence, with its limits, is behind "How to read this". -->
-        <div class="tested-figures" *ngIf="candidates.length > 0">
-          <h3 class="tested-title">{{ tested.title }}</h3>
-          <dl class="facts">
-            <div *ngFor="let it of tested.figures" [class.risk]="it.risk">
-              <dt>{{ it.label }}</dt>
-              <dd>{{ it.value }}</dd>
-            </div>
-          </dl>
-          <!-- What the numbers do not say by themselves: which stock "the typical one" is, and how far the tests reach. -->
-          <p class="tested-limits">{{ tested.limits }}</p>
-        </div>
-        <!-- How to read the box: what was tested and its limits, what the letters are and are not, and whose an
-             order of the rows is. Behind the box's one control, whole, where sentences wrap (in the table's own
-             block, which is as wide as its widest line, one sentence made the box as wide as itself). -->
-        <app-about key="dip.about" label="How to read this" *ngIf="candidates.length > 0 && !folded">
-          <!-- What the marks mean comes first: it is on each mark too, but only for a pointer or the Tab key. -->
-          <dl class="meanings">
-            <div><dt><span class="verdict-pill dip">DIP BUY</span></dt><dd>{{ meanings.dipBuy }}</dd></div>
-            <div><dt><span class="verdict-pill watch">WATCH</span></dt><dd>{{ meanings.watch }}</dd></div>
-            <div><dt><span class="verdict-pill pass">PASS</span></dt><dd>{{ meanings.pass }}</dd></div>
-          </dl>
-          <!-- The figures in sight are the newest test's; the account of all the tested lists follows its lead-in. -->
-          <p class="note bridge">{{ tested.bridge }}</p>
-          <p class="note tested">{{ cardNote }}</p>
-          <p class="note tied-note" *ngIf="groups.groups.length > 0">{{ tiedNote }}</p>
-          <p class="note order-note" *ngIf="candidates.length > 1">{{ orderNote }}</p>
-        </app-about>
-        <p class="note log" *ngIf="trackText">
-          {{ trackText }} {{ recorderText }}
-          <button type="button" class="link-button" (click)="exportLog.emit()"
-                  matTooltip="Saves the daily log as a file: a backup, and the history needed to test analyst targets later.">Export log</button>
-        </p>
-        <p class="note attention" *ngIf="evidenceText" role="status">{{ evidenceText }}</p>
-      </div>
+    <div class="note empty" *ngIf="loaded && marks.dipBuy === 0">
+      Nothing is marked DIP BUY right now: no growing company in your lists has dropped {{ dipPercent }}% or more from its
+      highest price of the past year.
     </div>
+
+    <!-- The table of the stocks, handed in by the page: the lists' own table. Put away, it stays in the page, so
+         that an open row is still open when it is shown again. -->
+    <div class="stocks" [hidden]="!loaded || folded || marks.dipBuy === 0"><ng-content></ng-content></div>
+
+    <div class="note log" *ngIf="loaded && trackText">
+      {{ trackText }} {{ recorderText }}
+      <button type="button" class="link-button" (click)="exportLog.emit()"
+              matTooltip="Saves the daily log as a file: a backup, and the history needed to test analyst targets later.">Export log</button>
+    </div>
+    <div class="note attention" *ngIf="evidenceText" role="status">{{ evidenceText }}</div>
   </mat-card-content>
 </mat-card>

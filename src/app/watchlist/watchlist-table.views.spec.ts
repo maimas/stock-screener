@@ -174,38 +174,41 @@ describe('WatchlistTableComponent: the two views of the one page', () => {
     expect(page.backFrom('ACME')).toBe('');
   }));
 
-  // Folded, "Dip candidates" is a narrow strip and the lists get the room; the page lays the lists out by it.
-  // Found by three reviews in a row: in a window where the box stands above the lists it filled the first screen
-  // and the lists began under it. Until the reader has chosen, it starts folded there and open beside the lists.
-  it('starts "Dip candidates" open beside the lists and folded above them, until the reader has chosen', () => {
-    expect([startsFolded(null, 2560), startsFolded(null, 1800)]).withContext('beside the lists: open').toEqual([false, false]);
-    expect([startsFolded(null, 1799), startsFolded(null, 1440), startsFolded(null, 1100)]).withContext('above the lists: folded').toEqual([true, true, true]);
-    expect([startsFolded('open', 1100), startsFolded('folded', 2560)]).withContext('the reader\'s own choice decides at any width').toEqual([false, true]);
+  // "Dip candidates" is a box across the top of the Watchlist with the table of the marked stocks in it (the owner:
+  // "a table on the top where it becomes a table like the other ones"). The table is shown until the reader puts it
+  // away, in a window of any width; while the box was a pane of sentences it started folded above the lists.
+  it('starts "Dip candidates" with its table shown, until the reader has put it away', () => {
+    expect(startsFolded(null)).toBeFalse();
+    expect(startsFolded('open')).toBeFalse();
+    expect(startsFolded('folded')).withContext('the reader\'s own choice').toBeTrue();
   });
 
-  it('folds "Dip candidates" when its box asks for it, says so to the layout, and remembers it in this browser', () => {
-    spyOnProperty(window, 'innerWidth').and.returnValue(2560);
+  it('puts the table of "Dip candidates" away when its box asks for it, and remembers it in this browser', () => {
     const fixture = create(), page = fixture.componentInstance;
-    const view = part(fixture, '.view-watchlist');
-    expect(page.paneFolded).withContext('open to start with, in a window where the box stands beside the lists').toBeFalse();
-    expect([view.classList.contains('pane-folded'), view.classList.contains('key-columns')]).toEqual([false, true]);
-
+    expect(page.paneFolded).withContext('shown to start with').toBeFalse();
     page.foldPane(true);
     fixture.detectChanges();
-    expect(view.classList.contains('pane-folded')).toBeTrue();
     expect(part(fixture, 'app-dip-candidates mat-card').classList.contains('folded')).toBeTrue();
-    expect(TestBed.createComponent(WatchlistTableComponent).componentInstance.paneFolded).withContext('the next visit starts folded').toBeTrue();
+    expect(TestBed.createComponent(WatchlistTableComponent).componentInstance.paneFolded).withContext('the next visit starts with it away').toBeTrue();
+    page.foldPane(false);
+    expect(TestBed.createComponent(WatchlistTableComponent).componentInstance.paneFolded).toBeFalse();
+  });
 
-    // Side by side, each list is told its column, so that it can stand right under the one above it there.
+  // Two lists stand side by side where the window has room for two tables of key columns, whatever the box above
+  // them shows (it took the box folded to a strip beside them).
+  it('tells each list its column, and tells the layout when the lists show their key columns', () => {
+    const fixture = create(), page = fixture.componentInstance;
+    const view = part(fixture, '.view-watchlist');
+    expect(view.classList.contains('key-columns')).toBeTrue();
     const columns = Array.from(view.querySelectorAll<HTMLElement>('.lists > section.list')).map(list => list.style.gridColumnStart);
     expect(columns.slice(0, 2)).withContext('the first two lists start the two columns').toEqual(['1', '2']);
     expect(columns.every(column => column === '1' || column === '2')).toBeTrue();
 
+    page.foldPane(true);
     page.setView('all');
     fixture.detectChanges();
     expect(view.classList.contains('key-columns')).withContext('with every column the lists stay one under the other').toBeFalse();
-    page.foldPane(false);
-    expect(TestBed.createComponent(WatchlistTableComponent).componentInstance.paneFolded).toBeFalse();
+    expect(view.classList.contains('pane-folded')).withContext('the layout no longer follows the box').toBeFalse();
   });
 
   // The BUY line says: see "Could add". In a laptop window that box is two screens down.

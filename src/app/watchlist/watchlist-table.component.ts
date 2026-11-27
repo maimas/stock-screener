@@ -72,7 +72,6 @@ import {
 import {factsOf, StockFacts} from "./stock-facts";
 import {caseOf, StockCase} from "./case-against";
 import {alsoFits, Findable, findMatches, notFound} from "./find-stock";
-import {FitCases, fitCases} from "./fit-cases";
 import {costDistributionFor, trendFor, volatilityFor} from "./market-math";
 import {CostDistributionCellComponent} from "./cells/cost-distribution/cost-distribution-cell.component";
 import {TrendCellComponent} from "./cells/trend/trend-cell.component";
@@ -94,7 +93,7 @@ import {CouldAddComponent} from "./could-add/could-add.component";
 import {FocusWhenShownDirective} from "./focus-when-shown.directive";
 import {FillsColumnDirective} from "./fills-column.directive";
 import {listColumns} from "./list-columns";
-import {Addition, Fitting, Recommendation, RowReading, SizingInput, whereItFits} from "./recommendations";
+import {Addition, Recommendation, RowReading, SizingInput} from "./recommendations";
 import {PageView} from "./page-view";
 import {finalize, map, of, Subscription, switchMap} from "rxjs";
 
@@ -107,6 +106,8 @@ export type ViewMode = 'decision' | 'all';
  * are under "All columns".
  */
 const DECISION_COLUMNS = ['symbol', 'group', 'signal', 'price', 'growth', 'earnings', 'volatility', 'oneYear', 'claudeView'];
+/** The same in the table at the top, in "Dip candidates": there a column also says which list a stock is in. */
+const DIP_DECISION_COLUMNS = [...DECISION_COLUMNS, 'list'];
 /** Where a click on "Claude · not tested" puts each of its words; a stock with no view comes last. */
 const VIEW_ORDER = new Map<string, number>(VIEW_WORDS.map((word, at) => [word, at]));
 const VIEW_STORAGE_KEY = 'watchlist.view';
@@ -242,8 +243,24 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
 
   /** DIP BUYs across every list, A to Z: no ranking among them has passed a test. */
   opportunities: Opportunity[] = [];
-  /** The same stocks as the "Dip candidates" box shows them: each says whether the portfolio being shown holds it. */
-  candidates: DipCandidate[] = [];
+  /**
+   * The same stocks as the rows of the table at the top of the Watchlist, in the box "Dip candidates" (the owner:
+   * "a table on the top where it becomes a table like the other ones"): the lists' own rows, so a cell says there
+   * what it says in the stock's list. One data source for as long as the page lives: an open row stays open when
+   * prices arrive again.
+   */
+  readonly dipSource = new MatTableDataSource<Stock>([]);
+  /** That table's columns: the lists' own, and one that says which list a stock is in. */
+  dipDefinition: TableDef[] = [];
+  /** Which of them it shows: the lists' choice ("Key columns" or all of them), with "List" in either. */
+  dipColumns?: string[] = this.view === 'decision' ? DIP_DECISION_COLUMNS : undefined;
+  /**
+   * The marked stocks the AI may be asked about from that table: those in a list of the reader's own. A stock that
+   * is only among those held outside every list is on the page because it is owned, and nothing owned is sent.
+   */
+  dipAskable: Stock[] = [];
+  /** The stocks that became a DIP BUY today, A to Z: named on the line of the box's title. */
+  freshToday: string[] = [];
   /** How many stocks on the page carry each mark, and how many have none (funds, companies too new to judge). */
   marks = {dipBuy: 0, watch: 0, pass: 0, none: 0};
   loaded = false;
@@ -387,11 +404,6 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
   findNote = '';
   /** The stocks that got their mark today. */
   newlyMarked: ReadonlySet<string> = new Set<string>();
-  /** What each portfolio has to say about the marked stocks: a stock's details say from it where the stock fits. */
-  private fitting: Fitting[] = [];
-  private fits = new Map<string, string[]>();
-  /** What a stock's size in the portfolio being shown could lose or make, by symbol; worked out once per refresh. */
-  private fitCasesBySymbol = new Map<string, FitCases | undefined>();
   private positionBySymbol = new Map<string, PositionRow>();
   private casesCache = new WeakMap<Stock, TestedCases | null>();
   private stocksBySymbol = new Map<string, Stock>();
@@ -426,6 +438,7 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
   @ViewChild('debtEquityCellTemplate', {static: true}) debtEquityCellTemplate!: TemplateRef<any>;
   @ViewChild('costDistributionCellTemplate', {static: true}) costDistributionCellTemplate!: TemplateRef<any>;
   @ViewChild('trendCellTemplate', {static: true}) trendCellTemplate!: TemplateRef<any>;
+  @ViewChild('listCellTemplate', {static: true}) listCellTemplate!: TemplateRef<any>;
 
   /** The lists saved in this browser, if you have edited them; the starting lists are shown otherwise. */
   private listsSaved = loadWatchlists();
@@ -485,6 +498,7 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
 
   ngOnInit(): void {
     this.tableDefinition = this.getTableDefinition()
+    this.dipDefinition = this.withListColumn(this.tableDefinition);
   }
 
   /** The address changed to the other view: it starts at its top, or at the stock that was asked for. */
@@ -606,6 +620,7 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
   setView(view: ViewMode): void {
     this.view = view;
     this.visibleColumns = view === 'decision' ? DECISION_COLUMNS : undefined;
+    this.dipColumns = view === 'decision' ? DIP_DECISION_COLUMNS : undefined;
     try {
       localStorage.setItem(VIEW_STORAGE_KEY, view);
     } catch {
@@ -629,9 +644,9 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   /**
-   * Whether the "Dip candidates" box is folded to the least of it (the marks with their counts, and the stocks
-   * with how far each dropped). Folded, it is a narrow strip and the lists get the room: on a wide window two lists
-   * then stand side by side, so most of the Watchlist is on one screen. Kept in this browser, like the columns.
+   * Whether the table of "Dip candidates" is put away ("Hide the table" in the box): its three lines stay (the
+   * marks with their counts, the market, the tested figures) and the lists begin right under them. Kept in this
+   * browser, like the choice of columns.
    */
   paneFolded = readFolded();
 
@@ -735,6 +750,10 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
     // with Esc or at their foot, goes back to where the reader was, as "Back to your plan" does. Staying on the
     // Watchlist left the reader a view away from what they were doing (a review, of the Esc key).
     const toPlan = !!symbol && this.backFrom(symbol) !== '';
+    // A marked stock has a row in the table at the top and one in its list: the reader goes back to the row of the
+    // table they are in (the keyboard is inside the details that are being closed).
+    const within: ParentNode = (document.activeElement as HTMLElement | null)?.closest('app-smart-table')
+      ?? document.querySelector(`tr.detail-row.open[data-detail="${symbol}"]`)?.closest('app-smart-table') ?? document;
     this.tables?.forEach(table => table.collapse(stock));
     if (symbol === this.shownStock) {
       this.tellStock(undefined);
@@ -744,7 +763,7 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
       return;
     }
     setTimeout(() => {
-      const row = document.querySelector(`[data-symbol="${symbol}"]`)?.closest('tr');
+      const row = within.querySelector(`[data-symbol="${symbol}"]`)?.closest('tr');
       row?.scrollIntoView({block: 'nearest'});
       row?.querySelector<HTMLElement>('button.toggle')?.focus({preventScroll: true});
     });
@@ -784,7 +803,7 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
   /** A heading was clicked in one list: the other lists follow, and a list shown later starts the same way. */
   sortLists(order: { active: string, direction: 'asc' | 'desc' }): void {
     this.listSort = order;
-    this.tables?.forEach(table => table.sortTo(order.active, order.direction));
+    this.listTables.forEach(table => table.sortTo(order.active, order.direction));
   }
 
   /** How many stocks have their details open, over all the lists. */
@@ -851,7 +870,8 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
   /** Opens a stock's details, scrolls to its row, moves the keyboard there and briefly highlights it. */
   private openStock(symbol: string): void {
     this.tellStock(symbol);
-    this.tables?.forEach(table => {
+    // In its own list: a marked stock also has a row in the table at the top, which is left as it is.
+    this.listTables.forEach(table => {
       const row = table.dataSource.data.find((it: Stock) => it.quote?.symbol === symbol);
       if (row) {
         table.expand(row);
@@ -859,7 +879,7 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
     });
     // Wait for the details to render so the scroll lands on the final layout.
     setTimeout(() => {
-      const row = document.querySelector(`[data-symbol="${symbol}"]`)?.closest('tr');
+      const row = document.querySelector(`.lists [data-symbol="${symbol}"]`)?.closest('tr');
       if (!row) {
         return;
       }
@@ -1377,17 +1397,6 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
       return isNum(price) && price > 0 ? [[it.symbol, price] as const] : [];
     }));
     this.newlyMarked = new Set(this.opportunities.filter(it => it.isNew).map(it => it.symbol));
-    this.fitting = plans.map(it => ({
-      name: it.portfolio.name, held: Object.keys(it.portfolio.positions),
-      recommendations: it.plan.recommendations, additions: it.plan.additions,
-    }));
-    this.fits.clear();
-    this.fitCasesBySymbol.clear();
-    // "held" among the candidates is held in any portfolio, as in the lists, and the tag says in which.
-    this.candidates = this.opportunities.map(it => {
-      const names = heldIn(this.book, it.symbol);
-      return {...it, held: names.length > 0, heldIn: heldText(names, this.book.portfolios.length)};
-    });
   }
 
   /** The name of the portfolio being shown. */
@@ -1400,32 +1409,11 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
     return activeOf(this.book).id;
   }
 
-  /**
-   * What the stock's size in the portfolio being shown could lose or make in 6 months: the three figures of its row
-   * in "Could add", for its details (a review: the size stood there without them, and they were on the other view).
-   * Nothing for a stock that has no size there: one that is held, or one without the DIP BUY mark.
-   */
-  fitCasesOf(stock: Stock): FitCases | undefined {
-    const symbol = stock.quote?.symbol ?? '';
-    if (!this.fitCasesBySymbol.has(symbol)) {
-      const marked = this.recommendations.find(it => it.symbol === symbol);
-      this.fitCasesBySymbol.set(symbol, fitCases(this.shownName, marked?.size, marked?.cases));
-    }
-    return this.fitCasesBySymbol.get(symbol);
-  }
+  // ("Where it fits", a stock's size in each portfolio, stood in its details until the owner had it taken out of
+  // the Watchlist: "remove the where it fits from the app - it should not be in the watchlist". A size is on the
+  // Portfolio view, in the stock's row of "Could add".)
 
-  /** Where a stock fits: its size in each portfolio, a line each. Empty unless the stock is marked DIP BUY. */
-  fitsOf(stock: Stock): string[] {
-    const symbol = stock.quote?.symbol ?? '';
-    let lines = this.fits.get(symbol);
-    if (!lines) {
-      lines = whereItFits(symbol, this.fitting);
-      this.fits.set(symbol, lines);
-    }
-    return lines;
-  }
-
-  /** Whether a stock is marked DIP BUY now: only those get a size. */
+  /** Whether a stock is marked DIP BUY now. */
   isMarked(stock: Stock): boolean {
     return signalFor(stock)?.verdict === 'DIP BUY';
   }
@@ -1575,6 +1563,7 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
       }
     });
     this.opportunities = opportunities.sort((a, b) => a.symbol.localeCompare(b.symbol));
+    this.showDipBuys(dipBuys);
     this.marks = {dipBuy: counts['DIP BUY'], watch: counts['WATCH'], pass: counts['PASS'], none: counts.none};
     this.oneBet = movingTogetherText(dipBuys, 'these', 3);
     // Which stocks move together, over every stock on the page: one grouping, so that a letter means the same
@@ -1591,6 +1580,58 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
     this.refreshPositions();
     this.trackText = trackText(this.log, this.today);
     this.loaded = unique.size > 0;
+  }
+
+  /**
+   * The rows of the table at the top: the stocks marked DIP BUY, A to Z (the page ranks nothing; an order is the
+   * reader's own, by a click on a heading). The table is handed new rows only when they changed, and the button
+   * that asks the AI a new list only when it changed, so that neither is drawn again on every look at the page.
+   */
+  private showDipBuys(dipBuys: Stock[]): void {
+    const same = (a: Stock[], b: Stock[]) => a.length === b.length && a.every((row, at) => row === b[at]);
+    const rows = [...dipBuys].sort((a, b) => this.symbolOf(a).localeCompare(this.symbolOf(b)));
+    if (!same(rows, this.dipSource.data)) {
+      this.dipSource.data = rows;
+    }
+    const listed = new Set(this.watchLists.flatMap(list => list.symbols));
+    const askable = rows.filter(row => listed.has(this.symbolOf(row)));
+    if (!same(askable, this.dipAskable)) {
+      this.dipAskable = askable;
+    }
+    const fresh = this.opportunities.filter(it => it.isNew).map(it => it.symbol);
+    if (fresh.join() !== this.freshToday.join()) {
+      this.freshToday = fresh;
+    }
+  }
+
+  /** The columns of the table at the top: the lists' own, and after the last key column one that says the list. */
+  private withListColumn(columns: TableDef[]): TableDef[] {
+    const list: TableDef = {
+      columnName: 'list',
+      columnDisplayName: 'List',
+      columnTooltip: 'Which of your lists the stock is in.',
+      template: this.listCellTemplate,
+      templateData: (it: Stock) => this.listsOf(it),
+      sortValue: (it: Stock) => this.listsOf(it),
+      sortStart: 'asc',
+    };
+    const after = columns.findIndex(it => it.columnName === 'oneYear');
+    return [...columns.slice(0, after + 1), list, ...columns.slice(after + 1)];
+  }
+
+  /** The names of the lists a stock is in, in the lists' order: "AI CHIPS", or "BIG TECH, AI CHIPS". */
+  listsOf(stock: Stock): string {
+    const symbol = this.symbolOf(stock);
+    return this.shownLists.filter(list => list.symbols.includes(symbol)).map(list => list.title).join(', ');
+  }
+
+  /**
+   * The tables of the lists: every table of the page but the one at the top, which holds stocks of all the lists.
+   * A stock that is looked for opens in its own list, and the lists are ordered together; the table at the top
+   * takes part in neither.
+   */
+  private get listTables(): SmartTableComponent[] {
+    return this.tables?.filter(table => table.dataSource !== this.dipSource) ?? [];
   }
 
   /** True when the stock's DIP BUY run starts today and the log already knew the stock from an earlier day. */
@@ -1918,28 +1959,23 @@ function readView(): ViewMode {
   }
 }
 
-/** From this window width "Dip candidates" stands beside the lists (the stylesheet's own figure); narrower, above them. */
-const PANE_BESIDE_FROM = 1800;
-
 /**
- * Whether "Dip candidates" starts folded. The reader's own choice decides, once it was made ("Show less" or "Show
- * more", kept in this browser). Before that: open where the box stands beside the lists, and folded where it stands
- * above them, in a window narrower than 1800px. Open, it filled the first screen there and the lists began under
- * it (three reviews in a row said so); folded, it is one strip with the marks' counts and the line about the
- * market, the lists are on the first screen, and "Show more" opens all of it.
+ * Whether "Dip candidates" starts with its table put away: only when the reader put it away ("Hide the table", kept
+ * in this browser). The box is a table across the top of the Watchlist (the owner: "a table on the top where it
+ * becomes a table like the other ones"), so the table is what it starts with, in a window of any width. (While the
+ * box was a pane of sentences it started folded wherever it stood above the lists.)
  *
- * @param kept  what this browser remembers: 'folded', 'open', or nothing yet
- * @param width the window's width in CSS pixels
+ * @param kept what this browser remembers: 'folded', 'open', or nothing yet
  */
-export function startsFolded(kept: string | null, width: number): boolean {
-  return kept === 'folded' || (kept !== 'open' && width < PANE_BESIDE_FROM);
+export function startsFolded(kept: string | null): boolean {
+  return kept === 'folded';
 }
 
 function readFolded(): boolean {
   try {
-    return startsFolded(localStorage.getItem(PANE_STORAGE_KEY), window.innerWidth);
+    return startsFolded(localStorage.getItem(PANE_STORAGE_KEY));
   } catch {
-    return startsFolded(null, window.innerWidth);
+    return false;
   }
 }
 

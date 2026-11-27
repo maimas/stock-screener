@@ -1,21 +1,21 @@
 import {ORDER_NOTE} from "../recommendations";
-import {ariaSort, inOrder, numberIn, orderAfterClick, RowOrder} from "../row-order";
-import {byGroup, GROUP_HELP, groupBrief, groupBySymbol, groupTip, NO_GROUPS, TIED_NOTE, TIED_TITLE, TiedGroup, TiedGroups} from "../tied-groups";
+import {groupBrief, NO_GROUPS, TIED_NOTE, TIED_TITLE, TiedGroup, TiedGroups} from "../tied-groups";
 import {MoreComponent} from "../more/more.component";
 import {AboutComponent} from "../more/about.component";
-import {AfterViewInit, Component, ElementRef, EventEmitter, Input, NgZone, OnDestroy, Output} from "@angular/core";
+import {MoreService} from "../more/more.service";
+import {ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, Output} from "@angular/core";
 import {NgForOf, NgIf} from "@angular/common";
+import {Subscription} from "rxjs";
 import {MatCardModule} from "@angular/material/card";
 import {MatTooltipModule} from "@angular/material/tooltip";
 import {DIP_PERCENT, MarketFear} from "../signal";
 import {CARD_NOTE, FEAR_HIGH_SHORT} from "../evidence";
 import {testedStrip} from "../tested-strip";
-import {FACT_HELP} from "../stock-facts";
 
-/** A stock marked DIP BUY, as this box shows it. */
+/** A stock marked DIP BUY, as the page describes it to its other parts (the plan, "Could add"). */
 export type DipCandidate = {
   symbol: string
-  /** The company's name, when it is known: shown when the symbol is pointed at, in front of why it is marked. */
+  /** The company's name, when it is known. */
   name?: string
   /** How far the price is below its highest of the past year, in %. A DIP BUY is one because it dropped, so it is known. */
   belowHigh: number
@@ -27,34 +27,37 @@ export type DipCandidate = {
   earningsSoon: boolean
   /** In any of the user's portfolios. */
   held: boolean
-  /** In which, as a sentence ("You hold this in Savings."): the tag's name and a line of the stock's mouse-over. */
+  /** In which, as a sentence ("You hold this in Savings."). */
   heldIn?: string
-  /** Why it is marked, in one sentence: shown when its name is pointed at or reached with the keyboard. */
+  /** Why it is marked, in one sentence. */
   headline: string
 };
-
-/** From this width the box has room for two tables of stocks and what is said about them, side by side. */
-const WIDE_BOX = 1250;
-/** With fewer stocks than this, one table is short enough. */
-const SPLIT_FROM = 10;
 
 /** How many stocks on the page carry each mark, and how many have none (funds, companies too new to judge). */
 export type MarkCounts = { dipBuy: number, watch: number, pass: number, none: number };
 
-/**
- * "Dip candidates": the stocks on the page that are marked DIP BUY, a row each, with the two things the mark rests
- * on under headings that say what they are (how far the price dropped, the growth figure). A table rather than a
- * cloud of chips: the numbers line up to be compared, and nothing has to be guessed or hovered to know what a
- * number is.
- *
- * Beside the table: where the market stands, what the three marks mean, and how stocks like these did in tests.
- * The amounts the plan gives for each stock stay in the plan, in the box "Your plan today".
- */
-/** The columns of the candidates' table that its rows can be ordered by. */
-export type DipColumn = 'symbol' | 'dropped' | 'growing' | 'group' | 'soon';
-/** The columns that read from the top on the first click (A first, group A first, the soonest first). */
-const FROM_THE_TOP = new Set<DipColumn>(['symbol', 'group', 'soon']);
+/** What the reader's choice to see the groups is kept under, with the page's other opened explanations. */
+const GROUPS_KEY = 'dip.groups';
 
+/**
+ * "Dip candidates": the box at the top of the Watchlist that holds the table of the stocks marked DIP BUY.
+ *
+ * The owner, of the box as it was (a pane beside the lists with a small table of its own and paragraphs about it):
+ * "maybe that can be a table on the top where it becomes a table like the other ones but more polished in terms of
+ * prose". So the table is the lists' own table, handed in by the page (the same columns, order, AI column and
+ * details as any list), and this box is its frame, three short lines:
+ *
+ *  - the title, with the three marks and how many stocks carry each, and which stocks were marked today;
+ *  - where the market stands and how fearful it is;
+ *  - what the mark was worth in the tests, as figures, the risk among them.
+ *
+ * What the box used to say in sentences is behind "How to read this"; which stocks move together (the letters of
+ * the table's "Group" column) is behind "Groups". The table can be put away ("Hide the table"), which leaves the
+ * three lines: on a day with twenty marks the lists begin a screen further down.
+ *
+ * The page hands in two things: `<app-claude-ask>` (the button that asks the AI about these stocks, set on the line
+ * of the title as a list has it) and the table.
+ */
 @Component({
   selector: "app-dip-candidates",
   standalone: true,
@@ -62,10 +65,11 @@ const FROM_THE_TOP = new Set<DipColumn>(['symbol', 'group', 'soon']);
   templateUrl: "./dip-candidates.component.html",
   styleUrls: ["./dip-candidates.component.scss"]
 })
-export class DipCandidatesComponent implements AfterViewInit, OnDestroy {
-  /** The stocks marked DIP BUY, in the order to show them (the page gives them A to Z). */
-  @Input() candidates: DipCandidate[] = [];
+export class DipCandidatesComponent implements OnDestroy {
+  /** How many stocks carry each mark: `dipBuy` is how many rows the table has. */
   @Input() marks: MarkCounts = {dipBuy: 0, watch: 0, pass: 0, none: 0};
+  /** The stocks that became a DIP BUY today (their symbols), on stocks the daily log already knew. */
+  @Input() fresh: string[] = [];
   /** What is said in place of the loading bars when no price arrived at all; empty otherwise. */
   @Input() instead = '';
   /** "Try again" under that sentence. */
@@ -79,47 +83,75 @@ export class DipCandidatesComponent implements AfterViewInit, OnDestroy {
   /** How much the candidates are one bet: shared sector and how closely they have moved together. */
   @Input() oneBet = '';
   /**
-   * Which of the candidates moved together over the past year, as groups under a letter. The sentence above says
-   * that they are nearer to one bet; the owner asked which of them are tied, to be able to use it.
+   * Which of the candidates moved together over the past year, as groups under a letter. The sentence about one
+   * bet says that they are nearer to one; the owner asked which of them are tied, to be able to use it.
    */
-  @Input() set tied(tied: TiedGroups) {
-    this.groups = tied;
-    this.groupOf = groupBySymbol(tied);
+  @Input() tied: TiedGroups = NO_GROUPS;
+  /** The live record of the mark since the daily log began, and what the daily recorder last did. */
+  @Input() trackText = '';
+  @Input() recorderText = '';
+  /** Set when the last re-run of the backtests needs a look. */
+  @Input() evidenceText = '';
+
+  /**
+   * The table is put away: the three lines stay (the marks' counts, the market, the tested figures with their
+   * risk), and the lists begin right under them. The page keeps the choice and hands it in.
+   */
+  @Input() folded = false;
+  @Output() foldedChange = new EventEmitter<boolean>();
+
+  /** Save the daily log as a file. */
+  @Output() exportLog = new EventEmitter<void>();
+  /** Asked for by the link that skips the box: the keyboard goes on to the lists. */
+  @Output() skipToLists = new EventEmitter<void>();
+
+  readonly tiedTitle = TIED_TITLE;
+  readonly tiedNote = TIED_NOTE;
+  /** Behind "How to read this": that an order by a column is the reader's own view, and that the page ranks nothing. */
+  readonly orderNote = ORDER_NOTE;
+  readonly dipPercent = DIP_PERCENT;
+  readonly fearHighShort = FEAR_HIGH_SHORT;
+  /** What each of the three marks means, a sentence each: on the mark, and first behind "How to read this". */
+  readonly meanings = {
+    dipBuy: `The price dropped ${DIP_PERCENT}% or more from its highest of the past year while the business keeps growing.`,
+    watch: 'Growing, but no such drop yet.',
+    pass: 'Not growing enough.',
+  } as const;
+  /** How stocks marked DIP BUY did in tests, in one paragraph: behind "How to read this". */
+  readonly cardNote = CARD_NOTE;
+  /**
+   * The tested result as figures, the risk among them (`testedStrip`, shared with any other view that shows them).
+   * The same numbers as the sentence (`cardNote`), which keeps the full account behind "How to read this".
+   */
+  readonly tested = testedStrip();
+  /** Bars drawn while the first prices are arriving. */
+  readonly placeholders = [1, 2, 3];
+  /** The element the "Groups" control opens, for a screen reader. */
+  readonly groupsId = 'dip-groups';
+
+  private readonly changes: Subscription;
+
+  constructor(private readonly more: MoreService, changeDetector: ChangeDetectorRef) {
+    this.changes = this.more.changed.subscribe(() => changeDetector.markForCheck());
   }
 
-  groups: TiedGroups = NO_GROUPS;
-  private groupOf = new Map<string, TiedGroup>();
-  readonly tiedTitle = TIED_TITLE;
-  /**
-   * What the headings are, at the pointer and on the Tab key: the words "Could add" uses for the same two columns,
-   * and what "within 2 weeks" under "Next results" means for the mark. A review found these headings explained in
-   * every other table and silent here.
-   */
-  readonly help = {
-    dropped: FACT_HELP.dropped,
-    growing: FACT_HELP.growing,
-    results: 'When the company next reports its results, said only when that is within 2 weeks.',
-    soon: 'The company reports its results within 2 weeks: the price may swing, and the report will change the growth numbers this mark rests on.',
-  };
+  ngOnDestroy(): void {
+    this.changes.unsubscribe();
+  }
 
   /** What the count of stocks without a mark stands for: on that count, and in the page for a screen reader. */
   get unmarkedText(): string {
     const none = this.marks.none;
     return `${none} more ${none === 1 ? 'has' : 'have'} no mark: funds, and companies with too little history to judge.`;
   }
-  /** Under the table: that an order by a column is the reader's own view, and that the page ranks nothing. */
-  readonly orderNote = ORDER_NOTE;
-  readonly tiedNote = TIED_NOTE;
-  readonly groupHelp = GROUP_HELP;
 
-  /** The group a stock is in, or nothing for a stock that moved on its own. */
-  group(symbol: string): TiedGroup | undefined {
-    return this.groupOf.get(symbol);
+  /** Whether the reader asked to see which stocks move together: remembered like every opened explanation. */
+  get groupsOpen(): boolean {
+    return this.more.isOpen(GROUPS_KEY);
   }
 
-  /** What a stock's group cell says where the pointer rests on it. */
-  groupTipOf(symbol: string): string {
-    return groupTip(symbol, this.groups);
+  toggleGroups(): void {
+    this.more.toggle(GROUPS_KEY);
   }
 
   /** "3 stocks, all Technology". */
@@ -130,174 +162,9 @@ export class DipCandidatesComponent implements AfterViewInit, OnDestroy {
   trackByLetter(_: number, group: TiedGroup): string {
     return group.letter;
   }
-  /** The live record of the mark since the daily log began, and what the daily recorder last did. */
-  @Input() trackText = '';
-  @Input() recorderText = '';
-  /** Set when the last re-run of the backtests needs a look. */
-  @Input() evidenceText = '';
-
-  /**
-   * Folded to the least that is still useful day to day: the three marks with how many stocks carry each, how
-   * fearful the market is, and the stocks with how far each dropped. What the marks mean, the sentences about the
-   * tests and the other columns are left out, and the box is narrow, so the lists beside it get the room. The
-   * page keeps the choice and hands it in.
-   */
-  @Input() folded = false;
-  @Output() foldedChange = new EventEmitter<boolean>();
-
-  /** Open this stock's details. */
-  @Output() open = new EventEmitter<string>();
-  /** Save the daily log as a file. */
-  @Output() exportLog = new EventEmitter<void>();
-
-  /**
-   * The box is as wide as a whole window (it is not the pane beside the lists): the stocks then stand in two
-   * tables side by side, half in each, read down the first and then down the second. In a laptop window twenty
-   * stocks in one table ran off the first screen; in two, all of them and what is said about them are on it.
-   * Set from the box's own width as it changes.
-   */
-  wide = false;
-  private widths?: ResizeObserver;
-
-  constructor(private readonly host: ElementRef<HTMLElement>, private readonly zone: NgZone) {
-  }
-
-  ngAfterViewInit(): void {
-    if (typeof ResizeObserver === 'undefined') {
-      return;
-    }
-    this.widths = new ResizeObserver(entries => {
-      const wide = entries[entries.length - 1].contentRect.width >= WIDE_BOX;
-      if (wide !== this.wide) {
-        this.zone.run(() => this.wide = wide);
-      }
-    });
-    this.widths.observe(this.host.nativeElement);
-  }
-
-  ngOnDestroy(): void {
-    this.widths?.disconnect();
-  }
-
-  /**
-   * The stocks as the tables that show them: one table, or two halves side by side (the first takes the odd one)
-   * when the box is wide and there are enough stocks for two columns to be worth it.
-   */
-  get tables(): DipCandidate[][] {
-    const rows = this.shownRows;
-    const split = !this.folded && this.wide && rows.length >= SPLIT_FROM;
-    // The same halves for as long as the rows and the layout are the same. They used to be cut anew on every check
-    // of the page, and the page then built both tables anew each time: a symbol that was pressed, or a heading
-    // that had the keyboard, was gone before the click or the next key arrived.
-    if (this.halves?.rows !== rows || this.halves.split !== split) {
-      const first = Math.ceil(rows.length / 2);
-      this.halves = {rows, split, tables: split ? [rows.slice(0, first), rows.slice(first)] : [rows]};
-    }
-    return this.halves.tables;
-  }
-
-  private halves?: { rows: DipCandidate[], split: boolean, tables: DipCandidate[][] };
-
-  /** A table keeps its place when its rows change (another order, a reload): the first stays the first. */
-  trackByPlace(index: number): number {
-    return index;
-  }
-
-  /**
-   * The column the rows follow, once the reader clicked a heading; until then they stand as given, A to Z. The
-   * page ranks nothing by itself: the order is the reader's.
-   */
-  order?: RowOrder<DipColumn>;
-  private ordered?: { from: DipCandidate[], tied: TiedGroups, order: RowOrder<DipColumn>, rows: DipCandidate[] };
-
-  /** A click on a heading: the rows follow that column, and a second click turns them round. */
-  sortBy(column: DipColumn): void {
-    this.order = orderAfterClick(this.order, column, FROM_THE_TOP.has(column));
-  }
-
-  sortedAs(column: DipColumn): 'ascending' | 'descending' | null {
-    return ariaSort(this.order, column);
-  }
-
-  /** The candidates as given (A to Z), or in the order of the column that was clicked. */
-  private get shownRows(): DipCandidate[] {
-    const order = this.order;
-    if (!order) {
-      return this.candidates;
-    }
-    if (this.ordered?.from !== this.candidates || this.ordered.tied !== this.groups || this.ordered.order !== order) {
-      const rows = order.column === 'group' ? byGroup(this.candidates, row => row.symbol, this.groups, order.direction)
-        : inOrder(this.candidates, row => this.keyOf(row, order.column), order.direction, row => row.symbol);
-      this.ordered = {from: this.candidates, tied: this.groups, order, rows};
-    }
-    return this.ordered.rows;
-  }
-
-  /** What a row is ordered by in a column, as its cell shows it. */
-  private keyOf(row: DipCandidate, column: DipColumn): number | string | undefined {
-    switch (column) {
-      case 'symbol':
-        return row.symbol;
-      case 'dropped':
-        return row.belowHigh;
-      case 'growing':
-        return numberIn(row.growthText);
-      case 'soon':
-        return row.earningsSoon ? 0 : undefined;   // the stocks that report within 2 weeks first; the others after
-      default:
-        return undefined;
-    }
-  }
-
-  readonly dipPercent = DIP_PERCENT;
-  /** What each of the three marks means, a sentence each: beside the mark, or on it while the box is folded. */
-  readonly meanings = {
-    dipBuy: `The price dropped ${DIP_PERCENT}% or more from its highest of the past year while the business keeps growing.`,
-    watch: 'Growing, but no such drop yet.',
-    pass: 'Not growing enough.',
-  } as const;
-  /** How stocks marked DIP BUY did in tests, in one paragraph. */
-  readonly cardNote = CARD_NOTE;
-  /**
-   * The tested result as figures, the risk among them (`testedStrip`, shared with any other view that shows them).
-   * The same numbers as the sentence (`cardNote`), which keeps the full account behind "How to read this".
-   */
-  readonly tested = testedStrip();
-
-  /** Asked for by the link that skips the box: the keyboard goes on to the lists. */
-  @Output() skipToLists = new EventEmitter<void>();
 
   skip(event: Event): void {
     event.preventDefault();
     this.skipToLists.emit();
-  }
-  readonly fearHighShort = FEAR_HIGH_SHORT;
-  /** Rows drawn while the first prices are arriving. */
-  readonly placeholders = [1, 2, 3, 4, 5];
-
-  /**
-   * Whether any candidate reports its results within 2 weeks. The column for that is shown only then: otherwise it
-   * would be empty from top to bottom.
-   */
-  get anyReportsSoon(): boolean {
-    return this.candidates.some(it => it.earningsSoon);
-  }
-
-  /** "−37%": how far the price is below its highest of the past year. */
-  dropText(candidate: DipCandidate): string {
-    return `−${candidate.belowHigh.toFixed(0)}%`;
-  }
-
-  /**
-   * What shows when a stock's symbol is pointed at or reached with the keyboard: the company's name on a line of
-   * its own, where it is known, then why the stock is marked.
-   */
-  tipOf(candidate: DipCandidate): string {
-    const name = candidate.name && candidate.name !== candidate.symbol ? candidate.name : '';
-    return [name, candidate.headline, candidate.held ? candidate.heldIn : ''].filter(it => !!it).join('\n');
-  }
-
-  trackBySymbol(_: number, candidate: DipCandidate): string {
-    return candidate.symbol;
   }
 }

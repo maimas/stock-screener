@@ -9,11 +9,12 @@ The app has two views, with a link to each in the bar at the top.
 | View | Address | Its question | What it holds |
 |---|---|---|---|
 | Portfolio | `/portfolio` (also `/`) | What do I own, and what do I do? | "Your plan today" (the portfolio's buttons, the plan's lines, cash and limit, "What you own"), "Could add", and "How the plan was tested" |
-| Watchlist | `/watchlist` | What is on sale? | "Dip candidates" (where the market stands, the stocks marked DIP BUY, what the marks mean) and "Your lists", with each stock's details |
+| Watchlist | `/watchlist` | What is on sale? | "Dip candidates" across the top (how many stocks carry each mark, where the market stands, what the mark was worth in tests, and the stocks marked DIP BUY as a table) and "Your lists" under it, with each stock's details |
 
 The Watchlist finds, the Portfolio sizes. One thing travels between them: a stock marked DIP BUY on the Watchlist
-shows on the Portfolio view under "Could add", with the size it would take in the portfolio being shown; and in
-its details on the Watchlist, "Where it fits" says its size in each portfolio.
+shows on the Portfolio view under "Could add", with the size it would take in the portfolio being shown. (Its
+details on the Watchlist used to say that size too, under "Where it fits"; the owner had it taken out: "it should
+not be in the watchlist". A size is on the Portfolio view only.)
 
 Both addresses are one page (`pageView` in `src/app/app.routing.ts` matches both, `DashboardComponent` tells the
 page which view to show). The view that is not shown is only hidden, so going from one to the other loads no price
@@ -281,9 +282,7 @@ were made in whatever it is called, and they are gone when another portfolio is 
 Like every size on the page, the split is arithmetic and not a tested rule.
 
 "Fit" is a fact, not a reason to pick: nothing is ordered or hidden by it. (Choosing the stock least tied to what is
-owned was looked at and earned less.) In the details of a stock marked DIP BUY on the Watchlist, "Where it fits"
-gives the size in each portfolio, a line each. A stock without the mark has no size, and its details have no such
-section.
+owned was looked at and earned less.)
 
 The page works the recommendations out with the plan, for every portfolio (`planFor` in
 `src/app/watchlist/portfolio-plan.ts`); the box is `src/app/watchlist/could-add/`, the section in the details
@@ -323,10 +322,10 @@ The page is made for a browser window that fills a large monitor, and still work
 
 | Window | Portfolio | Watchlist |
 |---|---|---|
-| 2500px and wider | "Your plan today" on the left with "How the plan was tested" under it; "Could add" down the right side of both, the two sharing the window evenly | "Dip candidates" as a pane on the left (900px) that stays in view; "Your lists" on the right |
-| 2300px to 2499px | One column; in "Could add" the table stands on the left and what is said about it on the right | The same as above |
-| 1800px to 2299px | The same one column | The same pane, 480px wide; it scrolls by itself on a screen too short for it |
-| Narrower | One column; "Could add" as above while its box is at least 1620px wide, and under its table in a narrower one | One column: the candidates, then the lists |
+| 2500px and wider | "Your plan today" on the left with "How the plan was tested" under it; "Could add" down the right side of both, the two sharing the window evenly | "Dip candidates" across the top, as wide as the window; under it "Your lists", two side by side while they show their key columns |
+| 2300px to 2499px | One column; in "Could add" the table stands on the left and what is said about it on the right | The same as above (two lists side by side from 2240px) |
+| 1800px to 2299px | The same one column | One column: "Dip candidates", then the lists one under the other |
+| Narrower | One column; "Could add" as above while its box is at least 1620px wide, and under its table in a narrower one | The same one column; the table of "Dip candidates" leaves out "List" in a box under 1340px and "Past year" under 1100px, as a list does |
 
 - **The answer comes first.** In "Your plan today" the portfolio being shown is the filled button, and the line "To do
   today: ..." is the largest line in the box, right under the portfolio's names. In a box of 1200px or more the plan's
@@ -356,7 +355,7 @@ The page is made for a browser window that fills a large monitor, and still work
   they belong to, with what the limit comes to under them. An entry that cannot be right (cash below zero; a limit of
   zero, less, or more than 100) is not saved: the field goes back to what it held and a line under it says why.
 - **A stock is named in words, without taking room.** The company's name shows when a symbol is pointed at (in the
-  lists and in "What you own" with its sector and industry, in "Dip candidates" in front of why the stock is marked),
+  lists, in the table of "Dip candidates" and in "What you own", with its sector and industry),
   and a stock's details start with the company's name, its sector and its industry. The rows stay one line.
 - **"What you own" shows the columns a decision rests on**: Stock, Plan, Held, Value, % of total, Result, Market
   since, Bad case, Typical, Good case. "All columns" adds how each stock was bought (shares, price paid, price now, the day),
@@ -372,8 +371,9 @@ The page is made for a browser window that fills a large monitor, and still work
   profit, both sides of that level in its test. Beside the headline of "What you own" the comparison with the
   market is two such figures ("Against the market  $383 ahead", "Money in for  18 weeks: too early to mean
   much"); while no stock has a purchase date the first says "needs a purchase date".
-- **A list shows what a mark rests on, a line a stock**: Stock, Group, Mark · dropped, Price, Growing, Next
-  results, Swings, Past year, and last "Claude · not tested". (One fact has one name on the page: "Dropped",
+- **A list shows what a mark rests on, a line a stock**: Stock, Group, Mark · dropped, "AI · not tested" (beside
+  the mark at the owner's word, its word set small and quiet so that it does not read as a second mark), Price,
+  Growing, Next results, Swings, Past year. (One fact has one name on the page: "Dropped",
   "Growing" and "Swings" are the headings of "Dip candidates" and "Could add" too, and the rows of a stock's
   details; a stock without a mark is "NO MARK" in its row, in the legend and in its details, with the reason
   beside it.) Every list has those columns at the same places, so a column can be read down the page. The nine
@@ -405,14 +405,13 @@ The page is made for a browser window that fills a large monitor, and still work
   field. It looks among the stocks already in the lists (`src/app/watchlist/find-stock.ts`); when none fits, a
   sentence beside the field says so, and when what was typed fits several stocks equally the first from A to Z
   opens and the others are named there.
-- **"Dip candidates" folds.** "Show less: more room for the lists" beside its title folds the box to the least of it: the three marks with
-  how many stocks carry each, how fearful the market is, and the stocks with how far each dropped. From 1800px the
-  box is then a strip 232px wide and the lists get the rest; from 2480px two lists stand side by side while they
-  show their key columns, so the seven lists take four rows and most of the Watchlist is on one screen. In a
-  narrower window the folded box is one short strip above the lists. "Show more" brings it all back; the choice
-  is kept in this browser. Until the reader has chosen, the box starts open where it stands beside the lists
-  (a window of 1800px or more) and folded where it stands above them: open, it filled the first screen of a laptop
-  and the lists began under it.
+- **The table of "Dip candidates" can be put away.** "Hide the table" at the end of the title's line leaves the
+  box's three lines (the three marks with how many stocks carry each, the market and how fearful it is, the tested
+  figures with their risk) and "How to read this"; the lists then begin right under them. On a day with twenty
+  marks the table is a screen tall. "Show the table" brings it back as it was (an open row is still open); the
+  choice is kept in this browser. Until the reader has chosen, the table is shown, in a window of any width. From
+  2240px two lists stand side by side under the box while they show their key columns, so the seven lists take
+  four rows.
 - **Signal before sentences on the Watchlist** (the owner, of a page where every explanation already showed only
   its first sentence: "there is too much text and not much signal"). A box shows its title, its marks, figures or
   table, and at most one sentence; what explains how to read it is behind one control a box, "How to read this",
@@ -426,7 +425,7 @@ The page is made for a browser window that fills a large monitor, and still work
   two pictures of it). By the same rules: a box shows its title, its figures and its table, and one sentence, which
   says what to do next. What was a sentence with a number in it is a figure with its name (`dl.facts`): beside the
   headline of "What you own", under the fields, and for the answer to a tick in "Could add" ("Room for the 2
-  ticked $9,539 · Cash to split $1,500 · Stocks held 5 today, 7 after · Bad half-year, every marked stock at once
+  ticked $9,539 · Cash to split $1,500 · Stocks you own 5 today, 7 after · Bad half-year, every marked stock at once
   −$2,916 today, −$3,531 after · Moved together ACME and BOLT (group A)"; the first was "Short of their shares",
   which beside a stock read as shares of stock). Each figure has the sentence it comes
   from where the pointer rests on it. "Could add" says beside its title how many stocks it lists and that the page
@@ -498,13 +497,9 @@ The page is made for a browser window that fills a large monitor, and still work
 - **A stock's details are three columns, a column a subject**, where the list is 1280px wide or more (two in a
   narrower list, with the reader's stake on the right): what the mark rests on, what is risky about this one
   stock and "The business"; why its price dropped, then the AI's own view of it ("AI view · not tested"); your
-  stake in it ("Where it fits", then
-  "What you own of it", which names the portfolio when there is more than one). Each of those two is there only
-  when it has something to say: "Where it fits" under a stock marked DIP BUY, "What you own of it" under a stock
-  that is held. A stock with neither has no third column: in a wide list its two columns stand where they stand
-  under every other stock, and in a narrower one why it dropped stands on the right. Beside a stock's size in the
-  portfolio being shown stand the three amounts of its row in "Could add": what that size could lose or make in 6
-  months ("Bad case −$825 · Typical +$48 · Good case +$1,711"), the bad one first. The sentences that say a
+  stake in it ("What you own of it", which names the portfolio when there is more than one, under a stock that
+  is held). A stock that is not held has no third column: in a wide list its two columns stand where they stand
+  under every other stock, and in a narrower one why it dropped stands on the right. The sentences that say a
   figure in words open together, with one control at the head of the details ("Read these details in
   sentences"), and stay open under every stock once asked for; a row opened near the foot of the window brings
   its details into the window. What the mark rests on is a row a fact: its name, its figure, and a tick where
@@ -553,9 +548,10 @@ The page is made for a browser window that fills a large monitor, and still work
   heading.
 - **What the marks mean is the first thing behind "How to read this"** in "Dip candidates", so a reader without
   a pointer finds it; the marks in the line above carry the dotted line of everything that says more when
-  pointed at. The lists' heading "Mark · dropped" names the figure that stands beside each mark. Where the box is
-  as wide as the window, its marks and groups stand beside its two tables and the tested figures run in one line
-  across its foot, so the lists begin on the first screen of a laptop.
+  pointed at. The lists' heading "Mark · dropped" names the figure that stands beside each mark. The marks stand on
+  the line of the box's title, and the tested figures run in one line under the line about the market, with the
+  two controls ("How to read this", "Groups") together at its end; what a control opens stands under that line, as
+  wide as the box, the sentences in columns of a readable width.
 - **The plan's BUY line leads to "Could add"**: the box's name in the sentence is a jump to it.
 - **Looking a stock up does not cost the reader their place.** A stock opened from the Portfolio view shows its
   details on the Watchlist with a link "Back to your plan" beside the company's name; the link, and the browser's
@@ -666,8 +662,9 @@ The page is made for a browser window that fills a large monitor, and still work
   list by that column (as "Key columns / All columns" is one choice for all of them), and a list shown later
   starts the same way. The first click puts the biggest first for a number, A first for a name and the soonest
   first for a date; the column the rows follow carries the same small triangle as in "What you own" (Material's
-  own arrow is not drawn). A stock opened from the plan or from "Dip candidates" comes into view with its list's
-  name and column heads, not at the top of the window with its figures bare. Funds are counted in words in a
+  own arrow is not drawn). A stock opened from the plan, from the address or with "Find a stock" opens in its own
+  list (not in the table of "Dip candidates", where a marked stock has a second row) and comes into view with its
+  list's name and column heads, not at the top of the window with its figures bare. Funds are counted in words in a
   list's line ("3 funds").
 - **The plan comes before its numbers in the page too**, as it does on the screen: the Tab key goes from the
   portfolios to the plan and then to cash and the limit, and a screen reader hears "To do today" first. What a
@@ -724,9 +721,10 @@ The page is made for a browser window that fills a large monitor, and still work
   details and opens in a new tab.
 - **"Dip candidates" says which of its stocks move together.** The sentence "owning all 9 is nearer to one big
   bet than to 9 separate ones" could not be used without knowing which stocks are tied (the owner: "I can't
-  leverage it since I don't know what stocks move together"). Under it, "Which of them move together" lists the
-  groups, a line a group: a letter, its stocks, how many they are and the sector they share ("A · ACME, BOLT, CHIP ·
-  3 stocks, mostly Technology"), and last the stocks that moved with none of the others. Each row of the table
+  leverage it since I don't know what stocks move together"). Both are behind the control "Groups" in the box,
+  closed until asked for and remembered: the sentence, and under it "Which of them move together", a line a group:
+  a letter, its stocks, how many they are and the sector they share ("A · ACME, BOLT, CHIP · 3 stocks, mostly
+  Technology"), and last the stocks that moved with none of the others. Each row of the table
   carries its group's letter in a column "Group", with a dot of the group's colour in front of it (a dash for a
   stock on its own); where the pointer rests on it, it says with which stocks it moved and how closely. A group is
   a set of stocks whose daily price changes moved closely together over the past year: groups are joined, the
@@ -758,19 +756,28 @@ The page is made for a browser window that fills a large monitor, and still work
   it fits" over "No size: it is not marked DIP BUY.", and under a stock that is not held "What you own of it" over
   "Not in this portfolio." and a button "Enter what you hold", which opened a form for a first entry. The owner,
   with a picture of the three: "remove that - I don't need it there"; asked how much of it, they chose "only when
-  it is empty". So "Where it fits" is under a stock marked DIP BUY only, "What you own of it" under a stock that
-  is held only, and the first-entry form is gone with its button. A first purchase is recorded with "Add" in
+  it is empty". So "What you own of it" is under a stock that is held only, and the first-entry form is gone with
+  its button. ("Where it fits" stayed under a stock marked DIP BUY for a few hours more; then the owner had it
+  taken out of the app: "remove the where it fits from the app - it should not be in the watchlist".) A first purchase is recorded with "Add" in
   "Could add", which lists the stocks marked DIP BUY. What is given up, and was said with the choice: a holding of
   a stock without the mark that was never recorded can no longer be typed in on the page ("Import" at the foot of
   the plan box replaces every portfolio at once).
 - **Small things.** "Delete list" in a list's editor asks in place, the
   answer that keeps the list first, as deleting a portfolio does. An address that is no page of the app leads to
   the Portfolio view. On a day no price arrives the Watchlist says so once above its lists.
-- **"Dip candidates" is a table**, a row a stock, under the headings "Stock", "Dropped" and "Growing" ("Next results"
-  is added when a stock reports within 2 weeks), so no number has to be guessed or hovered
-  (`src/app/watchlist/dip-candidates/`). Where the box is as wide as a window (a laptop window, where it is not the
-  pane beside the lists) ten stocks or more stand in two tables side by side, read down the first and then down the
-  second, so that all of them are on the first screen.
+- **"Dip candidates" is a table across the top of the Watchlist, built like the lists' tables** (the owner, of the
+  box as a pane beside the lists with a small table of its own and paragraphs about it: "maybe that can be a table
+  on the top where it becomes a table like the other ones but more polished in terms of prose"). The box
+  (`src/app/watchlist/dip-candidates/`) is the table's frame, three short lines: the title with the marks' counts
+  and the stocks marked today ("New today: AMD, ARM"); the market; the tested figures. Under them the page hands
+  in the lists' own table with the stocks marked DIP BUY, A to Z: the lists' columns (key or all, by the one
+  choice above the lists), the AI's column with "Ask AI about these" on the title's line, a stock's details opened
+  where its row stands, and one more column, "List", that says which of the reader's lists the stock is in (both,
+  for a stock in two). The table has an order of its own: a click on one of its headings orders it alone, and the
+  lists, which are ordered together, leave it as it is. A marked stock that is on the page only because it is held
+  (outside every list) is in the table and not in the question to the AI. What the box used to say in sentences
+  ("Click a stock for its details.", the paragraphs about the tests and the groups) is behind "How to read this"
+  and "Groups"; the tag "new" of its old table is the names on the title's line.
 - **What a column means** shows under the pointer and also when its heading is reached with the Tab key, in the lists
   and in "What you own"; what the Cash and the limit fields are shows while the field has the keyboard. Whatever has
   the keyboard shows a blue ring, Material's own buttons included.

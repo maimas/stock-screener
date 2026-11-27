@@ -2,10 +2,25 @@
   display: block;
 }
 
+// The box at the top of the Watchlist: three short lines and, under them, the table the page hands in. It is as
+// wide as the window at every width (it used to be a pane beside the lists from 1800px).
 .candidates {
   margin-bottom: 24px;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
+}
+
+// The box is measured, not the window: what stands on a line follows the box's own width.
+mat-card-content {
+  container-type: inline-size;
+}
+
+// ---- The first line: the title, the marks with their counts, the stocks marked today, the controls ----
+.head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 24px;
 }
 
 .title {
@@ -16,365 +31,20 @@
   color: var(--ink);
 }
 
-// The title with, at the end of its line, the choice between the whole box and the least of it.
-.head {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 2px 16px;
-}
-
-.head .fold {
-  margin-left: auto;
-  font-size: var(--text-meta);
-}
-
-// ---- Folded: the least that is still useful day to day ----
-// The three marks with their counts, how fearful the market is, and the stocks with how far each dropped. What
-// the marks mean, the sentences and the other two columns are left out; the page makes the box a narrow strip.
-.folded .market.index,
-.folded .market .fear-label ~ span,
-.folded .tested-figures,
-.folded .legend dd,
-.folded .about .note,
-.folded .note.how,
-.folded thead th:nth-child(n + 3),
-.folded tbody td:nth-child(n + 3) {
-  display: none;
-}
-
-.folded .body {
-  grid-template-columns: minmax(0, 1fr);
-  gap: 10px;
-  margin-top: 10px;
-}
-
-// The two columns that are left take the strip's whole width and no more: "Dropped" is now the last column, so it
-// needs no room after it, and nothing scrolls sideways.
-.folded table {
-  width: 100%;
-}
-
-.folded th:nth-child(2),
-.folded td:nth-child(2) {
-  padding-right: 8px;
-}
-
-// The marks come first, as a line of their own; the stocks under them.
-.folded .about {
-  order: -1;
-}
-
-.folded .tied {
-  display: none;
-}
-
-.folded .legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-}
-
-.folded .mark {
-  display: block;
-}
-
-// Where the box is as wide as a window (no pane beside the lists), the folded box is one short strip: the marks
-// and the fear line. The stocks themselves are in the lists right under it.
-@container (min-width: 700px) {
-  .folded .stocks {
-    display: none;
-  }
-
-  // In that strip the green "Market fear high" keeps the sentence that says what it has meant and that fear can get
-  // worse first, and the tested figures stand under the marks, the risk among them: a review found the good-time
-  // signal and the green marks there without their risk, beside a thousand pixels of empty box.
-  .folded .market .fear-label ~ span {
-    display: inline;
-  }
-
-  .folded .market {
-    max-width: none;
-  }
-
-  .folded .tested-figures {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0 20px;
-    max-width: none;
-    margin-top: 8px;
-  }
-
-  .folded .tested-figures .tested-title {
-    margin: 0;
-  }
-
-  .folded .tested-limits {
-    display: none;
-  }
-
-  .folded .body {
-    margin-top: 6px;
-  }
-}
-
-// Where the market stands: two quiet lines under the title.
-.market {
-  margin: 8px 0 0;
-  max-width: var(--measure);
-  font-size: var(--text-body);
-  line-height: 1.6;
-  color: var(--ink-2);
-}
-
-.market + .market {
-  margin-top: 2px;
-}
-
-.fear-label {
-  font-weight: 500;
-  color: var(--ink);
-  cursor: help;
-  border-bottom: 1px dotted var(--ink-3);
-}
-
-.fear-label.high {
-  color: var(--dip);
-}
-
-// The stocks and what is said about them stand side by side when the box is wide enough for both, and one under
-// the other when it is not: the box may be a pane beside the lists or the whole width of a narrow window. However
-// wide the box, the two stay next to each other: what is said about the stocks is read with them in view.
-// The box is measured, not the window: the same box is 480px wide in one layout and 900px in another.
-mat-card-content {
-  container-type: inline-size;
-}
-
-.body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: start;
-  gap: 20px 40px;
-  max-width: 1080px;
-  margin-top: 16px;
-}
-
-// Side by side, the table takes the width it needs and the sentences take the rest: with two equal halves the
-// table did not fit its half in the 900px pane.
-@container (min-width: 720px) {
-  .body {
-    grid-template-columns: max-content minmax(0, 1fr);
-  }
-}
-
-// A box as wide as a window holds the stocks in two tables: the two of them and the sentences beside them need
-// more room than one table did.
-@container (min-width: 1200px) {
-  .body {
-    max-width: 1400px;
-  }
-}
-
-// Where the box is as wide as a window and its stocks stand in two tables, it was taller than a laptop's window:
-// the lists began under the first screen (a review, at 1440x800: the box 785px tall). The column beside the tables
-// was the tall part. There the marks and the groups stay beside the tables, and the tested figures run across the
-// foot of the box in one line, with "How to read this" and the log's line under them: the box is about as tall as
-// its tables, and the lists start on the first screen. (Not folded: the folded box has its own, shorter, layout.)
-@container (min-width: 1250px) {
-  .candidates:not(.folded) .body {
-    grid-template-rows: auto auto 1fr;
-    row-gap: 12px;
-  }
-
-  .candidates:not(.folded) .about {
-    display: contents;
-  }
-
-  .candidates:not(.folded) .stocks {
-    grid-column: 1;
-    grid-row: 1 / span 3;
-  }
-
-  .candidates:not(.folded) .legend,
-  .candidates:not(.folded) .one-bet,
-  .candidates:not(.folded) .tied {
-    grid-column: 2;
-    margin-top: 0;
-  }
-
-  .candidates:not(.folded) .legend {
-    grid-row: 1;
-  }
-
-  .candidates:not(.folded) .one-bet {
-    grid-row: 2;
-  }
-
-  .candidates:not(.folded) .tied {
-    grid-row: 3;
-  }
-
-  .candidates:not(.folded) .tested-figures,
-  .candidates:not(.folded) app-about,
-  .candidates:not(.folded) .note.log,
-  .candidates:not(.folded) .note.attention {
-    grid-column: 1 / -1;
-    max-width: none;
-    margin-top: 0;
-  }
-
-
-  // What the figures are of, and what they do not say by themselves, on one line over them.
-  .candidates:not(.folded) .tested-figures {
-    display: grid;
-    grid-template-columns: max-content minmax(0, 1fr);
-    column-gap: 20px;
-    align-items: baseline;
-  }
-
-  .candidates:not(.folded) .tested-figures dl {
-    grid-column: 1 / -1;
-    grid-row: 2;
-  }
-
-  .candidates:not(.folded) .tested-limits {
-    grid-column: 2;
-    grid-row: 1;
-    margin: 0 0 4px;
-  }
-
-  // The two lines about the market run the width of the box: at the width of a paragraph the second took three.
-  .candidates:not(.folded) .market {
-    max-width: none;
-  }
-}
-
-// On a very narrow screen the table can be wider than its box: it then scrolls by itself and the page does not.
-.stocks {
-  overflow-x: auto;
-}
-
-// One table, or two halves side by side where the box is as wide as a window.
-.tables {
-  display: flex;
-  align-items: flex-start;
-  gap: 0 40px;
-}
-
-// How the table is used, right under it and a size quieter than the notes beside it.
-.note.how {
-  margin-top: 8px;
-  font-size: var(--text-data);
-}
-
-
-// The table hugs its content, so each number stays close to the stock it belongs to.
-table {
-  border-collapse: collapse;
-  font-size: var(--text-data);
-  white-space: nowrap;
-}
-
-th,
-td {
-  padding: 5px 24px 5px 0;
-  border-bottom: 1px solid var(--line);
-  text-align: left;
-  font-weight: 400;
-}
-
-th:last-child,
-td:last-child {
-  padding-right: 8px;
-}
-
-thead th {
-  padding-top: 0;
-  border-bottom-color: var(--line-strong);
-  font-size: var(--text-meta);
-  font-weight: 500;
-  color: var(--ink-2);
-}
-
-tbody tr:last-child th,
-tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-.num {
-  text-align: right;
-}
-
-// A row is one thing to click: it shows that under the pointer.
-tbody tr {
-  cursor: pointer;
-  transition: background-color 120ms ease-out;
-}
-
-tbody tr:hover {
-  background: var(--surface-2);
-}
-
-// The stock's name is the row's one tab stop. It reads as a link, like a stock's name everywhere on the page.
-.symbol {
-  min-width: 48px;
-  min-height: 24px;
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  font-weight: 500;
-  color: var(--link);
-  text-align: left;
-  cursor: pointer;
-}
-
-tbody tr:hover .symbol,
-.symbol:hover {
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-// A quiet marker for a stock you hold, as in the lists.
-.held {
-  margin-left: 6px;
-  padding: 0 5px;
-  border-radius: 9px;
-  box-shadow: inset 0 0 0 1px var(--line-strong);
-  font-size: var(--text-micro);
-  line-height: 17px;
-  color: var(--ink-2);
-}
-
-.new-mark {
-  margin-left: 6px;
-  padding: 0 6px;
-  border-radius: 9px;
-  background: var(--dip);
-  font-size: var(--text-micro);
-  font-weight: 600;
-  line-height: 18px;
-  color: #fff;
-}
-
-.soon {
-  color: var(--warn);
-}
-
-// What the three marks mean: the mark as it looks in the lists, how many stocks carry it, and one line each.
-// One line of marks with their counts, wrapping where the box is narrow.
+// The three marks, each as it looks in the lists, with how many stocks carry it: one line of marks and counts.
 .legend {
   display: flex;
   flex-wrap: wrap;
   gap: 6px 20px;
   margin: 0;
-  max-width: var(--measure);
   font-size: var(--text-body);
   line-height: 1.6;
 }
 
 .legend dt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding-bottom: 2px;
   border-bottom: 1px dotted var(--ink-3);
   cursor: help;
@@ -385,29 +55,255 @@ tbody tr:hover .symbol,
   outline-offset: 2px;
 }
 
-.no-mark dt {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.mark dt {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .mark-count {
   font-weight: 600;
   color: var(--ink);
 }
 
-.mark dd {
+.legend dd {
   margin: 0;
+}
+
+.new-today {
+  font-size: var(--text-meta);
   color: var(--ink-2);
 }
 
-// Sentences: a size and a width that read easily, a paragraph a thought.
+.new-today b {
+  font-size: var(--text-data);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+// At the end of the line, as "Edit list" and "Ask AI about these" stand in a list's heading.
+.controls {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  margin-left: auto;
+}
+
+.ask[hidden] {
+  display: none;
+}
+
+.link-button {
+  min-height: 24px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--text-data);
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.link-button:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+// ---- The second line: the market ----
+// Two sentences on one line where the box has room for both; each wraps inside the box where it has not (a sentence
+// never stands in a block that is sized to its content).
+.market-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 24px;
+  margin-top: 8px;
+}
+
+.market {
+  margin: 0;
+  min-width: 0;
+  font-size: var(--text-body);
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+.fear-label {
+  font-weight: 500;
+  color: var(--ink);
+  cursor: help;
+  border-bottom: 1px dotted var(--ink-3);
+}
+
+// Said with what it has meant and that fear can get worse first, in the same sentence: never the green alone.
+.fear-label.high {
+  color: var(--dip);
+}
+
+// ---- The third line: the tested figures, and the controls that open what is said about them ----
+// The figures take the line (and wrap inside their own part where the box is narrow); the two controls stand
+// together at its end, as the controls of the first line do; whatever they opened stands under the line, each as
+// wide as the box. A grid, so that the two controls stay side by side and neither moves when the other is used.
+.tested-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  column-gap: 20px;
+  margin-top: 2px;
+}
+
+.tested-figures {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 20px;
+  min-width: 0;
+}
+
+.tested-title {
+  margin: 0;
+  font-size: var(--text-meta);
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.tested-figures .risk dd {
+  color: var(--loss);
+}
+
+// What the numbers do not say by themselves: a quiet line, in sight with them.
+.tested-limits {
+  margin: 0;
+  min-width: 0;
+  font-size: var(--text-meta);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+// "How to read this" is a part of its own (`app-about`): its control and what it opens join this line's layout.
+app-about {
+  display: contents;
+}
+
+app-about ::ng-deep .about-toggle {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.groups-toggle {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+// What "How to read this" opens: sentences of a readable width, side by side in columns where the box is wide
+// (one column 56 characters wide left most of a wide box empty and pushed the table a screen down).
+app-about ::ng-deep .about-body {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  box-sizing: border-box;
+  margin: 6px 0 4px;
+  column-width: 52ch;
+  column-gap: 40px;
+}
+
+// Each part of it stays whole in its column, and starts at the column's top (the room is under a part, not over it).
+app-about .note,
+app-about .meanings {
+  margin: 0 0 10px;
+  break-inside: avoid;
+}
+
+// "Groups": the look of "How to read this" beside it (that control's own styles stay inside its part).
+.groups-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 2px;
+  background: none;
+  font: inherit;
+  font-size: var(--text-data);
+  color: var(--link);
+  cursor: pointer;
+}
+
+.groups-toggle::before {
+  content: "";
+  border: 4px solid transparent;
+  border-left-color: currentColor;
+  border-right-width: 0;
+}
+
+.groups-toggle[aria-expanded="true"]::before {
+  border: 4px solid transparent;
+  border-top-color: currentColor;
+  border-bottom-width: 0;
+}
+
+.groups-toggle:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.groups-toggle:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
+}
+
+// Which stocks move together: an aside to the box, like what "How to read this" opens.
+.tied {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  box-sizing: border-box;
+  margin: 6px 0 4px;
+  padding-left: 12px;
+  border-left: 2px solid var(--line);
+}
+
+.tied[hidden] {
+  display: none;
+}
+
+.tied-title {
+  margin: 8px 0 4px;
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.tied .one-bet + .tied-title,
+.tied-title:first-child {
+  margin-top: 0;
+}
+
+// A line a group; side by side where the box has room for more than one, so five groups are not five rows.
+.tied ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
+  gap: 2px 32px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tied li {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  column-gap: 8px;
+  padding: 3px 0;
+  font-size: var(--text-data);
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.tied .brief {
+  grid-column: 2;
+  font-size: var(--text-meta);
+  color: var(--ink-2);
+}
+
+// ---- What is behind "How to read this" ----
 .note {
   margin: 10px 0 0;
   max-width: var(--measure);
@@ -416,34 +312,11 @@ tbody tr:hover .symbol,
   color: var(--ink-2);
 }
 
-// Said in place of the table, so it starts where the table would.
-.note.empty {
+.note.one-bet {
   margin-top: 0;
+  color: var(--ink);
 }
 
-// What the mark was worth in the tests: four numbers under one quiet line, each with its label over it. The
-// numbers are the page's figures (the same face and size as a table's strong figure), the labels a caption.
-.tested-figures {
-  margin-top: 14px;
-  max-width: var(--measure);
-}
-
-.tested-title {
-  margin: 0 0 4px;
-  font-size: var(--text-meta);
-  font-weight: 500;
-  color: var(--ink-2);
-}
-
-// What the numbers do not say by themselves: a caption under them.
-.tested-limits {
-  margin: 6px 0 0;
-  font-size: var(--text-meta);
-  line-height: 1.5;
-  color: var(--ink-2);
-}
-
-// What the three marks mean, behind "How to read this": the mark as it looks in the lists, then its sentence.
 .meanings {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
@@ -463,41 +336,51 @@ tbody tr:hover .symbol,
   margin: 0;
 }
 
-// The figures are the page's `dl.facts` (styles.scss): the same look as the strip in the plan's box, which a
-// review found drawn two ways. The one figure that is a loss wears the colour of a loss, there and here.
-.tested-figures .risk dd {
-  color: var(--loss);
+// ---- The table ----
+// The page's table, from edge to edge of the box as a list's table is under its heading: the box's own padding is
+// taken back on both sides and at the foot (`--box-pad`, the card's padding at this width).
+.candidates {
+  --box-pad: 24px;
 }
 
-// Darker than the notes around it, not bolder: three lines of bold shout.
-.note.one-bet {
-  color: var(--ink);
+.stocks {
+  margin: 12px calc(-1 * var(--box-pad)) 0;
 }
 
+.stocks[hidden] {
+  display: none;
+}
+
+// The table is inside the box here: no shadow and no rounding of its own.
+.stocks ::ng-deep .table-scroll {
+  border-radius: 0;
+  box-shadow: none;
+  border-top: 1px solid var(--line);
+}
+
+// Nothing is marked: one sentence where the table would be.
+.note.empty {
+  margin-top: 10px;
+}
+
+// Under the table: the record since the daily log began, with the way to save the log.
 .note.log {
+  max-width: none;
+  margin-top: 10px;
   font-size: var(--text-meta);
   color: var(--ink-3);
 }
 
-// A background job that needs a look: stopped by a check, or left a note.
+.note.log .link-button {
+  margin-left: 4px;
+  font-size: inherit;
+}
+
 .note.attention {
   color: var(--warn);
 }
 
-.link-button {
-  min-height: 24px;
-  margin-left: 4px;
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  color: var(--link);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  cursor: pointer;
-}
-
-// While the first prices are arriving: a few rows the size of the table's, so the box does not jump when it comes.
+// ---- While the first prices arrive, and on a day none does ----
 .loading {
   display: grid;
   gap: 10px;
@@ -519,49 +402,10 @@ tbody tr:hover .symbol,
   }
 }
 
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
+.failed {
+  margin-top: 12px;
 }
 
-// On a phone the columns stand closer and "within 2 weeks" takes two lines, so the table fits the screen; a mark's
-// meaning goes under the mark.
-@media (max-width: 699px) {
-  th,
-  td {
-    padding-right: 12px;
-  }
-
-  .soon {
-    min-width: 56px;
-    white-space: normal;
-    line-height: 1.3;
-  }
-
-  .mark {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .mark dt {
-    justify-content: flex-start;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  tbody tr {
-    transition: none;
-  }
-
-  .skeleton {
-    animation: none;
-  }
-}
-
-// No price arrived: the sentence in the amber of what has to be put right first, and the way on under it.
 .failed p {
   margin: 0 0 10px;
   max-width: var(--measure);
@@ -592,188 +436,58 @@ tbody tr:hover .symbol,
   outline-offset: 1px;
 }
 
-// ---- Which of the candidates move together ----
-// A group is a letter with a dot of the group's colour in front of it: the letter says which group, the dot lets
-// the eye find its rows. Three colours that stay apart for every pair, also for a reader who does not tell red
-// from green (checked with the palette validator), and none of them the green, red or amber that mean something
-// on this page. A fourth group and those after it wear grey: the letter is what tells them apart.
-.group {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: var(--text-data);
-  font-weight: 500;
-  color: var(--ink);
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
   white-space: nowrap;
 }
 
-.group.none {
-  font-weight: 400;
-  color: var(--ink-3);
+// On a phone the card's padding is 16px (the page's own rule), and the controls start a line of their own.
+@media (max-width: 699px) {
+  .candidates {
+    --box-pad: 16px;
+  }
+
+  .controls {
+    margin-left: 0;
+  }
 }
 
-.dot {
-  flex: none;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--ink-3);
+// In a box that narrow the figures take the whole line and the two controls stand under them, side by side.
+@container (max-width: 699px) {
+  .tested-line {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .tested-figures {
+    grid-column: 1 / -1;
+  }
+
+  app-about ::ng-deep .about-toggle {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .groups-toggle {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
+  }
+
+  app-about ::ng-deep .about-body {
+    grid-row: 3;
+  }
+
+  .tied {
+    grid-row: 4;
+  }
 }
 
-.dot.g0 {
-  background: #6a4ce2;
-}
-
-.dot.g1 {
-  background: #f2a600;
-}
-
-.dot.g2 {
-  background: #ee7fac;
-}
-
-.group-head .has-help {
-  text-decoration: underline dotted;
-  text-underline-offset: 3px;
-}
-
-// The list of groups under the sentence that says they are nearer to one bet.
-.tied {
-  margin-top: 12px;
-}
-
-.tied-title {
-  margin: 0 0 4px;
-  font-size: var(--text-body);
-  font-weight: 600;
-  color: var(--ink);
-}
-
-.tied ul {
-  margin: 0 0 6px;
-  padding: 0;
-  list-style: none;
-}
-
-.tied li {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  column-gap: 8px;
-  padding: 3px 0;
-  font-size: var(--text-data);
-  line-height: 1.5;
-  color: var(--ink);
-}
-
-.tied .brief {
-  grid-column: 2;
-  font-size: var(--text-meta);
-  color: var(--ink-2);
-}
-
-// "Group", the one heading that orders the rows of this table (by group, and back to A to Z): a button that looks
-// like the heading it is, with the small triangle of the page's other tables while the rows follow it.
-.sort-group {
-  position: relative;
-  min-height: 24px;
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  color: inherit;
-  text-decoration: underline dotted;
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
-
-.sort-group:focus-visible {
-  outline: 2px solid var(--link);
-  outline-offset: 1px;
-  border-radius: 2px;
-}
-
-.sort-group::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: calc(100% + 4px);
-  margin-top: -6px;
-  border: 4px solid transparent;
-}
-
-.sort-group[aria-pressed="true"] {
-  color: var(--ink);
-}
-
-.sort-group[aria-pressed="true"]::after {
-  border-bottom-color: currentColor;
-}
-
-.sort-group:hover:not([aria-pressed="true"])::after {
-  border-bottom-color: var(--ink-3);
-}
-
-// A heading of the table: a button that looks like the heading it is, with the page's small triangle after it
-// while the rows follow its column (down for the biggest first, up for the smallest or A first), and a paler one
-// under the pointer for the way a click would order them.
-.sort-head {
-  position: relative;
-  min-height: 24px;
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-}
-
-.sort-head.has-help {
-  text-decoration: underline dotted;
-  text-underline-offset: 3px;
-}
-
-.sort-head:focus-visible {
-  outline: 2px solid var(--link);
-  outline-offset: 1px;
-  border-radius: 2px;
-}
-
-.sort-head::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: calc(100% + 4px);
-  border: 4px solid transparent;
-}
-
-th.num .sort-head::after {
-  left: auto;
-  right: calc(100% + 4px);
-}
-
-th[aria-sort] .sort-head {
-  color: var(--ink);
-}
-
-th[aria-sort="ascending"] .sort-head::after {
-  margin-top: -6px;
-  border-bottom-color: currentColor;
-}
-
-th[aria-sort="descending"] .sort-head::after {
-  margin-top: -2px;
-  border-top-color: currentColor;
-}
-
-th:not([aria-sort]) .sort-head:hover::after,
-th:not([aria-sort]) .sort-head:focus-visible::after {
-  margin-top: -2px;
-  border-top-color: var(--ink-3);
-}
-
-th:not([aria-sort]) .sort-head.up:hover::after,
-th:not([aria-sort]) .sort-head.up:focus-visible::after {
-  margin-top: -6px;
-  border-top-color: transparent;
-  border-bottom-color: var(--ink-3);
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
 }
