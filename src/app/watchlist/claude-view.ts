@@ -240,19 +240,32 @@ export const ASK_ONE_TIP = 'The AI (Claude Code on this computer) reads this sto
   'Usually about half a minute. Only the stock\'s own figures are sent.';
 export const ASKING_ONE = 'The AI is reading this stock\'s figures and the news about it. Usually about half a minute, at most three.';
 export const NOT_IN_A_LIST = 'Add this stock to one of your lists to ask the AI about it.';
-/** "Of ABCD, EFGH and IJKL the AI would take EFGH first." The comparison in one line, for where the reasons are folded away. */
-export function pickShort(pick: PickFor): string {
-  const which = pick.mine ? 'this one' : pick.first, members = pick.members;
-  const among = members.length <= 3
-    ? `Of ${members.slice(0, -1).join(', ')} and ${members[members.length - 1]}`
-    : `Of the ${members.length} stocks ${pick.letterNow ? `of group ${pick.letterNow}` : 'that moved together'} it compared,`;
-  return `${among} the AI would take ${which} first.`;
+/**
+ * The comparison in a stock's details, as a named row: "Group A" and "EFGH first, ahead of this one and IJKL".
+ * `symbol` is the stock whose details these are: it is "this one". More than three others are counted.
+ */
+export function pickRow(pick: PickFor, symbol: string): { label: string, first: string } {
+  const name = (it: string): string => it === symbol ? 'this one' : it;
+  const others = pick.members.filter(it => it !== pick.first);
+  const mine = others.includes(symbol);
+  const ahead = others.length <= 3
+    ? (others.length === 1 ? name(others[0]) : `${others.slice(0, -1).map(name).join(', ')} and ${name(others[others.length - 1])}`)
+    : mine ? `this one and ${others.length - 1} others` : `${others.length} others`;
+  return {
+    label: pick.letterNow ? `Group ${pick.letterNow}` : 'Its group',
+    first: `${pick.mine ? 'This one' : pick.first} first, ahead of ${ahead}`,
+  };
 }
 
-/** "Asked Nov 18 · not tested · 2 sources": the line under the AI's word in a stock's details. */
+/** Why the AI would take the stock it chose first, and the day it compared them: "It makes a profit. Compared Nov 18." */
+export function pickReason(pick: PickFor): string {
+  return `${pick.why} Compared ${shortDay(pick.day)}.`;
+}
+
+/** "Asked Nov 18 · 2 sources": the line under the AI's word in a stock's details (its title says "not tested"). */
 export function askedLine(view: View): string {
   const count = view.sources.length;
-  return `Asked ${shortDay(view.day)} · not tested` + (count ? ` · ${count} source${count === 1 ? '' : 's'}` : '');
+  return `Asked ${shortDay(view.day)}` + (count ? ` · ${count} source${count === 1 ? '' : 's'}` : '');
 }
 /** The AI's word as the page says it, quietly: "Buy some", "Wait", "Avoid". */
 export function wordSaid(word: string): string {

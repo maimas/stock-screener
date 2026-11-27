@@ -35,6 +35,9 @@ export class DashboardComponent {
   }
 
   go(view: PageView): void {
+    // The view being gone to, at once: an address of a stock on the Watchlist that is still waiting to be written
+    // (a stock was closed in the same moment, on its way back to the plan) is then not written after this change.
+    this.view = view;
     this.under = Promise.resolve(this.router.navigate(['/', view]));
   }
 

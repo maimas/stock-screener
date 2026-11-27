@@ -40,6 +40,14 @@ export class CostDistributionCellComponent {
     return this._distribution;
   }
 
+  /**
+   * What the cell shows: the share of owners in profit in whole percent. The heading says "Holders in profit", and
+   * "Could add" writes the same figure the same way; the words stay for a screen reader (`profitText`).
+   */
+  get shortText(): string {
+    return this._distribution ? `${Math.round(this._distribution.profitRatio)}%` : '—';
+  }
+
   get profitText(): string {
     return this._distribution ? `${this._distribution.profitRatio.toFixed(1)}% in profit` : '—';
   }

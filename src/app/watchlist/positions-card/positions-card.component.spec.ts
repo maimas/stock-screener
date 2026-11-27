@@ -1006,6 +1006,53 @@ describe('PositionsCardComponent, as shown: the order of the rows in "What you o
     });
   });
 
+  // The owner: "I need tables to support sorting by multiple coluns".
+  it('adds a column to the order on a click with the Shift key held: holdings level in the first column follow the second', () => {
+    // Every column shown: the three holdings have the same price, so "Price now" leaves them level.
+    const t = table(page => {
+      page.card = holdings();
+      page.allColumns = true;
+    });
+    const el = (t as unknown as { el?: HTMLElement }).el ?? document.body;
+    const heading = (label: string) => Array.from(el.querySelectorAll('app-positions-card thead th')).find(th => th.textContent?.trim().startsWith(label))!;
+    const withShift = (label: string) => {
+      heading(label).querySelector('button')!.dispatchEvent(new MouseEvent('click', {bubbles: true, shiftKey: true}));
+      t.refresh();
+    };
+    const place = (label: string) => heading(label).querySelector('.order-place')?.textContent?.trim() ?? '';
+    t.click('Price now');
+    expect(t.symbols()).withContext('level in price: A to Z').toEqual(['AMD', 'ARM', 'NVDA']);
+    expect(place('Price now')).withContext('one column: no number').toBe('');
+    withShift('Value');
+    expect(t.symbols()).withContext('level in price, so by value, the biggest first').toEqual(['ARM', 'AMD', 'NVDA']);
+    expect([place('Price now'), place('Value')]).toEqual(['1', '2']);
+    expect(t.box.orders).toEqual([{column: 'now', direction: 'desc'}, {column: 'value', direction: 'desc'}]);
+    withShift('Value');
+    expect(t.symbols()).withContext('the second key turned round').toEqual(['NVDA', 'AMD', 'ARM']);
+    expect(heading('Value').getAttribute('data-order')).toBe('asc');
+    expect(heading('Value').hasAttribute('aria-sort')).withContext('one heading of a table says "sorted"').toBeFalse();
+    expect(heading('Price now').getAttribute('aria-sort')).toBe('descending');
+    // A plain click: one column again.
+    t.click('Stock');
+    expect(t.symbols()).toEqual(['AMD', 'ARM', 'NVDA']);
+    expect(t.box.orders).toEqual([{column: 'symbol', direction: 'asc'}]);
+    expect(el.querySelectorAll('app-positions-card thead th[data-order]').length).toBe(1);
+  });
+
+  it('drops a key whose column is put away, and keeps the keys still in sight', () => {
+    const t = table(page => {
+      page.card = holdings();
+      page.allColumns = true;
+    });
+    t.click('Stock');
+    t.box.sortBy('shares', {shiftKey: true});
+    t.refresh();
+    expect(t.box.orders.map(it => it.column)).toEqual(['symbol', 'shares']);
+    t.box.showColumns(false);
+    t.refresh();
+    expect(t.box.orders).toEqual([{column: 'symbol', direction: 'asc'}]);
+  });
+
   it('keeps the chosen order when the holdings change: new prices or another portfolio do not undo it', () => {
     const t = table();
     t.click('Stock');

@@ -7,7 +7,7 @@
   <dl class="fact-rows">
     <div *ngFor="let row of business.rows; trackBy: trackByLabel">
       <dt><span [matTooltip]="row.tip" matTooltipClass="multiline-tooltip">{{ row.label }}</span></dt>
-      <dd>{{ row.value }}<span class="industry" *ngIf="row.industry"> · {{ row.industry }}</span></dd>
+      <dd><app-fig-text [text]="row.value"></app-fig-text><span class="industry" *ngIf="row.industry"> · {{ row.industry }}</span></dd>
     </div>
   </dl>
   <!-- The companies the data source lists beside this one are not a row: its list is loose (a phone company beside

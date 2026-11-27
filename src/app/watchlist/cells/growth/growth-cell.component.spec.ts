@@ -29,6 +29,15 @@ describe('GrowthCellComponent (the two numbers a mark rests on)', () => {
     expect(young.tooltip).toMatch(/^Context only\./);
   });
 
+  // The owner asked for less in the tables' cells. "Could add" writes the same figures in whole percent.
+  it('writes the figures in whole percent, and with a tenth where a whole number would reach a bar the figure is under', () => {
+    const c = cell(growth(21, 44.7));
+    expect([c.show(21.1, 10), c.show(44.7, 15), c.show(379.3, 15), c.show(-27.6, 10)]).toEqual(['+21%', '+45%', '+379%', '−28%']);
+    expect([c.show(0.4, 10), c.show(-0.4, 10), c.show(undefined, 10)]).toEqual(['0%', '0%', '—']);
+    expect([c.show(9.6, 10), c.show(14.6, 15), c.show(10, 10), c.show(15.2, 15)]).withContext('just under a bar: not "+10%" without its tick')
+      .toEqual(['+9.6%', '+14.6%', '+10%', '+15%']);
+  });
+
   it('says so when there is nothing to work the growth out from', () => {
     expect(cell().tooltip).toBe('No history of results to work the growth out from.');
   });

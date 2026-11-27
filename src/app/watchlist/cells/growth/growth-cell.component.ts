@@ -17,17 +17,17 @@ import {GROWTH_EPS_PERCENT, GROWTH_REVENUE_PERCENT, GrowthOutlook, MIN_REPORTED_
     <div class="container" [class.untested]="growth && !growth.tested" [matTooltip]="tooltip" matTooltipClass="multiline-tooltip">
       <ng-container *ngIf="growth; else noData">
         <div class="line" [class.pass]="epsPass">
-          <span class="key">Profit</span>{{ format(growth.epsOutlook) }}<mat-icon *ngIf="epsPass" class="check" aria-hidden="false" aria-label="passes">check</mat-icon>
+          <span class="key">Profit</span>{{ show(growth.epsOutlook, epsBar) }}<mat-icon *ngIf="epsPass" class="check" aria-hidden="false" aria-label="passes">check</mat-icon>
         </div>
         <div class="line" [class.pass]="revPass">
-          <span class="key">Sales</span>{{ format(growth.revenueGrowth) }}<mat-icon *ngIf="revPass" class="check" aria-hidden="false" aria-label="passes">check</mat-icon>
+          <span class="key">Sales</span>{{ show(growth.revenueGrowth, salesBar) }}<mat-icon *ngIf="revPass" class="check" aria-hidden="false" aria-label="passes">check</mat-icon>
         </div>
       </ng-container>
       <ng-template #noData><span class="no-data">—</span></ng-template>
     </div>`,
   styles: [`
     /* The two figures stand side by side: one line a cell, so a row of a list is one line tall. */
-    .container { display: flex; gap: 14px; min-width: 112px; white-space: nowrap; font-size: var(--text-meta); color: var(--ink-2); line-height: 1.5; }
+    .container { display: flex; gap: 12px; min-width: 100px; white-space: nowrap; font-size: var(--text-meta); color: var(--ink-2); line-height: 1.5; }
     .key { margin-right: 6px; font-size: var(--text-meta); font-weight: 400; color: var(--ink-3); }
     .line { display: flex; align-items: center; }
     .line.pass { color: var(--gain); font-weight: 600; }
@@ -47,12 +47,21 @@ export class GrowthCellComponent {
     return !!this.growth?.tested && (this.growth.revenueGrowth ?? -Infinity) >= GROWTH_REVENUE_PERCENT;
   }
 
-  format(value?: number): string {
+  readonly epsBar = GROWTH_EPS_PERCENT;
+  readonly salesBar = GROWTH_REVENUE_PERCENT;
+
+  /**
+   * A figure in whole percent, as "Could add" writes it (the owner asked for less in the tables' cells: "+379.3%"
+   * said no more than "+379%"). With a tenth only where the whole number would reach the bar the figure is under
+   * ("+9.6%", not a "+10%" without the tick that +10% gets).
+   */
+  show(value: number | undefined, bar: number): string {
     if (value === undefined) {
       return '—';
     }
-    const fixed = value.toFixed(1);
-    return `${Number(fixed) > 0 ? '+' : ''}${fixed.replace('-', '−')}%`;
+    const whole = Math.round(value);
+    const text = whole >= bar && value < bar ? value.toFixed(1) : String(whole === 0 ? 0 : whole);
+    return `${Number(text) > 0 ? '+' : ''}${text.replace('-', '−')}%`;
   }
 
   get tooltip(): string {

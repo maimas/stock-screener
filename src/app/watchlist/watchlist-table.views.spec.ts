@@ -467,6 +467,26 @@ describe('WatchlistTableComponent: the two views of the one page', () => {
     expect(page.listSort).toEqual({active: 'oneYear', direction: 'asc'});
   });
 
+  // The owner: "I need tables to support sorting by multiple coluns". A click with the Shift key held adds a column.
+  it('orders every list by several columns once one was added in a list, says them in their order, and goes back to by mark', () => {
+    const fixture = create(), page = fixture.componentInstance;
+    const tables = [{sortTo: jasmine.createSpy('sortTo')}, {sortTo: jasmine.createSpy('sortTo')}];
+    (page as unknown as { tables: unknown }).tables = tables;
+    const also = [{active: 'oneYear', direction: 'desc' as const}];
+    page.sortLists({active: 'group', direction: 'asc', further: also});
+    tables.forEach(table => expect(table.sortTo).toHaveBeenCalledOnceWith('group', 'asc', also));
+    expect(page.listSort).toEqual({active: 'group', direction: 'asc'});
+    expect(page.listSortAlso).withContext('a list shown later starts with them').toEqual(also);
+    expect(page.orderSays).toBe('All lists ordered by "Group", then "Past year"');
+    // A column added to the order the lists start with is said too: they no longer stand as they start.
+    page.sortLists({active: 'signal', direction: 'desc', further: [{active: 'volatility', direction: 'desc'}]});
+    expect(page.orderSays).toBe('All lists ordered by "Mark · dropped", then "Swings"');
+    page.orderByMark();
+    expect(page.listSortAlso).toEqual([]);
+    expect(page.orderSays).toBe('');
+    tables.forEach(table => expect(table.sortTo.calls.mostRecent().args).toEqual(['signal', 'desc']));
+  });
+
   // Found by a review of the page: each stock opened from the plan stays open on the watchlist, and they could
   // only be closed one by one.
   describe('the details that are open', () => {

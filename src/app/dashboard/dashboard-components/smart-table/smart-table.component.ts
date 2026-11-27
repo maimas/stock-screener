@@ -7,6 +7,7 @@ import {MatTable, MatTableDataSource} from "@angular/material/table";
 import {MatSort} from "@angular/material/sort";
 import {PipesModule} from "../../../pipes/pipes.module";
 import {NgForOf, NgIf, NgTemplateOutlet} from "@angular/common";
+import {ALSO_ORDER_TIP} from "../../../watchlist/row-order";
 
 export type TableDef = {
   columnName: string;
@@ -26,6 +27,9 @@ export type TableDef = {
   /** With `sticky`: pin only on wide screens, so a phone keeps room for the scrolling columns. */
   stickyWideOnly?: boolean
 }
+
+/** A column the rows follow, and which way. */
+export type SortKey = { active: string, direction: 'asc' | 'desc' };
 
 const TOGGLE_COLUMN = '__toggle';
 const DETAIL_COLUMN = '__detail';
@@ -70,9 +74,21 @@ export class SmartTableComponent implements OnInit, OnChanges, AfterViewInit, On
   /** What the table is, for a screen reader that lists the tables of a page, e.g. the name of the list it shows. */
   @Input()
   public label = '';
-  /** The reader ordered the rows by a column (a click on its heading): which column, and which way. */
+  /**
+   * The columns the rows follow after the first one (which is `defaultSortColumn` until a heading is clicked): for
+   * a table that is shown after the reader ordered the page's other tables by several columns.
+   */
+  @Input()
+  set alsoSortedBy(keys: SortKey[] | undefined) {
+    this.further = (keys ?? []).map(it => ({...it}));
+  }
+
+  /**
+   * The reader ordered the rows (a click on a heading): by which column and which way, and by which further
+   * columns where rows are level in it (a click with the Shift key held adds one).
+   */
   @Output()
-  public sorted = new EventEmitter<{ active: string, direction: 'asc' | 'desc' }>();
+  public sorted = new EventEmitter<{ active: string, direction: 'asc' | 'desc', further: SortKey[] }>();
   /** The reader opened or closed a row's details (its button, or a click on the row). */
   @Output()
   public rowToggled = new EventEmitter<{ row: any, open: boolean }>();
@@ -95,6 +111,13 @@ export class SmartTableComponent implements OnInit, OnChanges, AfterViewInit, On
   rowColumns: string[] = [];
   readonly detailColumns = [DETAIL_COLUMN];
   wide = true;
+
+  /**
+   * The columns the rows follow after the first: the owner asked that tables can be ordered by several columns.
+   * The first key is the one Material's sort holds (a plain click on a heading, as before); a click with the Shift
+   * key held adds a column here, or turns it round when it is a key already. A plain click empties it again.
+   */
+  private further: SortKey[] = [];
 
   private expanded = new Set<string>();
   private media?: MediaQueryList;
@@ -153,12 +176,130 @@ export class SmartTableComponent implements OnInit, OnChanges, AfterViewInit, On
     // Scrolling fires often and changes nothing most of the time: it is listened to outside Angular, which is told
     // only when a side starts or stops being cut.
     this.zone.runOutsideAngular(() => this.scrollBox?.addEventListener('scroll', this.onScroll, {passive: true}));
+    // A click on a heading with the Shift key held is taken on its way down to the heading, before Material's own
+    // sort sees it (which would make the column the only one).
+    const box = this.host.nativeElement;
+    this.zone.runOutsideAngular(() => {
+      box.addEventListener('click', this.onShiftClick, true);
+      box.addEventListener('keydown', this.onShiftKey, true);
+      box.addEventListener('mousedown', this.onShiftDown, true);
+    });
   }
 
   ngOnDestroy(): void {
     this.media?.removeEventListener('change', this.onMedia);
     this.widths?.disconnect();
     this.scrollBox?.removeEventListener('scroll', this.onScroll);
+    const box = this.host.nativeElement;
+    box.removeEventListener('click', this.onShiftClick, true);
+    box.removeEventListener('keydown', this.onShiftKey, true);
+    box.removeEventListener('mousedown', this.onShiftDown, true);
+  }
+
+  /** The column of the heading an event happened in, when the rows can be ordered by it; nothing otherwise. */
+  private sortableAt(target: EventTarget | null): string | undefined {
+    const th = target instanceof Element ? target.closest('th[data-column]') : null;
+    if (!th || th.closest('.table-scroll') !== this.scrollBox) {
+      return undefined;
+    }
+    const column = th.getAttribute('data-column') ?? '';
+    return this.tableDefinition.find(it => it.columnName === column)?.sortValue ? column : undefined;
+  }
+
+  private readonly onShiftClick = (event: MouseEvent) => {
+    const column = event.shiftKey ? this.sortableAt(event.target) : undefined;
+    if (column) {
+      event.stopPropagation();
+      event.preventDefault();
+      this.zone.run(() => this.alsoSortBy(column));
+    }
+  };
+
+  private readonly onShiftKey = (event: KeyboardEvent) => {
+    const column = event.shiftKey && (event.key === 'Enter' || event.key === ' ') ? this.sortableAt(event.target) : undefined;
+    if (column) {
+      event.stopPropagation();
+      event.preventDefault();
+      this.zone.run(() => this.alsoSortBy(column));
+    }
+  };
+
+  /** A click with Shift held would mark the text from the last click to here: not on a heading. */
+  private readonly onShiftDown = (event: MouseEvent) => {
+    if (event.shiftKey && this.sortableAt(event.target)) {
+      event.preventDefault();
+    }
+  };
+
+  /**
+   * A click on a heading with the Shift key held: the column becomes the next key of the order, or is turned
+   * round when it is a key already (the first one too), keeping its place.
+   */
+  private alsoSortBy(column: string): void {
+    const sort = this.sort;
+    if (!sort) {
+      return;
+    }
+    const start = this.tableDefinition.find(it => it.columnName === column)?.sortStart ?? 'desc';
+    if (!sort.active || !sort.direction) {
+      // The rows follow no column yet: this is a first click.
+      sort.sort({id: column, start, disableClear: true});
+      return;
+    }
+    if (sort.active === column) {
+      sort.direction = sort.direction === 'asc' ? 'desc' : 'asc';
+    } else if (this.further.some(it => it.active === column)) {
+      this.further = this.further.map(it => it.active === column ? {active: column, direction: it.direction === 'asc' ? 'desc' : 'asc'} : it);
+    } else {
+      this.further = [...this.further, {active: column, direction: start}];
+    }
+    this.sortAgain();
+    this.sorted.emit({active: sort.active, direction: sort.direction as 'asc' | 'desc', further: this.further.map(it => ({...it}))});
+  }
+
+  /** Orders the rows again by the keys as they stand now, without telling the page. */
+  private sortAgain(): void {
+    if (!this.sort) {
+      return;
+    }
+    this.following = true;
+    this.sort.sortChange.emit({active: this.sort.active, direction: this.sort.direction});
+    this.following = false;
+    this.changeDetector.markForCheck();
+  }
+
+  /** The small number beside a heading's arrow: its place among the keys, once there are two or more. */
+  placeOf(column: string): number | undefined {
+    const first = this.firstKey;
+    if (this.further.length === 0 || !first) {
+      return undefined;
+    }
+    if (first === column) {
+      return 1;
+    }
+    const at = this.further.findIndex(it => it.active === column);
+    return at < 0 ? undefined : at + 2;
+  }
+
+  /** Which way a key after the first goes; nothing for the first key (Material draws that one) or for no key. */
+  alsoWay(column: string): 'asc' | 'desc' | undefined {
+    return this.firstKey === column ? undefined : this.further.find(it => it.active === column)?.direction;
+  }
+
+  /** The column the rows follow first: what Material's sort holds, and before that is there, what the table starts with. */
+  private get firstKey(): string {
+    return this.sort?.active || this.defaultSortColumn;
+  }
+
+  /** For a screen reader, on the heading of a key after the first: its place and its way. */
+  alsoWords(column: string): string {
+    const way = this.alsoWay(column);
+    return way ? `, order key ${this.placeOf(column)}, ${way === 'asc' ? 'ascending' : 'descending'}` : '';
+  }
+
+  /** What a heading says where the pointer rests on it: what its column means, and how to add it to the order. */
+  tipOf(def: TableDef): string {
+    return def.sortValue ? [def.columnTooltip, ALSO_ORDER_TIP].filter(Boolean).join('\n\n') : def.columnTooltip ?? '';
   }
 
   /** Works out again whether columns are out of sight on either side, and says so only when that changed. */
@@ -271,24 +412,31 @@ export class SmartTableComponent implements OnInit, OnChanges, AfterViewInit, On
     this.rowColumns = this.detailTemplate ? [...this.tableColumns, TOGGLE_COLUMN] : this.tableColumns;
   }
 
-  /** A click on a heading reordered the rows: said to the page, unless the order came from the page (`sortTo`). */
+  /**
+   * A plain click on a heading reordered the rows by that column alone: said to the page, unless the order came
+   * from the page (`sortTo`) or from a click with Shift held (`alsoSortBy`, which says it itself).
+   */
   onSort(change: { active: string, direction: string }): void {
     if (!this.following && (change.direction === 'asc' || change.direction === 'desc')) {
-      this.sorted.emit({active: change.active, direction: change.direction});
+      if (this.further.length > 0) {
+        // Material ordered the rows with the further keys still there: once more, by the one column.
+        this.further = [];
+        this.sortAgain();
+      }
+      this.sorted.emit({active: change.active, direction: change.direction, further: []});
     }
   }
 
-  /** Orders the rows from outside, as a click on that heading would: the page's lists are ordered together. */
-  sortTo(active: string, direction: 'asc' | 'desc'): void {
-    if (!this.sort || (this.sort.active === active && this.sort.direction === direction)) {
+  /** Orders the rows from outside, as clicks on those headings would: the page's lists are ordered together. */
+  sortTo(active: string, direction: 'asc' | 'desc', further: SortKey[] = []): void {
+    const same = this.further.length === further.length && this.further.every((it, at) => it.active === further[at].active && it.direction === further[at].direction);
+    if (!this.sort || (this.sort.active === active && this.sort.direction === direction && same)) {
       return;
     }
     this.sort.active = active;
     this.sort.direction = direction;
-    this.following = true;
-    this.sort.sortChange.emit({active, direction});
-    this.following = false;
-    this.changeDetector.markForCheck();
+    this.further = further.filter(it => it.active !== active).map(it => ({...it}));
+    this.sortAgain();
   }
 
   private following = false;
@@ -304,8 +452,38 @@ export class SmartTableComponent implements OnInit, OnChanges, AfterViewInit, On
       // still works at runtime and keeps missing values grouped together.
       return (value ?? null) as any;
     };
+    // By the first key, then by each further one where rows are level. Each key compares as Material's own sort
+    // does (a missing value before every other going up, after them going down), so one key orders as before.
+    this.dataSource.sortData = (data: any[], sort: MatSort) => {
+      const keys = [{active: sort.active, direction: sort.direction}, ...this.further].filter(it => it.active && it.direction);
+      if (keys.length === 0) {
+        return data;
+      }
+      const shown = this.dataSource.sortingDataAccessor;
+      return data.sort((a, b) => {
+        for (const key of keys) {
+          const result = compareAsMaterial(shown(a, key.active), shown(b, key.active));
+          if (result !== 0) {
+            return key.direction === 'asc' ? result : -result;
+          }
+        }
+        return 0;
+      });
+    };
     if (this.sort) {
       this.dataSource.sort = this.sort;
     }
   }
+}
+
+/** Two values of a column as Material's table compares them: numbers as numbers, a missing value under every other. */
+function compareAsMaterial(a: any, b: any): number {
+  if (typeof a !== typeof b) {
+    a = typeof a === 'number' ? a + '' : a;
+    b = typeof b === 'number' ? b + '' : b;
+  }
+  if (a != null && b != null) {
+    return a > b ? 1 : a < b ? -1 : 0;
+  }
+  return a != null ? 1 : b != null ? -1 : 0;
 }

@@ -3,6 +3,7 @@ import {NgForOf, NgIf} from "@angular/common";
 import {MatTooltipModule} from "@angular/material/tooltip";
 import {Stock} from "../../api/microsoft-money.service";
 import {MoreRestDirective} from "../more/more-rest.directive";
+import {FigTextComponent} from "../fig-text/fig-text.component";
 import {Business, BUSINESS_HOW_TO_READ, BUSINESS_NOTE, businessOf, BusinessRow, hasBusiness, similarLine} from "./business";
 
 /**
@@ -15,7 +16,7 @@ import {Business, BUSINESS_HOW_TO_READ, BUSINESS_NOTE, businessOf, BusinessRow, 
 @Component({
   selector: "app-business-facts",
   standalone: true,
-  imports: [NgIf, NgForOf, MatTooltipModule, MoreRestDirective],
+  imports: [NgIf, NgForOf, MatTooltipModule, MoreRestDirective, FigTextComponent],
   templateUrl: "./business-facts.component.html",
   styleUrls: ["./business-facts.component.scss"],
 })

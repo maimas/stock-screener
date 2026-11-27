@@ -262,9 +262,11 @@ describe('SignalDetailComponent: what is about this stock, what is about you, an
     // that are the same under every stock, set quiet with them. It is about this stock, so it stands with it.
     expect(groups).toEqual([
       ['about-stock', ['Why DIP BUY', 'Risk of this stock', 'Context, not part of the mark']],
-      // The company itself: why its price dropped, then the AI's own view of it (not tested, and headed so).
-      ['dropped', ['Why it dropped', 'AI view · not tested']],
+      ['dropped', ['Why it dropped']],
       ['your-stake', ['Where it fits', 'What you own of it']],
+      // The AI's own view (not tested, and headed so) in a column of its own: the owner, 2026-11-26, "AI view needs
+      // to be in a new column so that it's cleaner UX".
+      ['ai-view', ['AI view · not tested']],
       ['the-rule', ['What the tests say', 'After you buy']],
     ]);
     const risk = Array.from(el.querySelectorAll('.about-stock section')).find(it => it.querySelector('h4')?.textContent === 'Risk of this stock')!;

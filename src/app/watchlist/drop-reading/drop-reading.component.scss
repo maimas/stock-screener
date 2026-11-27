@@ -14,9 +14,11 @@ ul {
   padding-left: 18px;
 }
 
+// The pages it read are where to read further, not what to read first: a size under the sentence above them.
 li {
   margin: 3px 0;
   max-width: 70ch;
+  font-size: var(--text-data);
 }
 
 a {

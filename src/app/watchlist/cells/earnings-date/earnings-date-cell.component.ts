@@ -29,24 +29,38 @@ export class EarningsDateCellComponent {
     return !this.date && !!this.reported?.date && this.reported.daysAgo !== undefined;
   }
 
+  /**
+   * The day of the next report, or of the last one when the next is not announced. The owner asked for less in the
+   * tables' cells ("for example the next results column"): what the day is is said in words on the hover.
+   */
   get dateText(): string {
     if (this.date) {
       return this.format(this.date);
     }
     if (this.showReported) {
-      return `Reported ${this.format(this.reported!.date!)}`;
+      return this.format(this.reported!.date!);
     }
     return '—';
   }
 
+  /**
+   * Beside the day: how soon a report within two weeks is (a report that is weeks away is its day alone; the count
+   * is on the hover), or how the last report compared with what analysts expected, in whole percent. What to do
+   * about a near report ("look at the mark again after it") is on the hover and on the mark's own flag.
+   */
   get subText(): string {
     if (this.date && this.days !== undefined) {
-      const when = this.days === 0 ? 'today' : this.days === 1 ? 'tomorrow' : `in ${this.days} days`;
-      return this.isSoon ? `${when} · re-check after` : when;
+      if (!this.isSoon) {
+        return '';
+      }
+      return this.days === 0 ? 'today' : this.days === 1 ? 'tomorrow' : `in ${this.days} days`;
     }
-    if (this.showReported && this.reported!.surprisePercent !== undefined) {
+    if (this.showReported) {
       const s = this.reported!.surprisePercent;
-      return s >= 0 ? `beat by ${s.toFixed(1)}%` : `missed by ${Math.abs(s).toFixed(1)}%`;
+      if (s === undefined) {
+        return 'reported';
+      }
+      return s >= 0 ? `beat ${Math.round(s)}%` : `missed ${Math.round(Math.abs(s))}%`;
     }
     return '';
   }
@@ -58,8 +72,9 @@ export class EarningsDateCellComponent {
   get tooltip(): string {
     if (this.date) {
       const full = this.date.toLocaleDateString(undefined, {weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'});
-      const warning = this.isSoon ? '\nPrices often swing sharply around a report.' : '';
-      return `Next quarterly results expected ${full}.${warning}\n` +
+      const days = this.days === undefined ? '' : this.days === 0 ? ', today' : this.days === 1 ? ', tomorrow' : `, in ${this.days} days`;
+      const warning = this.isSoon ? '\nPrices often swing sharply around a report: look at the mark again after it.' : '';
+      return `Next quarterly results expected ${full}${days}.${warning}\n` +
         'The report changes the growth numbers, so the mark may change afterwards.';
     }
     if (this.showReported) {

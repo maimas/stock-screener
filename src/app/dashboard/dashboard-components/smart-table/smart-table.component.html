@@ -7,11 +7,16 @@
                 [matColumnDef]="itemDef.columnName" [sticky]="isSticky(itemDef)">
     <!-- What a column means is shown under the pointer and also when its heading is reached with the Tab key:
          the heading cell holds the explanation, and focus anywhere inside the cell shows it. -->
+    <!-- The rows can follow several columns: a click with the Shift key held adds a column as the next key. Its
+         heading then shows an arrow of its own (Material draws one for the first key only), and once there are two
+         keys each shows its place as a small number. -->
     <th mat-header-cell scope="col" *matHeaderCellDef mat-sort-header [disabled]="!itemDef.sortValue"
         [start]="itemDef.sortStart ?? 'desc'" [class.starts-up]="itemDef.sortStart === 'asc'"
-        [matTooltip]="itemDef.columnTooltip ?? ''" matTooltipClass="multiline-tooltip" #help="matTooltip"
+        [attr.data-column]="itemDef.columnName"
+        [class.also-up]="alsoWay(itemDef.columnName) === 'asc'" [class.also-down]="alsoWay(itemDef.columnName) === 'desc'"
+        [matTooltip]="tipOf(itemDef)" matTooltipClass="multiline-tooltip" #help="matTooltip"
         (focusin)="help.show()" (focusout)="help.hide()">
-      <span [class.has-help]="!!itemDef.columnTooltip">{{ itemDef.columnDisplayName }}</span>
+      <span [class.has-help]="!!itemDef.columnTooltip">{{ itemDef.columnDisplayName }}</span><span class="sort-place" *ngIf="placeOf(itemDef.columnName) as place" aria-hidden="true">{{ place }}</span><span class="visually-hidden" *ngIf="alsoWords(itemDef.columnName) as words">{{ words }}</span>
     </th>
     <td mat-cell *matCellDef="let element">
       <ng-container *ngTemplateOutlet="itemDef.template; context: {templateData: itemDef.templateData(element)}">

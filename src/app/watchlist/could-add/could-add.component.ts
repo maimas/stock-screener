@@ -18,7 +18,8 @@ import {
 import {TestedCases} from "../sizing";
 import {SaysComponent} from "../says/says.component";
 import {byGroup, GROUP_HELP, groupBySymbol, groupTip, NO_GROUPS, tickedTogether, TIED_NOTE, TiedGroup, TiedGroups} from "../tied-groups";
-import {ariaSort, inOrder, numberIn, orderAfterClick, RowOrder} from "../row-order";
+import {ariaSortOf, directionIn, inOrders, numberIn, ordersAfterClick, RowOrder} from "../row-order";
+import {OrderPlaceComponent} from "../order-place/order-place.component";
 import {AboutComponent} from "../more/about.component";
 import {FACT_COLUMNS, FACT_HELP, FACTS_NOTE, StockFacts} from "../stock-facts";
 import {CASES_LIMIT} from "../evidence";
@@ -125,7 +126,7 @@ const FROM_THE_TOP = new Set<AddColumn>(['symbol', 'group', 'sector', 'moves']);
   selector: "app-could-add",
   standalone: true,
   imports: [NgIf, NgForOf, NgTemplateOutlet, MatCardModule, MatTooltipModule, SaysComponent, PurchaseFormComponent,
-    PurchasesFormComponent, AboutComponent, MatIconModule, CompareTickedComponent],
+    PurchasesFormComponent, AboutComponent, MatIconModule, CompareTickedComponent, OrderPlaceComponent],
   templateUrl: "./could-add.component.html",
   styleUrls: ["./could-add.component.scss"]
 })
@@ -211,8 +212,17 @@ export class CouldAddComponent implements OnChanges {
    * page orders nothing by itself and ranks no stock: an order is the reader's own view (the note under the table
    * says so).
    */
-  order?: RowOrder<AddColumn>;
-  private orderedRows?: { from: Row[], tied: TiedGroups, order: RowOrder<AddColumn>, cells: unknown, rows: Row[] }[];
+  get order(): RowOrder<AddColumn> | undefined {
+    return this.orders[0];
+  }
+
+  /**
+   * The columns the rows follow, the first deciding first. One after a plain click on a heading; a click with the
+   * Shift key held adds a column as the next key (the owner: "I need tables to support sorting by multiple
+   * coluns"). Empty until a heading is clicked.
+   */
+  orders: RowOrder<AddColumn>[] = [];
+  private orderedRows?: { from: Row[], tied: TiedGroups, orders: RowOrder<AddColumn>[], cells: unknown, rows: Row[] }[];
   /** Under the table: what the "Group" letters are, and that an order by a column is the reader's own view. */
   readonly groupNote = TIED_NOTE;
   readonly orderNote = ORDER_NOTE;
@@ -230,31 +240,46 @@ export class CouldAddComponent implements OnChanges {
     return !this.order || !example.symbol || first === example.symbol ? example.title : readingTitleOf(example.symbol);
   }
 
-  /** A click on a heading: the rows follow that column, and a second click turns them round. */
-  sortBy(column: AddColumn): void {
-    this.order = orderAfterClick(this.order, column, FROM_THE_TOP.has(column));
+  /**
+   * A click on a heading: the rows follow that column, and a second click turns them round. With the Shift key
+   * held the column is added to the order instead: rows level in the columns before it follow this one.
+   */
+  sortBy(column: AddColumn, event?: { shiftKey?: boolean }): void {
+    this.orders = ordersAfterClick(this.orders, column, FROM_THE_TOP.has(column), !!event?.shiftKey);
     // The ticked stocks stand side by side in the order of the rows.
     this.compare();
   }
 
+  /** For a screen reader: the way of the first column the rows follow, on its heading alone. */
   sortedAs(column: AddColumn): 'ascending' | 'descending' | null {
-    return ariaSort(this.order, column);
+    return ariaSortOf(this.orders, column);
+  }
+
+  /** For the heading's arrow: which way the column goes in the order, the first key or a later one; null for no key. */
+  wayOf(column: AddColumn): 'asc' | 'desc' | null {
+    return directionIn(this.orders, column) ?? null;
   }
 
   /** A part of the table in the order it is shown: as given (A to Z), or by the column that was clicked. */
   ordered(rows: Row[]): Row[] {
-    const order = this.order;
-    if (!order) {
+    const orders = this.orders;
+    if (orders.length === 0) {
       return rows;
     }
-    const kept = (this.orderedRows ?? []).find(it => it.from === rows && it.tied === this.groups && it.order === order && it.cells === this.cells);
+    const kept = (this.orderedRows ?? []).find(it => it.from === rows && it.tied === this.groups && it.orders === orders && it.cells === this.cells);
     if (kept) {
       return kept.rows;
     }
+    // "Group" alone keeps its own order (the stocks in no group go to the top when it is turned round). As one key
+    // among several, a stock in no group has nothing in that column and comes last in it, as in every other column.
+    const groups = orders.length > 1 && orders.some(it => it.column === 'group') ? groupBySymbol(this.groups) : undefined;
     const made = {
-      from: rows, tied: this.groups, order, cells: this.cells as unknown,
-      rows: order.column === 'group' ? byGroup(rows, row => row.symbol, this.groups, order.direction)
-        : inOrder(rows, row => this.keyOf(row, order.column), order.direction, row => row.symbol),
+      from: rows, tied: this.groups, orders, cells: this.cells as unknown,
+      rows: orders.length === 1 && orders[0].column === 'group' ? byGroup(rows, row => row.symbol, this.groups, orders[0].direction)
+        : inOrders(rows, orders.map(order => ({
+          keyOf: order.column === 'group' ? (row: Row) => groups?.get(row.symbol)?.index : (row: Row) => this.keyOf(row, order.column),
+          direction: order.direction,
+        })), row => row.symbol),
     };
     this.orderedRows = [...(this.orderedRows ?? []).filter(it => it.from !== rows).slice(-1), made];
     return made.rows;

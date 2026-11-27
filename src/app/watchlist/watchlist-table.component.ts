@@ -4,7 +4,7 @@ import {
   ViewChildren
 } from "@angular/core";
 import {MatTableDataSource} from "@angular/material/table";
-import {SmartTableComponent, TableDef} from "../dashboard/dashboard-components/smart-table/smart-table.component";
+import {SmartTableComponent, TableDef, SortKey} from "../dashboard/dashboard-components/smart-table/smart-table.component";
 import {PriceCellComponent} from "./cells/price/price-cell.component";
 import {PercentChangeCellComponent} from "./cells/percent-change/percent-change-cell.component";
 import {PriceRangeCellComponent} from "./cells/price-range/price-range-cell.component";
@@ -780,6 +780,11 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
    * ("which fell furthest this year?") had to be asked list by list.
    */
   listSort: { active: string, direction: 'asc' | 'desc' } = {active: 'signal', direction: 'desc'};
+  /**
+   * The columns the lists follow after that one, where rows are level in it: added with a click on a heading while
+   * the Shift key is held (the owner: "I need tables to support sorting by multiple coluns"). Empty until then.
+   */
+  listSortAlso: SortKey[] = [];
 
   /**
    * Said beside "Your lists" once the reader has ordered them: a click on a heading in one list orders every list,
@@ -788,11 +793,12 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
    */
   get orderSays(): string {
     const {active, direction} = this.listSort;
-    if (active === 'signal' && direction === 'desc') {
+    if (active === 'signal' && direction === 'desc' && this.listSortAlso.length === 0) {
       return '';
     }
-    const name = this.tableDefinition.find(it => it.columnName === active)?.columnDisplayName ?? '';
-    return name ? `All lists ordered by "${name}"` : '';
+    const nameOf = (column: string) => this.tableDefinition.find(it => it.columnName === column)?.columnDisplayName ?? '';
+    const names = [active, ...this.listSortAlso.map(it => it.active)].map(nameOf).filter(Boolean).map(name => `"${name}"`);
+    return names.length > 0 ? `All lists ordered by ${names.join(', then ')}` : '';
   }
 
   /** Back to how the lists start: by mark. */
@@ -800,10 +806,15 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
     this.sortLists({active: 'signal', direction: 'desc'});
   }
 
-  /** A heading was clicked in one list: the other lists follow, and a list shown later starts the same way. */
-  sortLists(order: { active: string, direction: 'asc' | 'desc' }): void {
-    this.listSort = order;
-    this.listTables.forEach(table => table.sortTo(order.active, order.direction));
+  /**
+   * A heading was clicked in one list: the other lists follow, and a list shown later starts the same way. With
+   * the Shift key held the click added a column to the order (`further`): the lists follow all of them.
+   */
+  sortLists(order: { active: string, direction: 'asc' | 'desc', further?: SortKey[] }): void {
+    const also = order.further ?? [];
+    this.listSort = {active: order.active, direction: order.direction};
+    this.listSortAlso = also;
+    this.listTables.forEach(table => also.length > 0 ? table.sortTo(order.active, order.direction, also) : table.sortTo(order.active, order.direction));
   }
 
   /** How many stocks have their details open, over all the lists. */
@@ -1752,10 +1763,10 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
       {
         columnName: 'earnings',
         columnDisplayName: 'Next results',
-        columnTooltip: 'When the company is expected to report its next quarterly results (its "earnings"). Orange = within ' +
-          '2 weeks: prices often swing sharply on the report, and it changes the growth numbers, so check the mark again ' +
-          'afterwards. If the company has just reported, shows that date and whether its profit per share beat or missed ' +
-          'what analysts expected.',
+        columnTooltip: 'When the company is expected to report its next quarterly results (its "earnings"). Orange, with how ' +
+          'soon, = within 2 weeks: prices often swing sharply on the report, and it changes the growth numbers, so check the ' +
+          'mark again afterwards. If the company has just reported and the next date is not announced, shows the day it ' +
+          'reported and whether its profit per share beat or missed what analysts expected ("beat 9%").',
         template: this.earningsDateCellTemplate,
         templateData: (it: Stock) => ({date: nextEarningsDate(it), days: daysUntilEarnings(it), reported: lastEarnings(it)}),
         sortValue: (it: Stock) => daysUntilEarnings(it),

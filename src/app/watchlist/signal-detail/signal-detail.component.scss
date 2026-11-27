@@ -101,9 +101,59 @@
   }
 
   // Two columns: what the mark rests on, its risk and the business down the left; on the right the reader's
-  // stake and, under it, why the price dropped with the AI's view. The stake of a stock that is not held is a
+  // stake and, under it, why the price dropped, then the AI's view. The stake of a stock that is not held is a
   // line or two, and with both of the tall groups down the left the details were 868px beside an empty half;
   // this way the two columns are near each other in height (for a stock that is held they are as they were).
+  .about-stock {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+  }
+
+  .your-stake {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .dropped,
+  .sections:has(> .your-stake:empty) .dropped {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .ai-view {
+    grid-column: 2;
+    grid-row: 3;
+  }
+
+  // (Without a stake to show the first row of the right half is empty and takes no room: why it dropped then
+  // starts at the top, beside the stock.)
+  .sections {
+    grid-template-rows: auto auto 1fr;
+  }
+
+  // Opened, the rule's two parts stand side by side.
+  .rule-parts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 48px;
+    align-items: start;
+  }
+}
+
+// From 1280px: three columns of 380px or more, a column a subject. In a narrower list (one of two side by side
+// on a wide window is 1,116px) three columns were 280px each, a few words a line, and the buttons of "What you
+// own of it" wrapped. The stock; the reader's stake over why it dropped (as in two columns); the AI's view in a
+// column of its own (the owner, 2026-11-26: "AI view needs to be in a new column so that it's cleaner UX"). With
+// the stake over the AI's view instead, the details of a held stock were 741px with the middle column half empty.
+@container (min-width: 1280px) {
+  .sections {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .sections {
+    grid-template-rows: auto 1fr;
+  }
+
   .about-stock {
     grid-column: 1;
     grid-row: 1 / span 2;
@@ -120,44 +170,9 @@
     grid-row: 2;
   }
 
-  // (Without a stake to show the first row of the right half is empty and takes no room: why it dropped then
-  // starts at the top, beside the stock.)
-  .sections {
-    grid-template-rows: auto 1fr;
-  }
-
-  // Opened, the rule's two parts stand side by side.
-  .rule-parts {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 48px;
-    align-items: start;
-  }
-}
-
-// From 1280px: three columns of 380px or more, a column a subject. In a narrower list (one of two side by side
-// on a wide window is 1,116px) three columns were 280px each, a few words a line, and the buttons of "What you
-// own of it" wrapped. The three tracks stay under a stock without a stake to show: its two columns then stand
-// where they stand under every other stock, as wide as there, and not stretched over the width.
-@container (min-width: 1280px) {
-  .sections {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .sections {
-    grid-template-rows: none;
-  }
-
-  .about-stock,
-  .dropped,
-  .sections:has(> .your-stake:empty) .dropped {
-    grid-column: auto;
-    grid-row: auto;
-  }
-
-  .your-stake {
-    grid-column: auto;
-    grid-row: auto;
+  .ai-view {
+    grid-column: 3;
+    grid-row: 1 / span 2;
   }
 }
 
@@ -192,14 +207,30 @@ section {
   margin-left: 10px;
 }
 
-// A section's heading is what the eye jumps between in three columns of sentences: it is set in the full ink and
-// in bold, never fainter than the text under it, with more room above it than below.
+// A section's heading is what the eye jumps between in three columns: in the full ink and in bold, the size of the
+// text under it and never smaller than the names of its rows (it was 13px over 14px bold names, and lost to them),
+// with more room above it than below. The owner, 2026-11-26: "clean, clear, easy to read".
 h4 {
-  margin: 0 0 4px;
-  font-size: var(--text-data);
+  margin: 0 0 6px;
+  font-size: var(--text-body);
   font-weight: 600;
   line-height: 1.4;
   color: var(--ink);
+}
+
+// The rows of every section of the details (the page's `dl.fact-rows`, also in the parts built elsewhere: the
+// business, the AI's view, what you own of it): the name of a row steps back, a size smaller and in the softer ink,
+// so that what it comes to is read first; the figures in it are strong (app-fig-text). As the page's tested strip
+// (`dl.facts`) sets a quiet name beside a strong figure. The owner: "important info needs to catch the eye".
+:host ::ng-deep dl.fact-rows {
+  align-items: baseline;
+  row-gap: 4px;
+}
+
+:host ::ng-deep dl.fact-rows dt {
+  font-size: var(--text-data);
+  font-weight: 500;
+  color: var(--ink-2);
 }
 
 p {
@@ -209,6 +240,11 @@ p {
 
 .lead {
   font-weight: 500;
+}
+
+// The fall in one line, its figure strong: the first thing under "Why it dropped".
+.fall {
+  margin-bottom: 8px;
 }
 
 // What the mark rests on: a row a fact. The name of the fact stands first, in bold, in a column of its own, so
@@ -326,6 +362,12 @@ a:hover {
 .disclaimer {
   color: var(--ink-3);
   font-size: var(--text-meta);
+}
+
+// The headlines are where to read further, not what to read first: a size under the sentences, so the columns'
+// facts are not outshouted by three lines of underlined blue.
+.dropped li {
+  font-size: var(--text-data);
 }
 
 .hint {

@@ -82,6 +82,18 @@ describe('DashboardComponent (the one page behind both addresses, /portfolio and
     expect(navigate.calls.mostRecent().args).toEqual([['/', 'watchlist'], {queryParams: {}, replaceUrl: true}]);
   });
 
+  // Found by a review: a stock opened from the plan, closed, did not go back to the plan. Closing it takes the stock
+  // out of the address and asks for the portfolio's view at once; the address of the Watchlist was written last.
+  it('goes back to the portfolio\'s view when a stock is closed and the page asks for it in the same moment', async () => {
+    view.next(convertToParamMap({view: 'watchlist'}));
+    const fixture = create();
+    pageOf(fixture).stockShown.emit(undefined);
+    pageOf(fixture).go.emit('portfolio');
+    await settled();
+    expect(navigate.calls.mostRecent().args).toEqual([['/', 'portfolio']]);
+    expect(navigate.calls.allArgs().filter(args => args[0][1] === 'watchlist')).withContext('no address of the Watchlist after it').toEqual([]);
+  });
+
   it('leaves the address of the portfolio\'s view as it is', async () => {
     const fixture = create();
     pageOf(fixture).stockShown.emit('ACME');

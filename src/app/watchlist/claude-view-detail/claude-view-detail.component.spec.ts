@@ -48,6 +48,9 @@ describe("ClaudeViewDetailComponent (the AI's view of a stock, in its details)",
 
   const el = (): HTMLElement => fixture.nativeElement;
   const say = (selector: string): string => (el().querySelector(selector)?.textContent ?? '').replace(/\s+/g, ' ').trim();
+  /** The part's rows, as [name, what it says]. */
+  const rows = (): string[][] => Array.from(el().querySelectorAll('dl.ai-rows > div')).map(row =>
+    [row.querySelector('dt'), row.querySelector('dd')].map(it => (it?.textContent ?? '').replace(/\s+/g, ' ').trim()));
   const buttons = (): string[] => Array.from(el().querySelectorAll('button')).map(it => it.textContent!.trim());
   const press = (label: string): void => {
     Array.from(el().querySelectorAll('button')).find(it => it.textContent!.trim() === label)!.click();
@@ -64,14 +67,15 @@ describe("ClaudeViewDetailComponent (the AI's view of a stock, in its details)",
     create();
     expect(buttons()).toEqual([ASK_ONE]);
     expect(ASK_ONE).toBe('Ask AI about this stock');
-    expect(el().querySelector('.said')).toBeNull();
+    expect(el().querySelector('dl.ai-rows')).toBeNull();
   });
 
-  it('shows what the AI said: its word and short reason, its sentence, when it was asked and on how many pages it rests', () => {
+  // The owner, 2026-11-26: "verdict and details need to be separate but clear at the same time along with the
+  // preference between few as comparison". A row each, named, as the details' other facts are.
+  it('shows what the AI said as rows: its verdict, then why, then when it was asked and on how many pages it rests', () => {
     create({known: {views: {ABCD: {'2026-11-18': withSources}}}});
-    expect(say('.said')).toBe('Wait · Results due next week');
-    expect(say('.why')).toBe('It reports its results next week.');
-    expect(say('.by .line')).toBe('Asked Nov 18 · not tested · 2 sources');
+    expect(rows()).toEqual([['Verdict', 'Wait'], ['Why', 'It reports its results next week.']]);
+    expect(say('.by .line')).toBe('Asked Nov 18 · 2 sources');
     expect(buttons()).withContext('it can be asked again').toEqual([ASK_ONE_AGAIN]);
   });
 
@@ -88,7 +92,7 @@ describe("ClaudeViewDetailComponent (the AI's view of a stock, in its details)",
   it('has no list of pages for a view that rests on the figures alone', () => {
     create({known: {views: {ABCD: {'2026-11-18': keptView('AVOID')}}}});
     expect(el().querySelector('ul')).toBeNull();
-    expect(say('.by .line')).toBe('Asked Nov 18 · not tested');
+    expect(say('.by .line')).toBe('Asked Nov 18');
   });
 
   it('says which stock of its group the AI would take first, and why', () => {
@@ -97,8 +101,19 @@ describe("ClaudeViewDetailComponent (the AI's view of a stock, in its details)",
       views: {ABCD: {'2026-11-18': keptView('WAIT')}},
       picks: {'2026-11-18': {A: {first: 'EFGH', why: 'It makes a profit and swings less.', members: ['ABCD', 'EFGH', 'IJKL']}}},
     }});
-    expect(say('.pick')).toBe('Of the 3 stocks of group A that the AI compared (ABCD, EFGH, IJKL), it would take EFGH first: ' +
-      'It makes a profit and swings less. Compared Nov 18.');
+    expect(rows()[2][0]).toBe('Group A');
+    expect(say('.pick .first')).toBe('★ EFGH first, ahead of this one and IJKL');
+    expect(say('.pick .pick-why')).toBe('It makes a profit and swings less. Compared Nov 18.');
+  });
+
+  it('says when this stock is the one the AI would take first, and which it was set against', () => {
+    views.setTied(tied(['ABCD', 'EFGH']));
+    create({known: {
+      views: {ABCD: {'2026-11-18': keptView('BUY SOME')}},
+      picks: {'2026-11-18': {A: {first: 'ABCD', why: 'It makes a profit.', members: ['ABCD', 'EFGH']}}},
+    }});
+    expect(rows()).toEqual([['Verdict', 'Buy some'], ['Why', 'It reports its results next week.'],
+      ['Group A', '★ This one first, ahead of EFGH It makes a profit. Compared Nov 18.']]);
   });
 
   it('asks about this one stock, and sends the group it is in with the stocks of that group in the reader\'s lists', () => {
@@ -130,7 +145,7 @@ describe("ClaudeViewDetailComponent (the AI's view of a stock, in its details)",
     views.knows({views: {ABCD: {'2026-11-20': keptView('WAIT')}}, queue: {symbols: ['ABCD'], done: ['ABCD'], failed: {}, comparing: ['A']}});
     fixture.detectChanges();
     expect(say('.busy')).toBe('Comparing group A…');
-    expect(say('.said')).withContext('its own view is there already').toBe('Wait · Results due next week');
+    expect(say('.verdict dd')).withContext('its own view is there already').toBe('Wait');
     views.knows({views: {ABCD: {'2026-11-20': keptView('WAIT')}}});
     fixture.detectChanges();
     expect(el().querySelector('.busy')).toBeNull();
@@ -174,7 +189,7 @@ describe("ClaudeViewDetailComponent (the AI's view of a stock, in its details)",
     create({installed: false});
     expect(el().querySelector('section')).toBeNull();
     create({installed: false, known: {views: {ABCD: {'2026-11-18': keptView('WAIT')}}}});
-    expect(say('.said')).toBe('Wait · Results due next week');
+    expect(say('.verdict dd')).toBe('Wait');
     expect(buttons()).toEqual([]);
   });
 
@@ -225,14 +240,14 @@ describe("ClaudeViewDetailComponent (the AI's view of a stock, in its details)",
     fixture = TestBed.createComponent(ClaudeViewDetailComponent);
     fixture.componentRef.setInput('stock', stock('ABCD'));
     fixture.detectChanges();
-    expect(say('.pick')).toContain('it would take EFGH first');
+    expect(say('.pick .first')).toBe('★ EFGH first, ahead of this one');
   });
 
   it('follows the stock whose details it is in', () => {
-    create({known: {views: {ABCD: {'2026-11-18': keptView('WAIT')}, EFGH: {'2026-11-18': keptView('AVOID', 'Sales shrinking, heavy debt')}}}});
+    create({known: {views: {ABCD: {'2026-11-18': keptView('WAIT')}, EFGH: {'2026-11-18': keptView('AVOID', 'Sales shrinking, heavy debt', 'Its sales shrink and it owes a lot.')}}}});
     fixture.componentRef.setInput('stock', stock('EFGH'));
     fixture.detectChanges();
-    expect(say('.said')).toBe('Avoid · Sales shrinking, heavy debt');
+    expect(rows()).toEqual([['Verdict', 'Avoid'], ['Why', 'Its sales shrink and it owes a lot.']]);
   });
 });
 
@@ -270,28 +285,43 @@ describe("ClaudeViewDetailComponent: its signal in sight, its sentences behind t
   const say = (selector: string): string => (el().querySelector(selector)?.textContent ?? '').replace(/\s+/g, ' ').trim();
   const hidden = (selector: string): boolean => el().querySelector<HTMLElement>(selector)!.hidden;
 
-  it('shows the word with its short reason, the comparison in one line, and the line of when it was asked', () => {
+  // The owner, 2026-11-26: "I want the AI details to be added in to the stock details after the AI verdict", then
+  // "verdict and details need to be separate but clear at the same time along with the preference between few as
+  // comparison". The verdict, its reason and the comparison with its reason are in sight, a named row each.
+  it('shows the verdict, why, the comparison with its reason, and the line of when it was asked, without the details\' control', () => {
     create();
-    expect(say('.said')).toBe('Wait · Results due next week');
-    expect(say('.pick-line')).toBe('Of ABCD, EFGH and IJKL the AI would take EFGH first.');
-    expect(say('.by .line')).toBe('Asked Nov 18 · not tested · 1 source');
-    expect([hidden('.said'), hidden('.pick-line'), hidden('.by')]).toEqual([false, false, false]);
+    expect(say('.verdict dd')).toBe('Wait');
+    expect(say('.why dd')).toBe('It reports its results next week.');
+    expect(say('.pick dt')).toBe('Group A');
+    expect(say('.pick .first')).toBe('★ EFGH first, ahead of this one and IJKL');
+    expect(say('.pick .pick-why')).toBe('It makes a profit and swings less. Compared Nov 18.');
+    expect(say('.by .line')).toBe('Asked Nov 18 · 1 source');
+    expect([hidden('.verdict'), hidden('.why'), hidden('.pick'), hidden('.by')]).toEqual([false, false, false, false]);
   });
 
-  it('keeps the sentence, the reason of the comparison and the pages for the details\' control', () => {
+  // The owner, 2026-11-26: "make it cleaner". The short reason is in the row the details open under, and the title
+  // already says "not tested": neither is said a second time here.
+  it('says the short reason and "not tested" nowhere else in the part', () => {
     create();
-    expect([hidden('.why'), hidden('.pick'), hidden('ul')]).toEqual([true, true, true]);
+    const text = el().textContent ?? '';
+    expect(text).not.toContain('Results due next week');
+    expect(text.split('not tested').length - 1).toBe(1);
+  });
+
+  it('keeps the pages for the details\' control', () => {
+    create();
+    expect(hidden('ul')).toBe(true);
     TestBed.inject(MoreService).toggle('details.words');
-    expect([hidden('.why'), hidden('.pick'), hidden('ul')]).toEqual([false, false, false]);
-    expect(say('.why')).toBe('It reports its results next week.');
-    expect(say('.pick')).toContain('it would take EFGH first: It makes a profit and swings less.');
+    expect(hidden('ul')).toBe(false);
   });
 
   it('says the comparison in one line however many stocks were compared', () => {
     create(['ABCD', 'EFGH'], 'ABCD');
-    expect(say('.pick-line')).toBe('Of ABCD and EFGH the AI would take this one first.');
+    expect(say('.pick .first')).toBe('★ This one first, ahead of EFGH');
     create(['ABCD', 'EFGH', 'IJKL', 'MNOP', 'QRST'], 'QRST');
-    expect(say('.pick-line')).toBe('Of the 5 stocks of group A it compared, the AI would take QRST first.');
+    expect(say('.pick .first')).toBe('★ QRST first, ahead of this one and 3 others');
+    create(['EFGH', 'IJKL', 'ABCD', 'MNOP', 'QRST'], 'ABCD');
+    expect(say('.pick .first')).toBe('★ This one first, ahead of 4 others');
   });
 
   it('wears the links of the details: the page\'s colour for a link, underlined', () => {

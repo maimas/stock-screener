@@ -170,7 +170,7 @@
                    [rowKey]="symbolOf"
                    [rowLabel]="symbolOf" [rowTip]="rowTipOf" [label]="watchList.title" (rowToggled)="rowToggled($event)"
                    [defaultSortColumn]="listSort.active"
-                   [defaultSortDirection]="listSort.direction" (sorted)="sortLists($event)">
+                   [defaultSortDirection]="listSort.direction" [alsoSortedBy]="listSortAlso" (sorted)="sortLists($event)">
   </app-smart-table>
 </section>
 </div>

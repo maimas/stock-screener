@@ -224,6 +224,22 @@ dd {
   transform: translateY(-2px);
 }
 
+/* A column that orders the rows after the first one (added with Shift+click): the same arrow, also while the
+   pointer is on the heading (where a column that is no key shows which way a click would order it). */
+.smart-table th.mat-sort-header.also-up:not(.mat-sort-header-disabled):not([aria-sort="ascending"]):not([aria-sort="descending"]) .mat-sort-header-content::after,
+.smart-table th.mat-sort-header.also-up:not(.mat-sort-header-disabled):not([aria-sort="ascending"]):not([aria-sort="descending"]):hover .mat-sort-header-content::after {
+  border-top-color: transparent;
+  border-bottom-color: currentColor;
+  transform: translateY(-2px);
+}
+
+.smart-table th.mat-sort-header.also-down:not(.mat-sort-header-disabled):not([aria-sort="ascending"]):not([aria-sort="descending"]) .mat-sort-header-content::after,
+.smart-table th.mat-sort-header.also-down:not(.mat-sort-header-disabled):not([aria-sort="ascending"]):not([aria-sort="descending"]):hover .mat-sort-header-content::after {
+  border-top-color: currentColor;
+  border-bottom-color: transparent;
+  transform: translateY(2px);
+}
+
 /* The group a stock moves with: a letter with a dot of the group's colour in front of it, the same in every table
    of the page. The letter says which group; the dot lets the eye find the rows of one group. Three colours that
    stay apart for every pair, also for a reader who does not tell red from green, and none of them the green, red

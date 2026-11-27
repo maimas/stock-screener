@@ -68,6 +68,17 @@ th.mat-mdc-header-cell {
   white-space: nowrap;
 }
 
+// The place of a column among the keys the rows are ordered by (1, 2, 3), between its name and its arrow: small,
+// and in figures' own face so that it does not read as part of the name.
+.sort-place {
+  margin-left: 4px;
+  font-family: var(--font-figures);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+}
+
 // A header that explains itself on hover: dotted underline instead of an icon in every column.
 .has-help {
   border-bottom: 1px dotted var(--ink-3);

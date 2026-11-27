@@ -907,7 +907,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
       tick(fixture, 'ACME');
       expect(say(beside().querySelector('h3'))).toBe('With your cash');
       expect(facts(fixture)).toEqual([
-        ['Room for the one ticked', '$2,013'], ['Cash to split', '$1,000'], ['Stocks held', '3 today, 4 after'],
+        ['Room for the one ticked', '$2,013'], ['Cash to split', '$1,000'], ['Stocks you own', '3 today, 4 after'],
         ['Bad half-year, every marked stock at once', '−$2,790 today, −$3,200 after'],
       ]);
       expect(beside().querySelectorAll('p').length).withContext('no sentence').toBe(0);
@@ -1384,6 +1384,37 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
         expect(order()).toEqual(['ACME', 'MID', 'ZED']);
       });
 
+      // The owner: "I need tables to support sorting by multiple coluns".
+      it('adds a column to the order on a click with the Shift key held, numbers the two headings, and goes back to one column on a plain click', () => {
+        const fixture = withPrices({recommendations: [ACME, {...ACME, symbol: 'MID'}, ZED]});
+        fixture.componentRef.setInput('tied', TIED);
+        fixture.detectChanges();
+        const order = () => Array.from(page(fixture).querySelectorAll('tbody tr[data-row]')).map(row => row.getAttribute('data-row'));
+        const heading = (name: string) => Array.from(page(fixture).querySelectorAll<HTMLButtonElement>('.table-scroll thead th button')).find(it => say(it).startsWith(name))!;
+        const withShift = (name: string) => {
+          heading(name).dispatchEvent(new MouseEvent('click', {bubbles: true, shiftKey: true}));
+          fixture.detectChanges();
+        };
+        const place = (name: string) => say(heading(name).querySelector('.order-place'));
+        heading('Group').click();
+        fixture.detectChanges();
+        expect(place('Group')).withContext('one column: no number').toBe('');
+        withShift('Stock');
+        expect(order()).withContext('group A first, A to Z inside it; MID, in no group, last').toEqual(['ACME', 'ZED', 'MID']);
+        expect([place('Group'), place('Stock')]).toEqual(['1', '2']);
+        withShift('Stock');
+        expect(order()).withContext('the second key turned round: inside group A, Z first').toEqual(['ZED', 'ACME', 'MID']);
+        expect(heading('Stock').closest('th')!.getAttribute('data-order')).toBe('desc');
+        expect(heading('Stock').closest('th')!.hasAttribute('aria-sort')).withContext('one heading of a table says "sorted"').toBeFalse();
+        expect(heading('Group').closest('th')!.getAttribute('aria-sort')).toBe('ascending');
+        expect(say(heading('Stock'))).withContext('said in words for a screen reader').toContain('order key 2, descending');
+        heading('Stock').click();
+        fixture.detectChanges();
+        expect(order()).toEqual(['ACME', 'MID', 'ZED']);
+        expect([place('Group'), place('Stock')]).toEqual(['', '']);
+        expect(heading('Group').closest('th')!.hasAttribute('data-order')).toBeFalse();
+      });
+
       it('orders the rows by a column of figures: the biggest first, and the other way on the next click', () => {
         const fixture = withPrices();
         const order = () => Array.from(page(fixture).querySelectorAll('tbody tr[data-row]')).map(row => row.getAttribute('data-row'));
@@ -1420,7 +1451,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
         fixture.componentRef.setInput('tied', TIED);
         fixture.detectChanges();
         expect(say(page(fixture).querySelector('.about .about-body .order-note'))).withContext('with the explanations of the table').toBe(
-          'A click on a heading orders the rows by its column, and a second click turns the order round. That is your own view of them: the page ranks nothing.');
+          'A click on a heading orders the rows by its column, and a second click turns the order round. With the Shift key held, a click adds the column to the order. That is your own view of them: the page ranks nothing.');
         expect(page(fixture).querySelector('.table-scroll .order-note')).withContext('not a sentence in sight').toBeNull();
         expect(Array.from(page(fixture).querySelectorAll('.about .note')).map(say).some(text => text.startsWith('Stocks with the same letter moved closely together'))).toBeTrue();
       });

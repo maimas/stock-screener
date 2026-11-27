@@ -376,7 +376,13 @@ The page is made for a browser window that fills a large monitor, and still work
   Growing, Next results, Swings, Past year. (One fact has one name on the page: "Dropped",
   "Growing" and "Swings" are the headings of "Dip candidates" and "Could add" too, and the rows of a stock's
   details; a stock without a mark is "NO MARK" in its row, in the legend and in its details, with the reason
-  beside it.) Every list has those columns at the same places, so a column can be read down the page. The nine
+  beside it.) A cell says its fact in few words (the owner, 2026-11-26: "reduce some of the verbosity to condense
+  the info in the table"): "Next results" is the day alone while it is weeks away, adds how soon within two weeks
+  ("Dec 9  in 13 days", in orange), and, while the next date is not announced, is the day of the last report and
+  how it did ("Nov 12  beat 5%"); the growth figures are whole percent ("Profit +21% ✓"), with a tenth only just
+  under a bar ("+9.6%", so that no "+10%" stands without its tick); "Holders in profit" is its figure ("11%"), as
+  in "Could add". What a cell leaves out is in the explanation under the pointer.
+  Every list has those columns at the same places, so a column can be read down the page. The nine
   shares are measured so that no cell is cut where two lists stand side by side on a 2560px monitor, also once
   the window's own scroll bar has taken its 15px; in a window of about 1100px the lists show eight of them:
   "Past year", the one that is context, gives way there and stays under "All columns". "All columns"

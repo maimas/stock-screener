@@ -1,8 +1,7 @@
 import {
   additions, addLabel, afterSelling, badCaseTip, COLUMNS, COUNT_SOLD, couldAddHeadline, couldAddLead, equalRiskShare, FIT_NOTE, fitOf, goodCaseTip, NO_SIZE_NOTE,
   nothingToAdd, sellFact, sellNote, splitFacts, tiedFact, toSell,
-  badHalfYearLine, COLUMN_HELP, fitBrief, ORDER_NOTE, typicalCaseTip, ownedFit, readingOf, recommend, shareText, sizeLabel, sizeOfNew, sizeRules, sizeTip, SizingInput, splitCell, splitLines, tickHint,
-  whereItFits
+  badHalfYearLine, COLUMN_HELP, fitBrief, ORDER_NOTE, typicalCaseTip, ownedFit, readingOf, recommend, shareText, sizeLabel, sizeOfNew, sizeRules, sizeTip, SizingInput, splitCell, splitLines, tickHint
 } from "./recommendations";
 import {CashSplit, SplitPart} from "./cash-split";
 import {TestedCases} from "./sizing";
@@ -272,29 +271,6 @@ describe('toSell, afterSelling and sellNote (what the plan says to sell some of,
       label: 'SELL SOME would free', value: '$1,780', tip: 'The plan says SELL SOME: selling ACME down to $1,220 would free $1,780.',
     });
     expect(sellFact([{symbol: 'ACME', keep: 1219.51, free: 1780.49}, {symbol: 'ZED', keep: 1612.9, free: 400}])!.value).toBe('$2,180');
-  });
-});
-
-describe('whereItFits (one stock marked DIP BUY, a line for each portfolio)', () => {
-  const size = {sharePercent: 20.13, dollars: 2012.99, loss: 825.32, gain: 1711.04, capped: false};
-  const room = {sharePercent: 8.4, dollars: 840, loss: 201.6, gain: 344.4, capped: false};
-
-  it('says the size where the stock is not held, and what can be added where it is', () => {
-    const lines = whereItFits('ACME', [
-      {name: 'Brokerage', held: [], recommendations: [{symbol: 'ACME', cases: VOLATILE, size}], additions: []},
-      {name: 'Retirement', held: ['ACME'], recommendations: [], additions: [{symbol: 'ACME', ...room}]},
-      {name: 'Savings', held: ['ACME'], recommendations: [], additions: []},
-    ]);
-    expect(lines).toEqual([
-      'Brokerage: 20.1% ($2,013)',
-      'Retirement: you own it; add 8.4% ($840)',
-      'Savings: you own it, and it is at its share',
-    ]);
-  });
-
-  it('leaves out a portfolio that is worth nothing yet, and says nothing for a stock that is not marked DIP BUY', () => {
-    expect(whereItFits('ACME', [{name: 'Brokerage', held: [], recommendations: [{symbol: 'ACME', cases: VOLATILE}], additions: []}])).toEqual([]);
-    expect(whereItFits('OTHER', [{name: 'Brokerage', held: [], recommendations: [{symbol: 'ACME', cases: VOLATILE, size}], additions: []}])).toEqual([]);
   });
 });
 
@@ -613,7 +589,7 @@ describe('the sentences of the cash split in "Could add"', () => {
           // Not "short of its share": beside a stock, "shares" reads as shares of stock (found by a review).
           {label: 'Room for the one ticked', value: '$2,013', tip: ONE_SHORT},
           {label: 'Cash to split', value: '$1,000', tip: CASH_SOURCE},
-          {label: 'Stocks held', value: '3 today, 4 after', tip: 'You would hold 4 stocks instead of 3.'},
+          {label: 'Stocks you own', value: '3 today, 4 after', tip: 'You would hold 4 stocks instead of 3.'},
           {label: 'Bad half-year, every marked stock at once', value: '−$2,790 today, −$3,200 after', tip: BAD_CASE},
         ],
       });
@@ -623,15 +599,15 @@ describe('the sentences of the cash split in "Could add"', () => {
       const facts = splitFacts(split({parts: three, cash: 20000, gap: 13896, placed: 13896, left: 6104, stocksAfter: 6})).facts;
       expect(facts.map(it => [it.label, it.value])).toEqual([
         ['Room for the 3 ticked', '$13,896'], ['Cash to split', '$20,000'], ['Stays cash', '$6,104'],
-        ['Stocks held', '3 today, 6 after'], ['Bad half-year, every marked stock at once', '−$2,790 today, −$3,200 after'],
+        ['Stocks you own', '3 today, 6 after'], ['Bad half-year, every marked stock at once', '−$2,790 today, −$3,200 after'],
       ]);
       expect(splitFacts(split({parts: three, cash: 13896, gap: 13896, placed: 13896, left: 0})).facts.map(it => it.label))
         .withContext('nothing over: no figure for it').not.toContain('Stays cash');
     });
 
     it('leaves out the stocks held when that does not change, and gives one number for a portfolio that held none', () => {
-      expect(splitFacts(split({stocksBefore: 3, stocksAfter: 3})).facts.map(it => it.label)).not.toContain('Stocks held');
-      expect(splitFacts(split({stocksBefore: 0, stocksAfter: 4})).facts.find(it => it.label === 'Stocks held')!.value).toBe('4 after');
+      expect(splitFacts(split({stocksBefore: 3, stocksAfter: 3})).facts.map(it => it.label)).not.toContain('Stocks you own');
+      expect(splitFacts(split({stocksBefore: 0, stocksAfter: 4})).facts.find(it => it.label === 'Stocks you own')!.value).toBe('4 after');
     });
 
     it('names the money by what it is once what selling would free is counted', () => {
@@ -799,7 +775,7 @@ describe('the sentences of the cash split in "Could add"', () => {
   it('says that an order by a column is the reader\'s own view, not a ranking by the page', () => {
     expect(ORDER_NOTE).toBe(
       'A click on a heading orders the rows by its column, and a second click turns the order round. ' +
-      'That is your own view of them: the page ranks nothing.');
+      'With the Shift key held, a click adds the column to the order. That is your own view of them: the page ranks nothing.');
   });
 
   it('says "1 stock" for one', () => {

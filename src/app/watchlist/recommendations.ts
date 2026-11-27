@@ -209,7 +209,7 @@ export function splitCell(part: SplitPart): { amount: string, note: string, tip:
  * "Could add" and under "Dip candidates" alike.
  */
 export const ORDER_NOTE = 'A click on a heading orders the rows by its column, and a second click turns the order round. ' +
-  'That is your own view of them: the page ranks nothing.';
+  'With the Shift key held, a click adds the column to the order. That is your own view of them: the page ranks nothing.';
 
 /** What the lines under the table are told beside the split itself. */
 export type SplitSaid = {
@@ -365,7 +365,7 @@ export function splitFacts(split: CashSplit, o: SplitSaid = {}): { facts: Fact[]
   const {stocksBefore: before, stocksAfter: after} = split;
   if (after > before) {
     facts.push({
-      label: 'Stocks held', value: before > 0 ? `${before} today, ${after} after` : `${after} after`,
+      label: 'Stocks you own', value: before > 0 ? `${before} today, ${after} after` : `${after} after`,
       tip: lines.find(line => line.startsWith('You would hold')),
     });
   }
@@ -647,14 +647,6 @@ export function typicalCaseTip(cases: TestedCases, bought?: string): string {
     shownFor(bought);
 }
 
-/**
- * In the details of a stock marked DIP BUY on the Watchlist: the heading over its size in each portfolio, and the
- * sentences under it. A stock without the mark has no size and no such section.
- */
-export const FITS_TITLE = 'Where it fits';
-export const FITS_NOTE = `Its size in each of your portfolios, as a share of what that portfolio is worth. The Portfolio view lists it under "${COULD_ADD}".`;
-export const FITS_NO_PORTFOLIO = 'None of your portfolios is worth anything yet. Enter the cash of one on the Portfolio view to see a size.';
-
 /** A stock marked DIP BUY, with what the tests found for stocks of its kind. */
 export type Marked = { symbol: string, cases: TestedCases };
 
@@ -801,27 +793,6 @@ export function sizeLabel(size: Sized): string {
 /** "add 8.4% ($840)": what can be added to a stock already held. */
 export function addLabel(size: Sized): string {
   return `add ${sizeLabel(size)}`;
-}
-
-/** What one portfolio has to say about the stocks marked DIP BUY. */
-export type Fitting = { name: string, held: string[], recommendations: Recommendation[], additions: Addition[] };
-
-/**
- * Where one stock marked DIP BUY fits, a line for each portfolio: its size where it is not held, what can be
- * added where it is. A portfolio that is worth nothing yet has no line; a stock that is not marked has none.
- */
-export function whereItFits(symbol: string, portfolios: Fitting[]): string[] {
-  const lines: string[] = [];
-  portfolios.forEach(it => {
-    const size = it.recommendations.find(r => r.symbol === symbol)?.size;
-    const more = it.additions.find(a => a.symbol === symbol);
-    if (size) {
-      lines.push(`${it.name}: ${sizeLabel(size)}`);
-    } else if (it.held.includes(symbol)) {
-      lines.push(more ? `${it.name}: you own it; ${addLabel(more)}` : `${it.name}: you own it, and it is at its share`);
-    }
-  });
-  return lines;
 }
 
 /** The bad case counted for a stock held: its own when it is marked DIP BUY, the one of a stock in between when not. */

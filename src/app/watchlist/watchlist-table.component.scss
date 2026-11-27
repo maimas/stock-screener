@@ -53,26 +53,30 @@
 // starts at the same place in each list, so the lists can be read down the page as one table. The cells live
 // inside the smart table, hence ::ng-deep.
 ::ng-deep .smart-table.short {
-  // Nine columns since the column of Claude's untested view came (it stands right after the mark, at the owner's
-  // word; the order is the page's list of columns, not this one's): the shares add up to 100, each measured against
-  // its widest usual cell in a list of two side by side (1116px), where the cells stand 10px apart (see the smart
-  // table's stylesheet). A column added here has to take its share from these, or it is 0px wide.
-  // Measured there (of 1061px beside the row's own button, the cells 6px apart each side): what each column's
-  // widest cell or heading needs is within a pixel or two of its share, so a wider heading or a longer cell in one
-  // column is cut: change them together, and run the check for cut cells at each width and at 15px less.
-  .mat-column-symbol { width: 10.7%; }
-  // "Group" between the stock and its mark: a dot and a letter; its heading is the wider of the two.
-  .mat-column-group { width: 5.8%; }
-  .mat-column-signal { width: 13.25%; }
-  .mat-column-price { width: 7.1%; }
-  // The widest cell of all: two figures with their ticks ("Profit +44.3% ✓ Sales +379.3% ✓").
-  .mat-column-growth { width: 20.5%; }
-  // "Next results" was cut in a list of two side by side ("Dec 9 in 13 days · re-check a") below about 193px.
-  .mat-column-earnings { width: 18.25%; }
-  .mat-column-volatility { width: 9%; }
-  .mat-column-oneYear { width: 7.1%; }
+  // Nine columns (the AI's untested view stands right after the mark, at the owner's word; the order is the page's
+  // list of columns, not this one's): the shares add up to 100. A column added here has to take its share from
+  // these, or it is 0px wide. Measured at their natural width in a list of 1,217px (a window of 1,265px, the cells
+  // 12px apart each side; the shares are of the 1,169px beside the row's own button), after the owner asked for
+  // less in the cells: what each column needs, and room over it for a heading's arrow and its place among the
+  // columns the rows are ordered by ("Group 1 ▲": a heading of a column that is a key gets a number). Change them
+  // together, and run the check for cut cells at each width and at 15px less.
+  // Needs there: stock 103, group 71 + 12, mark 150, AI 99, price 75 + 12, growing 213, next results 128,
+  // swings 107 + 12, past year 88 + 12.
+  .mat-column-symbol { width: 9.92%; }
+  // "Group" between the stock and its mark: a dot and a letter; its heading and arrow are the wider of the two.
+  .mat-column-group { width: 7.19%; }
+  .mat-column-signal { width: 13.69%; }
+  .mat-column-price { width: 7.87%; }
+  // The widest cell of all: two figures with their ticks ("Profit +44% ✓ Sales +379% ✓").
+  .mat-column-growth { width: 19.17%; }
+  // The day of the next report; with how soon it is when that is within two weeks ("Dec 9 in 13 days"), or how the
+  // last report did ("Nov 12 beat 161%"). It needed 18.25% while it said "Dec 9 in 13 days · re-check after".
+  .mat-column-earnings { width: 12.83%; }
+  // "112% volatile" and the heading's arrow: at 9% it was cut by 1 to 2px in a window of 1,265 to 1,313px.
+  .mat-column-volatility { width: 10.69%; }
+  .mat-column-oneYear { width: 8.55%; }
   // The AI's word, small and quiet, and a star after it where it is the pick of its group ("Buy some ★").
-  .mat-column-claudeView { width: 8.3%; }
+  .mat-column-claudeView { width: 10.09%; }
   // Its heading ("AI · not tested") takes two lines there, so the column is as wide as its cells need and no wider.
   th.mat-column-claudeView {
     white-space: normal;
@@ -92,14 +96,16 @@
 // With every column shown a list is wider than any window and scrolls sideways. There each column has a least
 // width, the widest it is in any list, so that it starts at the same place in every list and can be read down the
 // page here too (a column was as wide as its own list's content: "Price" stood at 195px in one list and at 251px
-// in the next). A cell with more in it than this still gets the room it needs.
+// in the next). A cell with more in it than this still gets the room it needs. "Growing", "Next results" and
+// "Holders in profit" were measured again after their cells were made shorter at the owner's word (209px, 124px
+// and 141px at their widest, with a heading's arrow): 244px, 230px and 198px left gaps of up to 106px.
 ::ng-deep .smart-table:not(.short) {
   .mat-column-symbol { min-width: 116px; }
   .mat-column-group { min-width: 64px; }
   .mat-column-signal { min-width: 144px; }
   .mat-column-price { min-width: 70px; }
-  .mat-column-growth { min-width: 244px; }
-  .mat-column-earnings { min-width: 230px; }
+  .mat-column-growth { min-width: 216px; }
+  .mat-column-earnings { min-width: 136px; }
   .mat-column-52wRange { min-width: 138px; }
   .mat-column-volatility { min-width: 108px; }
   .mat-column-projection { min-width: 124px; }
@@ -107,7 +113,7 @@
   .mat-column-dividend { min-width: 92px; }
   .mat-column-dayRange { min-width: 120px; }
   .mat-column-trend { min-width: 100px; }
-  .mat-column-holders { min-width: 198px; }
+  .mat-column-holders { min-width: 150px; }
   .mat-column-analystRating { min-width: 170px; }
   .mat-column-ownership { min-width: 130px; }
   .mat-column-oneWeek { min-width: 80px; }

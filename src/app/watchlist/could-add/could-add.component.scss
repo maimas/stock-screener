@@ -914,7 +914,8 @@ th.num .sort-head::after {
   right: calc(100% + 4px);
 }
 
-th[aria-sort] .sort-head {
+th[aria-sort] .sort-head,
+th[data-order] .sort-head {
   color: var(--ink);
 }
 
@@ -926,6 +927,32 @@ th[aria-sort="ascending"] .sort-head::after {
 th[aria-sort="descending"] .sort-head::after {
   margin-top: -2px;
   border-top-color: currentColor;
+}
+
+// The arrow of the column the rows follow stands after its heading, outside the button: it needs 12px, and in a box
+// under 1,200px the cells stand 6 to 8px apart, so it ran into the next heading ("Group ▲Dropped"). Only a heading
+// the rows follow gets that room: every heading would make the table wider than its box.
+thead th[aria-sort]:not(.num),
+thead th[data-order]:not(.num) {
+  padding-right: 14px;
+}
+
+// A column that orders the rows after the first one (added with Shift+click) has the same arrow, also under the
+// pointer (where a column that is no key shows, paler, which way a click would order it).
+th[data-order="asc"]:not([aria-sort]) .sort-head::after,
+th[data-order="asc"]:not([aria-sort]) .sort-head:hover::after,
+th[data-order="asc"]:not([aria-sort]) .sort-head:focus-visible::after {
+  margin-top: -6px;
+  border-top-color: transparent;
+  border-bottom-color: currentColor;
+}
+
+th[data-order="desc"]:not([aria-sort]) .sort-head::after,
+th[data-order="desc"]:not([aria-sort]) .sort-head:hover::after,
+th[data-order="desc"]:not([aria-sort]) .sort-head:focus-visible::after {
+  margin-top: -2px;
+  border-top-color: currentColor;
+  border-bottom-color: transparent;
 }
 
 th:not([aria-sort]) .sort-head:hover::after,

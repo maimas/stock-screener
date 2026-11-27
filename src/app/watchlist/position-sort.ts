@@ -26,6 +26,11 @@ const PLAN_ORDER: StepKind[] = ['missing', 'trim', 'review', 'hold', 'outside'];
 /** The columns read from the top on a first click (A to Z; the plan's order). Every other one starts with its biggest. */
 const FROM_THE_TOP = new Set<SortColumn>(['symbol', 'plan']);
 
+/** Whether a first click on a column's heading starts from the top (A, or what asks for something) and not from its biggest. */
+export function readsFromTheTop(column: SortColumn): boolean {
+  return FROM_THE_TOP.has(column);
+}
+
 /** What the plan says about each stock, by symbol: only the kind of step matters here. */
 type Plans = ReadonlyMap<string, { kind: StepKind }>;
 
@@ -64,6 +69,10 @@ export function nextSort(current: RowSort, column: SortColumn): RowSort {
 }
 
 /** What a row is ordered by in a column, as its cell shows it: undefined where the cell is a dash. */
+export function positionKey(row: PositionRow, column: SortColumn, plans?: Plans): number | string | undefined {
+  return keyOf(row, column, plans);
+}
+
 function keyOf(row: PositionRow, column: SortColumn, plans?: Plans): number | string | undefined {
   const view = row.view;
   switch (column) {

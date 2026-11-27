@@ -142,38 +142,38 @@
                what a half-year could do to it. A wider gap sets each group off. With "All columns" a fourth group
                follows, how the stock was bought, and the button that removes it. -->
           <!-- Each heading is a button: a click orders the rows by its column, a second click turns them around. -->
-          <th scope="col" [attr.aria-sort]="sortedAs('symbol')">
-            <button type="button" class="sort up" (click)="sortBy('symbol')">Stock</button></th>
+          <th scope="col" [attr.aria-sort]="sortedAs('symbol')" [attr.data-order]="wayOf('symbol')">
+            <button type="button" class="sort up" (click)="sortBy('symbol', $event)">Stock<app-order-place [orders]="orders" column="symbol"></app-order-place></button></th>
           <!-- Which of the holdings move together: the same letters as in the lists and in "Could add". -->
-          <th scope="col" class="group-head" appTipOnFocus *ngIf="hasGroups" [attr.aria-sort]="groupSortedAs" [matTooltip]="groupHelp" matTooltipClass="multiline-tooltip">
-            <button type="button" class="sort up" (click)="sortByGroup()">Group</button></th>
-          <th scope="col" appTipOnFocus [attr.aria-sort]="sortedAs('plan')" [matTooltip]="planColumnTooltip" matTooltipClass="multiline-tooltip">
-            <button type="button" class="sort up" (click)="sortBy('plan')">Plan</button></th>
-          <th scope="col" appTipOnFocus *ngIf="hasDates" [attr.aria-sort]="sortedAs('held')" [matTooltip]="heldColumnTooltip" matTooltipClass="multiline-tooltip">
-            <button type="button" class="sort" (click)="sortBy('held')">Held</button></th>
-          <th scope="col" appTipOnFocus class="num group" [attr.aria-sort]="sortedAs('value')" matTooltip="What your shares are worth at today's price.">
-            <button type="button" class="sort" (click)="sortBy('value')">Value</button></th>
-          <th scope="col" appTipOnFocus class="num" [attr.aria-sort]="sortedAs('weight')" matTooltip="How much of this portfolio is in this stock.">
-            <button type="button" class="sort" (click)="sortBy('weight')">% of total</button></th>
-          <th scope="col" appTipOnFocus class="num" [attr.aria-sort]="sortedAs('result')" matTooltip="What you have gained or lost on it since you bought: in dollars, then as a part of what you paid. A click orders the rows by the dollars.">
-            <button type="button" class="sort" (click)="sortBy('result')">Result</button></th>
-          <th scope="col" appTipOnFocus class="num" *ngIf="hasDates" [attr.aria-sort]="sortedAs('market')"
+          <th scope="col" class="group-head" appTipOnFocus *ngIf="hasGroups" [attr.aria-sort]="groupSortedAs" [attr.data-order]="wayOf('group')" [matTooltip]="groupHelp" matTooltipClass="multiline-tooltip">
+            <button type="button" class="sort up" (click)="sortBy('group', $event)">Group<app-order-place [orders]="orders" column="group"></app-order-place></button></th>
+          <th scope="col" appTipOnFocus [attr.aria-sort]="sortedAs('plan')" [attr.data-order]="wayOf('plan')" [matTooltip]="planColumnTooltip" matTooltipClass="multiline-tooltip">
+            <button type="button" class="sort up" (click)="sortBy('plan', $event)">Plan<app-order-place [orders]="orders" column="plan"></app-order-place></button></th>
+          <th scope="col" appTipOnFocus *ngIf="hasDates" [attr.aria-sort]="sortedAs('held')" [attr.data-order]="wayOf('held')" [matTooltip]="heldColumnTooltip" matTooltipClass="multiline-tooltip">
+            <button type="button" class="sort" (click)="sortBy('held', $event)">Held<app-order-place [orders]="orders" column="held"></app-order-place></button></th>
+          <th scope="col" appTipOnFocus class="num group" [attr.aria-sort]="sortedAs('value')" [attr.data-order]="wayOf('value')" matTooltip="What your shares are worth at today's price.">
+            <button type="button" class="sort" (click)="sortBy('value', $event)">Value<app-order-place [orders]="orders" column="value"></app-order-place></button></th>
+          <th scope="col" appTipOnFocus class="num" [attr.aria-sort]="sortedAs('weight')" [attr.data-order]="wayOf('weight')" matTooltip="How much of this portfolio is in this stock.">
+            <button type="button" class="sort" (click)="sortBy('weight', $event)">% of total<app-order-place [orders]="orders" column="weight"></app-order-place></button></th>
+          <th scope="col" appTipOnFocus class="num" [attr.aria-sort]="sortedAs('result')" [attr.data-order]="wayOf('result')" matTooltip="What you have gained or lost on it since you bought: in dollars, then as a part of what you paid. A click orders the rows by the dollars.">
+            <button type="button" class="sort" (click)="sortBy('result', $event)">Result<app-order-place [orders]="orders" column="result"></app-order-place></button></th>
+          <th scope="col" appTipOnFocus class="num" *ngIf="hasDates" [attr.aria-sort]="sortedAs('market')" [attr.data-order]="wayOf('market')"
               matTooltip="What the market (the S&amp;P 500, an index of 500 large US companies) did since you bought.">
-            <button type="button" class="sort" (click)="sortBy('market')">Market since</button></th>
-          <th scope="col" appTipOnFocus class="num group" [attr.aria-sort]="sortedAs('bad')" matTooltip="What a bad half-year could cost. Where an amount comes from shows when you point at it, and in the details of its stock.">
-            <button type="button" class="sort" (click)="sortBy('bad')">Bad case</button></th>
-          <th scope="col" appTipOnFocus class="num" [attr.aria-sort]="sortedAs('typical')" [matTooltip]="typicalHelp">
-            <button type="button" class="sort" (click)="sortBy('typical')">Typical</button></th>
-          <th scope="col" appTipOnFocus class="num" [attr.aria-sort]="sortedAs('good')" matTooltip="What a good half-year could add. Where an amount comes from shows when you point at it, and in the details of its stock.">
-            <button type="button" class="sort" (click)="sortBy('good')">Good case</button></th>
-          <th scope="col" class="num group" *ngIf="allColumns" [attr.aria-sort]="sortedAs('shares')">
-            <button type="button" class="sort" (click)="sortBy('shares')">Shares</button></th>
-          <th scope="col" appTipOnFocus class="num" *ngIf="allColumns" [attr.aria-sort]="sortedAs('paid')" matTooltip="The average price you paid for one share.">
-            <button type="button" class="sort" (click)="sortBy('paid')">Price paid</button></th>
-          <th scope="col" appTipOnFocus class="num" *ngIf="allColumns" [attr.aria-sort]="sortedAs('now')" matTooltip="Today's price of one share.">
-            <button type="button" class="sort" (click)="sortBy('now')">Price now</button></th>
-          <th scope="col" *ngIf="hasDates && allColumns" [attr.aria-sort]="sortedAs('bought')">
-            <button type="button" class="sort" (click)="sortBy('bought')">Bought</button></th>
+            <button type="button" class="sort" (click)="sortBy('market', $event)">Market since<app-order-place [orders]="orders" column="market"></app-order-place></button></th>
+          <th scope="col" appTipOnFocus class="num group" [attr.aria-sort]="sortedAs('bad')" [attr.data-order]="wayOf('bad')" matTooltip="What a bad half-year could cost. Where an amount comes from shows when you point at it, and in the details of its stock.">
+            <button type="button" class="sort" (click)="sortBy('bad', $event)">Bad case<app-order-place [orders]="orders" column="bad"></app-order-place></button></th>
+          <th scope="col" appTipOnFocus class="num" [attr.aria-sort]="sortedAs('typical')" [attr.data-order]="wayOf('typical')" [matTooltip]="typicalHelp">
+            <button type="button" class="sort" (click)="sortBy('typical', $event)">Typical<app-order-place [orders]="orders" column="typical"></app-order-place></button></th>
+          <th scope="col" appTipOnFocus class="num" [attr.aria-sort]="sortedAs('good')" [attr.data-order]="wayOf('good')" matTooltip="What a good half-year could add. Where an amount comes from shows when you point at it, and in the details of its stock.">
+            <button type="button" class="sort" (click)="sortBy('good', $event)">Good case<app-order-place [orders]="orders" column="good"></app-order-place></button></th>
+          <th scope="col" class="num group" *ngIf="allColumns" [attr.aria-sort]="sortedAs('shares')" [attr.data-order]="wayOf('shares')">
+            <button type="button" class="sort" (click)="sortBy('shares', $event)">Shares<app-order-place [orders]="orders" column="shares"></app-order-place></button></th>
+          <th scope="col" appTipOnFocus class="num" *ngIf="allColumns" [attr.aria-sort]="sortedAs('paid')" [attr.data-order]="wayOf('paid')" matTooltip="The average price you paid for one share.">
+            <button type="button" class="sort" (click)="sortBy('paid', $event)">Price paid<app-order-place [orders]="orders" column="paid"></app-order-place></button></th>
+          <th scope="col" appTipOnFocus class="num" *ngIf="allColumns" [attr.aria-sort]="sortedAs('now')" [attr.data-order]="wayOf('now')" matTooltip="Today's price of one share.">
+            <button type="button" class="sort" (click)="sortBy('now', $event)">Price now<app-order-place [orders]="orders" column="now"></app-order-place></button></th>
+          <th scope="col" *ngIf="hasDates && allColumns" [attr.aria-sort]="sortedAs('bought')" [attr.data-order]="wayOf('bought')">
+            <button type="button" class="sort" (click)="sortBy('bought', $event)">Bought<app-order-place [orders]="orders" column="bought"></app-order-place></button></th>
           <th scope="col" *ngIf="allColumns"><span class="visually-hidden">Actions</span></th>
         </tr>
         </thead>

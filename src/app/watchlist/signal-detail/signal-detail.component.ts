@@ -17,6 +17,7 @@ import {BIG_DROP_PERCENT, DropNews, Headline} from "../drop-news";
 import {dipBuySince, SnapshotLog, valueBefore} from "../snapshot-log";
 import {NoVerdict} from "../cells/signal/signal-cell.component";
 import {DropReadingComponent} from "../drop-reading/drop-reading.component";
+import {FigTextComponent} from "../fig-text/fig-text.component";
 
 type ContextLine = { mark: 'plus' | 'minus' | 'neutral', text: string };
 
@@ -48,7 +49,7 @@ const REVISION_DAYS = 20;
   // does for a reader who came by the keyboard. Not a stop for the Tab key.
   host: {tabindex: '-1'},
   standalone: true,
-  imports: [NgIf, NgForOf, DropReadingComponent, MoreComponent, MoreRestDirective, BusinessFactsComponent, ClaudeViewDetailComponent],
+  imports: [NgIf, NgForOf, DropReadingComponent, MoreComponent, MoreRestDirective, BusinessFactsComponent, ClaudeViewDetailComponent, FigTextComponent],
   templateUrl: "./signal-detail.component.html",
   styleUrls: ["./signal-detail.component.scss"]
 })

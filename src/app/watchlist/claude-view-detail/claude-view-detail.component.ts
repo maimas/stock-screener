@@ -6,7 +6,7 @@ import {finalize, forkJoin, Subscription} from "rxjs";
 import {Stock} from "../../api/microsoft-money.service";
 import {
   ASK_BUSY, ASK_ONE, ASK_ONE_AGAIN, ASK_ONE_TIP, askedLine, ASKING_ONE, compareFailureText, COMPARING, DETAIL_TITLE, localDay, NOT_IN_A_LIST,
-  PickFor, pickOf, pickSentence, pickShort, View, viewFailureText, ViewSource, ViewsState, wordSaid,
+  PickFor, pickOf, pickReason, pickRow, View, viewFailureText, ViewSource, ViewsState, wordSaid,
 } from "../claude-view";
 import {groupsFor, requestFor} from "../claude-groups";
 import {ClaudeViewService, isRefusal, ViewRefusal} from "../claude-view.service";
@@ -27,7 +27,7 @@ const REFUSED: Record<ViewRefusal['refused'], string> = {
  * the expanded section where it would do the same - take stock infor and compare it by the same strategy but for one
  * from the expando".
  *
- * What is kept for the stock, in full: the AI's word and short reason, its sentence, when it was asked and the pages
+ * What is kept for the stock, in full: the AI's word, its sentence, when it was asked and the pages
  * it rests on (a row of the table has no room for links), and which stock of its group the AI would take first. One
  * button asks about this stock alone and then has it compared with the stocks that move together with it, exactly
  * as a list's button does for a list (the same request, of one stock).
@@ -44,13 +44,21 @@ const REFUSED: Record<ViewRefusal['refused'], string> = {
     <section *ngIf="shown">
       <h4>{{ title }}<span class="note"> · not tested</span></h4>
       <ng-container *ngIf="view as said">
-        <p class="said"><span class="word">{{ word }}</span><span class="short"> · {{ said.short }}</span></p>
-        <!-- In sight: the word, the comparison in one line, and the line of when it was asked. The sentences and the
-             pages open with the details' one control ("Read these details in sentences"), like every
-             other section's: with all of it in sight this part was as tall as the rest of the details together. -->
-        <p class="pick-line" *ngIf="pickBrief">{{ pickBrief }}</p>
-        <p class="why" appMoreRest="details.words">{{ said.why }}</p>
-        <p class="pick" *ngIf="pickLine" appMoreRest="details.words">{{ pickLine }}</p>
+        <!-- In sight, a named row each, as the details' other facts: the verdict, why, and which stock of its group
+             the AI would take first with its reason. The owner, 2026-11-26: "I want the AI details to be added in to
+             the stock details after the AI verdict", then "make it cleaner", then "verdict and details need to be
+             separate but clear at the same time along with the preference between few as comparison". The short
+             reason is not said again (it is in the row these details open under), nor "not tested" (the title says
+             it). The pages open with the details' one control ("Read these details in sentences"). -->
+        <dl class="fact-rows ai-rows">
+          <div class="verdict"><dt>Verdict</dt><dd><span class="word">{{ word }}</span></dd></div>
+          <div class="why"><dt>Why</dt><dd>{{ said.why }}</dd></div>
+          <div class="pick" *ngIf="pick as chosen">
+            <dt>{{ pickRowOf(chosen).label }}</dt>
+            <dd><span class="first"><span aria-hidden="true">★ </span>{{ pickRowOf(chosen).first }}</span>&ngsp;
+              <span class="pick-why">{{ reasonOf(chosen) }}</span></dd>
+          </div>
+        </dl>
         <ul *ngIf="said.sources.length" appMoreRest="details.words">
           <li *ngFor="let source of said.sources; trackBy: trackByUrl">
             <a [href]="source.url" target="_blank" rel="noopener noreferrer">{{ titleOf(source) }}</a>
@@ -74,14 +82,17 @@ const REFUSED: Record<ViewRefusal['refused'], string> = {
        component, so the few that make a section are said again here). */
     :host { display: block; }
     section { break-inside: avoid; padding-top: 16px; }
-    h4 { margin: 0 0 4px; font-size: var(--text-data); font-weight: 600; line-height: 1.4; color: var(--ink); }
+    h4 { margin: 0 0 6px; font-size: var(--text-body); font-weight: 600; line-height: 1.4; color: var(--ink); }
     /* That this is no part of the mark: beside the title, quieter than it. */
     h4 .note { font-weight: 400; color: var(--ink-2); }
     p { margin: 6px 0 0; max-width: 70ch; }
+    /* Its rows are the page's "dl.fact-rows" (styles.scss), a little apart: each says a different thing. */
+    .ai-rows { row-gap: 6px; }
     /* The word in small letters and without colour: capitals and colour are the tested mark's. */
-    .said { margin-top: 0; }
     .word { font-weight: 600; }
-    .short, .pick, .pick-line { color: var(--ink-2); }
+    /* The comparison: the stock first in the full ink, its reason under it, quieter. */
+    .first { font-weight: 600; }
+    .pick-why { display: block; color: var(--ink-2); }
     /* A link as the details set theirs (their rule is scoped to their own component, so it is said again here). */
     a { color: var(--link); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: rgba(21, 101, 192, 0.35); }
     a:hover { text-decoration-color: currentColor; }
@@ -164,20 +175,19 @@ export class ClaudeViewDetailComponent implements OnChanges, OnInit, OnDestroy {
     return this.views.letterOf(this.symbol);
   }
 
-  private get pick(): PickFor | undefined {
+  /** Which stock of its group the AI would take first, when this stock was compared in the past week. */
+  get pick(): PickFor | undefined {
     return pickOf(this.symbol, this.state.picks, this.day, this.state.views, this.letter);
   }
 
-  /** Which stock of its group the AI would take first, when this stock was compared in the past week: with its reason, */
-  get pickLine(): string {
-    const pick = this.pick;
-    return pick ? pickSentence(pick) : '';
+  /** "Group A" and "EFGH first, ahead of this one and IJKL". */
+  pickRowOf(pick: PickFor): { label: string, first: string } {
+    return pickRow(pick, this.symbol);
   }
 
-  /** and in one line. */
-  get pickBrief(): string {
-    const pick = this.pick;
-    return pick ? pickShort(pick) : '';
+  /** Why, and when it was compared. */
+  reasonOf(pick: PickFor): string {
+    return pickReason(pick);
   }
 
   get shown(): boolean {

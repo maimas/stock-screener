@@ -15,7 +15,9 @@ import {CASH_LABEL, DEFAULT_LIMIT_PERCENT, KEEP_OUT_LABEL, LIMIT_LABEL, NO_GAP_U
 import {COULD_ADD, Fact} from "../recommendations";
 import {money, shareCount, shareText, signedMoney, signedPercent, signedWholeMoney} from "../format";
 import {againstMarket, againstMarketFacts, againstMarketLines} from "../market-compare";
-import {DEFAULT_SORT, nextSort, RowSort, SortColumn, sortedRows} from "../position-sort";
+import {DEFAULT_SORT, positionKey, readsFromTheTop, RowSort, SortColumn, sortedRows} from "../position-sort";
+import {ariaSortOf, directionIn, inOrders, ordersAfterClick, RowOrder} from "../row-order";
+import {OrderPlaceComponent} from "../order-place/order-place.component";
 import {TipOnFocusDirective} from "../tip-on-focus.directive";
 import {FocusWhenShownDirective} from "../focus-when-shown.directive";
 import {SaysComponent} from "../says/says.component";
@@ -54,7 +56,7 @@ export type PlanWord = { kind: StepKind, verb: string, text: string };
   standalone: true,
   imports: [
     NgIf, NgForOf, FormsModule, MatButtonModule, MatButtonToggleModule, MatCardModule, MatIconModule, MatTooltipModule,
-    TipOnFocusDirective, SaysComponent, FocusWhenShownDirective, AboutComponent,
+    TipOnFocusDirective, SaysComponent, FocusWhenShownDirective, AboutComponent, OrderPlaceComponent,
   ],
   templateUrl: "./positions-card.component.html",
   styleUrls: ["./positions-card.component.scss"]
@@ -104,8 +106,10 @@ export class PositionsCardComponent {
    */
   @Input() set allColumns(all: boolean) {
     this.every = all;
-    if (!all && BOUGHT_COLUMNS.has(this.sort.column)) {
-      this.sort = DEFAULT_SORT;
+    if (!all && this.orders.some(it => it.column !== 'group' && BOUGHT_COLUMNS.has(it.column))) {
+      // A column that is put away cannot order the rows: the keys that are still in sight stay, or the table starts over.
+      const kept = this.orders.filter(it => it.column === 'group' || !BOUGHT_COLUMNS.has(it.column));
+      this.orders = kept.length > 0 ? kept : [DEFAULT_SORT];
     }
   }
 
@@ -187,10 +191,19 @@ export class PositionsCardComponent {
    */
   planWords: PlanWord[] = [];
   /** Which column the rows of the table follow, and which way: the biggest holding first until a heading is clicked. */
-  sort: RowSort = DEFAULT_SORT;
+  get sort(): RowSort {
+    return (this.orders.find(it => it.column !== 'group') as RowSort | undefined) ?? DEFAULT_SORT;
+  }
+
+  /**
+   * The columns the rows follow, the first deciding first: the biggest share of the portfolio to start with. One
+   * after a plain click on a heading; a click with the Shift key held adds a column as the next key (the owner:
+   * "I need tables to support sorting by multiple coluns"). "Group" is one of the columns.
+   */
+  orders: RowOrder<SortColumn | 'group'>[] = [DEFAULT_SORT];
   private every = false;
   /** The rows as last ordered, with what they were ordered from, so the table is not sorted again on every look at it. */
-  private ordered?: { from: PositionRow[], sort: RowSort, plans: Map<string, HoldingPlan>, rows: PositionRow[] };
+  private ordered?: { from: PositionRow[], orders: RowOrder<SortColumn | 'group'>[], plans: Map<string, HoldingPlan>, groups: TiedGroups, rows: PositionRow[] };
 
   readonly money = money;
   readonly signedMoney = signedMoney;
@@ -245,30 +258,52 @@ export class PositionsCardComponent {
 
   /** The holdings in the order the table shows them: by the column chosen, the biggest holding first to start with. */
   get rows(): PositionRow[] {
-    const from = this.view.rows, {sort, plans} = this;
-    if (this.ordered?.from !== from || this.ordered.sort !== sort || this.ordered.plans !== plans) {
-      this.ordered = {from, sort, plans, rows: sortedRows(from, sort, plans)};
+    const from = this.view.rows, {orders, plans, groups} = this;
+    if (this.ordered?.from !== from || this.ordered.orders !== orders || this.ordered.plans !== plans || this.ordered.groups !== groups) {
+      this.ordered = {from, orders, plans, groups, rows: this.inOrder(from)};
     }
-    // By group when "Group" was clicked: the holdings that move together side by side.
-    return this.groupSort ? byGroup(this.ordered.rows, row => row.symbol, this.groups, this.groupSort) : this.ordered.rows;
+    return this.ordered.rows;
   }
 
-  /** A click on a column heading: the rows follow that column, and a second click turns them around. */
-  sortBy(column: SortColumn): void {
-    this.groupSort = undefined;
-    this.sort = nextSort(this.sort, column);
+  /** The holdings in the order of the columns chosen. */
+  private inOrder(from: PositionRow[]): PositionRow[] {
+    const {orders, plans} = this, first = orders[0];
+    if (orders.length === 1 && first.column === 'group') {
+      // By group alone: the holdings that move together side by side (those in no group go to the top when turned round).
+      return byGroup(from, row => row.symbol, this.groups, first.direction);
+    }
+    if (orders.length === 1) {
+      return sortedRows(from, first as RowSort, plans);
+    }
+    // Several columns. A holding in no group has nothing in "Group" and comes last in it, as in every other column.
+    const groups = groupBySymbol(this.groups);
+    return inOrders(from, orders.map(order => ({
+      keyOf: order.column === 'group' ? (row: PositionRow) => groups.get(row.symbol)?.index
+        : (row: PositionRow) => positionKey(row, order.column as SortColumn, plans),
+      direction: order.direction,
+    })), row => row.symbol);
   }
 
-  /** The rows follow "Group" (A first, or the other way round); nothing while they follow another column. */
-  groupSort?: 'asc' | 'desc';
+  /**
+   * A click on a column heading: the rows follow that column, and a second click turns them around. With the Shift
+   * key held the column is added to the order instead: rows level in the columns before it follow this one.
+   */
+  sortBy(column: SortColumn | 'group', event?: { shiftKey?: boolean }): void {
+    this.orders = ordersAfterClick(this.orders, column, column === 'group' || readsFromTheTop(column), !!event?.shiftKey);
+  }
 
-  /** A click on "Group": the rows are put together by group, and a second click turns them around. */
-  sortByGroup(): void {
-    this.groupSort = this.groupSort === 'asc' ? 'desc' : 'asc';
+  /** The way of "Group" while it is the first column the rows follow; nothing otherwise. */
+  get groupSort(): 'asc' | 'desc' | undefined {
+    return this.orders[0]?.column === 'group' ? this.orders[0].direction : undefined;
   }
 
   get groupSortedAs(): 'ascending' | 'descending' | null {
-    return !this.groupSort ? null : this.groupSort === 'asc' ? 'ascending' : 'descending';
+    return ariaSortOf(this.orders, 'group');
+  }
+
+  /** For a heading's arrow: which way its column goes in the order, the first key or a later one; null for no key. */
+  wayOf(column: SortColumn | 'group'): 'asc' | 'desc' | null {
+    return directionIn(this.orders, column) ?? null;
   }
 
   /** A click on "Key columns" or "All columns": shown at once, and the page is told, so the lists follow. */
@@ -319,7 +354,7 @@ export class PositionsCardComponent {
 
   /** What a column heading tells a screen reader: which way its column is sorted, or nothing while the rows follow another. */
   sortedAs(column: SortColumn): 'ascending' | 'descending' | null {
-    return this.groupSort || this.sort.column !== column ? null : this.sort.direction === 'asc' ? 'ascending' : 'descending';
+    return ariaSortOf(this.orders, column);
   }
 
   get activeName(): string {

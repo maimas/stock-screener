@@ -1,9 +1,10 @@
-// The day, then how far off it is, on one line: a row of a list is one line tall.
+// The day, then (for a report within two weeks, or the last one) a few words beside it, on one line: a row of a
+// list is one line tall.
 .container {
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  min-width: 80px;
+  gap: 6px;
+  min-width: 48px;
   white-space: nowrap;
 }
 
