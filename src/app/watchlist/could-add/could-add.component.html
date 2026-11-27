@@ -19,10 +19,6 @@
              is behind one control under the table. -->
         <div class="top">
         <div class="intro">
-        <!-- The hint says how much there is to split, and that changes when the box of the sell side is ticked:
-             a screen reader reads the new sentence out. -->
-        <p class="hint" *ngIf="hint" aria-live="polite">{{ hint }}</p>
-
         <!-- The other side of a rebalance. When the plan says to sell some of a stock it asks for something, so it
              is here, with the hint: what that would free as a figure with its name, and the box that has it split
              together with the cash. Which stocks, in a sentence, is where the pointer rests on the figure and with
@@ -48,6 +44,11 @@
              stays in sight under the page's bar as a long table is scrolled, and a block that ends above the
              table would take it away with it. -->
         <div class="tick-answer" [class.answering]="!!split">
+          <!-- While nothing is ticked the instruction stands here, in the room kept for the answer, and the answer
+               takes its place: that room was an empty band of 80 to 110px above the table. The hint says how much
+               there is to split, and that changes when the box of the sell side is ticked: a screen reader reads
+               the new sentence out. -->
+          <p class="hint" *ngIf="hint && !split" aria-live="polite">{{ hint }}</p>
           <div class="tick-head" *ngIf="split">
             <h3 class="split-title">{{ cashTitle }}</h3>
             <button type="button" class="add batch" *ngIf="canRecord && (batchLines.length > 1 || (batching && batchLines.length > 0))" (click)="startBatch()" [matTooltip]="addTip"

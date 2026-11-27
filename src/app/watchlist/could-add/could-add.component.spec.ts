@@ -104,7 +104,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
   // table: "too much text and not much signal". Above the table one sentence is left, the instruction.
   it('keeps one sentence in sight above the table: what to do', () => {
     const fixture = create();
-    const sentences = Array.from(page(fixture).querySelectorAll('.top p')).map(say);
+    const sentences = Array.from(page(fixture).querySelectorAll('.top p, .tick-answer p')).map(say);
     expect(sentences).toEqual([tickHint(1000)]);
     expect(sentences[0]).toBe('Tick stocks to split your cash ($1,000) between them.');
   });
@@ -902,7 +902,8 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
     it('answers a tick beside the instruction with figures, each named, and no sentence', () => {
       const fixture = create();
       const beside = () => page(fixture).querySelector('.tick-answer')!;
-      expect(say(beside())).withContext('nothing ticked').toBe('');
+      expect(say(beside())).withContext('nothing ticked: the instruction, and nothing of an answer').toBe(tickHint(1000));
+      expect(say(beside().querySelector('.answer'))).toBe('');
       tick(fixture, 'ACME');
       expect(say(beside().querySelector('h3'))).toBe('With your cash');
       expect(facts(fixture)).toEqual([
@@ -916,6 +917,21 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
       // And all of them, whole, are with the explanations of the box.
       expect(splitSays(fixture)).toEqual([ONE_SHORT, 'You would hold 4 stocks instead of 3.', BAD_CASE, CASH_SOURCE]);
       expect(page(fixture).querySelector('.about .about-body .split')).not.toBeNull();
+    });
+
+    // Two reviews called the room kept for the answer to a tick "the empty band above the table" (80 to 110px with
+    // nothing ticked). The instruction stands in that room while nothing is ticked, and the answer takes its place:
+    // the band is never empty, the box is a line shorter, and the table still does not move.
+    it('puts the instruction in the room kept for the answer to a tick, and the answer in its place once a row is ticked', () => {
+      const fixture = create();
+      const band = page(fixture).querySelector('.tick-answer')!;
+      expect(say(band.querySelector('p.hint'))).toBe(tickHint(1000));
+      expect(page(fixture).querySelector('.top p.hint')).withContext('not above the room as well').toBeNull();
+      tick(fixture, 'ACME');
+      expect(band.querySelector('p.hint')).withContext('the answer says what the instruction said').toBeNull();
+      expect(band.querySelector('.answer dl.facts')).not.toBeNull();
+      tick(fixture, 'ACME');
+      expect(say(band.querySelector('p.hint'))).withContext('unticked again').toBe(tickHint(1000));
     });
 
     // Found by a review, and the owner's word: ticking a row far down a long table left the answer above the window.
@@ -1039,7 +1055,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
         expect(fixture.debugElement.query(By.css('.top .sale .fact')).injector.get(MatTooltip).message)
           .withContext('which stocks, where the pointer rests').toBe('The plan says SELL SOME: selling AAA down to $1,220 would free $1,780.');
         const above = Array.from(page(fixture).querySelectorAll('p.hint, .sale, label.count-sold, .body')).map(el => el.className);
-        expect(above).withContext('it asks for something: it stands with the hint, before the table').toEqual(['hint', 'sale', 'count-sold', 'body']);
+        expect(above).withContext('it asks for something: it stands with the hint, before the table').toEqual(['sale', 'count-sold', 'hint', 'body']);
         expect(say(page(fixture).querySelector('label.count-sold'))).toBe('Count that money in the split');
         expect(countSold(fixture)!.checked).toBeFalse();
         expect(sellSays(fixture)).withContext('the sentence is with the explanations').toBe('The plan says SELL SOME: selling AAA down to $1,220 would free $1,780.');
@@ -1053,7 +1069,9 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
           'The one you ticked is $1,220 short of its share. Your $4,000 covers all of it, and $2,780 stays cash.');
         countSold(fixture)!.click();
         fixture.detectChanges();
-        expect(say(page(fixture).querySelector('p.hint'))).withContext('the hint says what is split').toBe(tickHint(4000, 1780.49));
+        // (While a row is ticked the answer stands where the hint stood; the hint is kept for when none is.)
+        expect(page(fixture).querySelector('p.hint')).toBeNull();
+        expect(fixture.componentInstance.hint).withContext('the hint says what is split').toBe(tickHint(4000, 1780.49));
         // The money is no longer the cash alone: the column and the heading over the lines say "the money".
         expect(headings(fixture)).toEqual(['Stock', 'Size', 'Bad case', 'Typical', 'Good case', 'With the money', 'Sector (you own)', 'Moves with yours']);
         expect(say(page(fixture).querySelector('.split h3'))).toBe('With the money');
@@ -1135,7 +1153,7 @@ describe('CouldAddComponent ("Could add": the stocks marked DIP BUY, each sized 
         ]);
         countSold(fixture)!.click();
         fixture.detectChanges();
-        expect(say(page(fixture).querySelector('p.hint'))).toBe(tickHint(0, 2268.29));
+        expect(fixture.componentInstance.hint).toBe(tickHint(0, 2268.29));
         expect(headings(fixture)[5]).toBe('With the money');
         const said = splitSays(fixture);
         expect(said[0]).toBe(

@@ -582,6 +582,78 @@ table.every td.row-actions {
     max-width: 17ch;
     white-space: normal;
   }
+
+  // The arrow of the column the rows follow hangs in the room after its heading, which is 8px here: at its full
+  // size it reached 4px into the next heading ("Result" ran into "Market since"). Smaller and closer, it stays clear.
+  table.every .sort::after {
+    left: calc(100% + 1px);
+    transform: scale(0.75);
+    transform-origin: left center;
+  }
+}
+
+/// Between those two, the amount beside the plan's word is what gives way: it stands under the word, in the rows
+// that have one, when every column would otherwise be wider than the box (4px at a 1280 window with its scroll bar).
+@container (min-width: 1100px) and (max-width: 1399px) {
+  table.every td.plan {
+    white-space: normal;
+  }
+
+  table.every td.plan > span {
+    display: inline-block;
+    white-space: nowrap;
+  }
+
+  table.every td.plan > .plan-verb {
+    margin-right: 8px;
+  }
+
+  table.every td.plan > .plan-note {
+    margin-left: 0;
+  }
+}
+
+// In a box under 1,100px (a window of about 1,100px) every column was 1,136px in a box of 1,004px, and of 989px
+// with the window's scroll bar: "Bought" and the remove button were off the edge. There the table is set a size
+// smaller, its cells stand 6px apart, a stock's mark stands under its symbol and the result in percent under the
+// result in dollars.
+@container (max-width: 1099px) {
+  table.every,
+  table.every .sub,
+  table.every .held-note {
+    font-size: var(--text-meta);
+  }
+
+  table.every th,
+  table.every td {
+    padding-right: 6px;
+  }
+
+  table.every th.group,
+  table.every td.group {
+    padding-left: 6px;
+  }
+
+  table.every td.row-actions {
+    padding: 0;
+  }
+
+  table.every th .verdict-pill {
+    display: block;
+    width: fit-content;
+    margin: 2px 0 0;
+  }
+
+  table.every td .sub.percent {
+    display: block;
+    min-width: 0;
+    margin-left: 0;
+  }
+
+  table.every .sort::after {
+    left: 100%;
+    transform: scale(0.7);
+  }
 }
 
 // While the first prices are arriving: the room the table will take, drawn as its rows' lines, so that what
