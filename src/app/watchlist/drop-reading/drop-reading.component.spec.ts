@@ -107,7 +107,7 @@ describe('DropReadingComponent ("Read it for me", under "Why it dropped")', () =
     expect(buttons()).toEqual(['Read it for me']);
     // The button did not say who reads what: it does where the pointer rests on it or the keyboard reaches it.
     expect(fixture.debugElement.query(By.css('button.ask')).injector.get(MatTooltip).message).toBe(
-      'Claude Code on this computer searches the news about this fall and says in a few sentences what it found, with its sources. ' +
+      'The AI searches the news about this fall and says in a few sentences what it found, with its sources. ' +
       'It takes up to a minute.');
     expect(el.querySelector('.reading')).toBeNull();
     expect(text('.headlines')).toBe('Headlines from that week');
@@ -131,7 +131,7 @@ describe('DropReadingComponent ("Read it for me", under "Why it dropped")', () =
     open();
     click('Read it for me');
     expect(readings.asked).toEqual([{symbol: 'ABCD', name: 'Example Corp', day: '2026-11-03', percent: 12.04}]);
-    expect(text('.busy')).toBe('Claude is searching the news about this fall. This takes up to a minute.');
+    expect(text('.busy')).toBe('The AI is searching the news about this fall. This takes up to a minute.');
     expect(el.querySelector('.busy')?.getAttribute('role')).toBe('status');
     expect(buttons()).toEqual([]);
   });
@@ -148,7 +148,7 @@ describe('DropReadingComponent ("Read it for me", under "Why it dropped")', () =
     expect(links.map(it => it.getAttribute('href'))).toEqual(['https://news.example.com/forecast', 'https://www.example.org/markets/results']);
     expect(links.every(it => it.target === '_blank' && it.rel === 'noopener noreferrer')).toBeTrue();
     expect(Array.from(el.querySelectorAll('li .source')).map(it => it.textContent?.trim())).toEqual(['news.example.com', 'example.org']);
-    expect(text('.by .line')).toBe('Read by Claude on Nov 22 · not tested · 2 sources');
+    expect(text('.by .line')).toBe('Read by the AI on Nov 22 · not tested · 2 sources');
     expect(fixture.debugElement.query(By.css('.by .line')).injector.get(MatTooltip).message).toContain('No test shows that it helps to choose stocks');
     expect(el.querySelector('.busy')).toBeNull();
     expect(buttons()).toEqual(['Read again']);
@@ -176,7 +176,7 @@ describe('DropReadingComponent ("Read it for me", under "Why it dropped")', () =
     open();
     click('Read it for me');
     answer({state: 'failed', reason: 'timeout'});
-    expect(text('.failed')).toBe('Claude took too long and was stopped. Try again.');
+    expect(text('.failed')).toBe('The AI took too long and was stopped. Try again.');
     expect(el.querySelector('.failed')?.getAttribute('role')).toBe('alert');
     expect(text('.headlines')).toBe('Headlines from that week');
     expect(buttons()).toEqual(['Read it for me']);
@@ -188,9 +188,9 @@ describe('DropReadingComponent ("Read it for me", under "Why it dropped")', () =
   it('says plainly when the news gave no clear reason', () => {
     readings.kept['ABCD'] = {state: 'done', reading: {...reading, what: '', about: 'unclear', sources: []}};
     open();
-    expect(text('.reading')).toBe('Claude found no clear reason for this fall in the news.');
+    expect(text('.reading')).toBe('The AI found no clear reason for this fall in the news.');
     expect(el.querySelector('ul')).toBeNull();
-    expect(text('.by .line')).toBe('Read by Claude on Nov 22 · not tested');
+    expect(text('.by .line')).toBe('Read by the AI on Nov 22 · not tested');
   });
 
   it('does not show a reading of an earlier fall: the stock has since fallen more on another day', () => {
@@ -208,11 +208,11 @@ describe('DropReadingComponent ("Read it for me", under "Why it dropped")', () =
     expect(readings.asked.length).toBe(1);
     answer({state: 'reading'});
     expect(text('.reading')).toContain('The company lowered its sales forecast');
-    expect(text('.busy')).toContain('Claude is searching the news');
+    expect(text('.busy')).toContain('The AI is searching the news');
     expect(buttons()).toEqual([]);
     answer({state: 'failed', reason: 'failed', reading});
     expect(text('.reading')).toContain('The company lowered its sales forecast');
-    expect(text('.failed')).toBe('Claude Code did not answer. Try again.');
+    expect(text('.failed')).toBe('The AI did not answer. Try again.');
     expect(buttons()).toEqual(['Read again']);
   });
 
@@ -220,7 +220,7 @@ describe('DropReadingComponent ("Read it for me", under "Why it dropped")', () =
     readings.kept['ABCD'] = {state: 'reading'};
     open();
     expect(readings.followed).toEqual(['ABCD']);
-    expect(text('.busy')).toContain('Claude is searching the news');
+    expect(text('.busy')).toContain('The AI is searching the news');
     answer({state: 'done', reading});
     expect(text('.reading')).toContain('The company lowered its sales forecast');
   });

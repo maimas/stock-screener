@@ -119,8 +119,8 @@ describe('caseOf (a stock\'s risk, for a row of "Could add")', () => {
     });
 
     it('tags a target that analysts cut since the daily log\'s reading of three weeks ago', () => {
-      const log: SnapshotLog = {v: 1, days: {'2026-10-30': {s: {ACME: {p: 80, v: 'D', t: 120}}}}};
-      const when = new Date('2026-10-30T12:00:00').toLocaleDateString(undefined, {month: 'short', day: 'numeric'});
+      const log: SnapshotLog = {v: 1, days: {'2026-10-31': {s: {ACME: {p: 80, v: 'D', t: 120}}}}};
+      const when = new Date('2026-10-31T12:00:00').toLocaleDateString(undefined, {month: 'short', day: 'numeric'});
       const cut = caseAt(marked({medianTarget: 96}), {log, today: '2026-11-21'});
       expect(cut.against).toEqual([{tag: 'target cut', text: `Analysts cut their middle price target by 20% since ${when}.`}]);
       expect(caseAt(marked({medianTarget: 132}), {log, today: '2026-11-21'}).against).withContext('raised').toEqual([]);
@@ -239,7 +239,7 @@ describe('the facts of a stock, for the block that sets stocks side by side', ()
   });
 
   it('flags a target that analysts cut, and not one they raised', () => {
-    const log: SnapshotLog = {v: 1, days: {'2026-10-30': {s: {ACME: {p: 80, v: 'D', t: 120}}}}};
+    const log: SnapshotLog = {v: 1, days: {'2026-10-31': {s: {ACME: {p: 80, v: 'D', t: 120}}}}};
     expect(caseAt(marked({medianTarget: 96}), {log, today: '2026-11-21'}).facts.targetChange?.against).toBeTrue();
     expect(caseAt(marked({medianTarget: 132}), {log, today: '2026-11-21'}).facts.targetChange?.against).toBeUndefined();
   });
@@ -286,8 +286,8 @@ describe('the facts of a stock, for the block that sets stocks side by side', ()
   });
 
   it('says how analysts\' target moved since the log\'s reading of three weeks ago', () => {
-    const log: SnapshotLog = {v: 1, days: {'2026-10-30': {s: {ACME: {p: 80, v: 'D', t: 120}}}}};
-    const when = new Date('2026-10-30T12:00:00').toLocaleDateString(undefined, {month: 'short', day: 'numeric'});
+    const log: SnapshotLog = {v: 1, days: {'2026-10-31': {s: {ACME: {p: 80, v: 'D', t: 120}}}}};
+    const when = new Date('2026-10-31T12:00:00').toLocaleDateString(undefined, {month: 'short', day: 'numeric'});
     expect(caseAt(marked({medianTarget: 96}), {log, today: '2026-11-21'}).facts.targetChange?.value).toBe(`cut −20% since ${when}`);
     expect(caseAt(marked({medianTarget: 132}), {log, today: '2026-11-21'}).facts.targetChange?.value).toBe(`raised +10% since ${when}`);
     expect(caseAt(marked({medianTarget: 120}), {log, today: '2026-11-21'}).facts.targetChange).withContext('unchanged').toBeUndefined();

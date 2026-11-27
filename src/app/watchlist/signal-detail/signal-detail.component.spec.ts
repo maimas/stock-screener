@@ -135,7 +135,7 @@ describe('"Why it dropped" (the fall on the chart, the headlines of that week, a
           'Biggest one-day fall since the high: -12.0% on Nov 3.',
           'The company lowered its sales forecast for next quarter. This is about the company itself, not the whole market.',
           'Example Corp lowers its sales forecast news.example.com',
-          'Read by Claude on Nov 22 · not tested · 1 source Read again',
+          'Read by the AI on Nov 22 · not tested · 1 source Read again',
         ],
         buttons: ['Read again'],
       });

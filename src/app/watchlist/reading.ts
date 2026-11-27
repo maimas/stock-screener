@@ -37,11 +37,16 @@ export type ReadingState =
 
 export const READ_BUTTON = 'Read it for me';
 export const READ_AGAIN = 'Read again';
+/**
+ * The page calls the helper "the AI" wherever it speaks of what it does (the owner renamed the column "AI · not
+ * tested" and said the reading says "AI" too); "Claude Code" stands only where the page tells which tool to sign
+ * in to or to start.
+ */
 /** Where the pointer rests on "Read it for me", or the keyboard reaches it: who reads what, and how long it takes. */
-export const READ_TIP = 'Claude Code on this computer searches the news about this fall and says in a few sentences what it found, ' +
+export const READ_TIP = 'The AI searches the news about this fall and says in a few sentences what it found, ' +
   'with its sources. It takes up to a minute.';
-export const READING_NOW = 'Claude is searching the news about this fall. This takes up to a minute.';
-export const NOT_TESTED_NOTE = 'Claude Code on this computer searched the news and wrote this. No test shows that it helps to choose ' +
+export const READING_NOW = 'The AI is searching the news about this fall. This takes up to a minute.';
+export const NOT_TESTED_NOTE = 'The AI searched the news and wrote this. No test shows that it helps to choose ' +
   'stocks, so it is context only: it changes neither the mark nor the plan.';
 
 const ABOUT: readonly ReadingAbout[] = ['company', 'industry', 'market', 'unclear'];
@@ -50,15 +55,15 @@ const ABOUT_TEXT: Record<ReadingAbout, string> = {
   company: 'This is about the company itself, not the whole market.',
   industry: 'This is about its whole industry, not only this company.',
   market: 'This is about the whole market, not only this company.',
-  unclear: 'Claude found no clear reason for this fall in the news.',
+  unclear: 'The AI found no clear reason for this fall in the news.',
 };
 
 const FAILURE_TEXT: Record<ReadingFailure, string> = {
-  'busy': 'Claude is reading another stock. Try again in a minute.',
-  'timeout': 'Claude took too long and was stopped. Try again.',
-  'failed': 'Claude Code did not answer. Try again.',
-  'no-answer': 'Claude did not give a usable answer. Try again.',
-  'no-source': 'Claude named no page for its answer, so it is not shown. Try again.',
+  'busy': 'The AI is reading another stock. Try again in a minute.',
+  'timeout': 'The AI took too long and was stopped. Try again.',
+  'failed': 'The AI did not answer. Try again.',
+  'no-answer': 'The AI did not give a usable answer. Try again.',
+  'no-source': 'The AI named no page for its answer, so it is not shown. Try again.',
   'signed-out': 'Claude Code is not signed in. In the project folder, run "docker compose exec reader claude" and type /login.',
   'not-installed': 'Claude Code is not running. Start the app again with "docker compose up -d".',
   'wrong-start': 'This version of Claude Code did not start the way this page expects, so nothing was read.',
@@ -74,11 +79,11 @@ export function readingSentences(reading: Reading): string {
   return reading.about === 'unclear' ? ABOUT_TEXT.unclear : `${reading.what} ${ABOUT_TEXT[reading.about]}`;
 }
 
-/** "Read by Claude on Nov 22 · not tested · 3 sources" */
+/** "Read by the AI on Nov 22 · not tested · 3 sources" */
 export function readByLine(reading: Reading): string {
   const when = new Date(reading.readAt).toLocaleDateString(undefined, {month: 'short', day: 'numeric'});
   const count = reading.sources.length;
-  return `Read by Claude on ${when} · not tested` + (count ? ` · ${count} source${count === 1 ? '' : 's'}` : '');
+  return `Read by the AI on ${when} · not tested` + (count ? ` · ${count} source${count === 1 ? '' : 's'}` : '');
 }
 
 export function failureText(reason: ReadingFailure): string {

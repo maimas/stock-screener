@@ -16,7 +16,7 @@ describe('a reading (what Claude Code found in the news about a fall)', () => {
     it('names what the button does and what is going on while it works', () => {
       expect(READ_BUTTON).toBe('Read it for me');
       expect(READ_AGAIN).toBe('Read again');
-      expect(READING_NOW).toBe('Claude is searching the news about this fall. This takes up to a minute.');
+      expect(READING_NOW).toBe('The AI is searching the news about this fall. This takes up to a minute.');
     });
 
     it('says what happened in the words of the reading, then what kind of news it was in words of its own', () => {
@@ -28,17 +28,17 @@ describe('a reading (what Claude Code found in the news about a fall)', () => {
     });
 
     it('says so plainly when the news gave no clear reason', () => {
-      expect(readingSentences({...reading, what: '', about: 'unclear', sources: []})).toBe('Claude found no clear reason for this fall in the news.');
+      expect(readingSentences({...reading, what: '', about: 'unclear', sources: []})).toBe('The AI found no clear reason for this fall in the news.');
     });
 
     it('says who read it, when, that it is not tested, and how many pages it rests on', () => {
-      expect(readByLine(reading)).toBe('Read by Claude on Nov 22 · not tested · 3 sources');
-      expect(readByLine({...reading, sources: reading.sources.slice(0, 1)})).toBe('Read by Claude on Nov 22 · not tested · 1 source');
-      expect(readByLine({...reading, about: 'unclear', sources: []})).toBe('Read by Claude on Nov 22 · not tested');
+      expect(readByLine(reading)).toBe('Read by the AI on Nov 22 · not tested · 3 sources');
+      expect(readByLine({...reading, sources: reading.sources.slice(0, 1)})).toBe('Read by the AI on Nov 22 · not tested · 1 source');
+      expect(readByLine({...reading, about: 'unclear', sources: []})).toBe('Read by the AI on Nov 22 · not tested');
     });
 
     it('explains "not tested" in one place, for whoever asks', () => {
-      expect(NOT_TESTED_NOTE).toBe('Claude Code on this computer searched the news and wrote this. No test shows that it helps to choose ' +
+      expect(NOT_TESTED_NOTE).toBe('The AI searched the news and wrote this. No test shows that it helps to choose ' +
         'stocks, so it is context only: it changes neither the mark nor the plan.');
     });
 
@@ -54,11 +54,11 @@ describe('a reading (what Claude Code found in the news about a fall)', () => {
 
   describe('when it did not work', () => {
     it('names the problem and what to do about it, in plain words', () => {
-      expect(failureText('busy')).toBe('Claude is reading another stock. Try again in a minute.');
-      expect(failureText('timeout')).toBe('Claude took too long and was stopped. Try again.');
-      expect(failureText('failed')).toBe('Claude Code did not answer. Try again.');
-      expect(failureText('no-answer')).toBe('Claude did not give a usable answer. Try again.');
-      expect(failureText('no-source')).toBe('Claude named no page for its answer, so it is not shown. Try again.');
+      expect(failureText('busy')).toBe('The AI is reading another stock. Try again in a minute.');
+      expect(failureText('timeout')).toBe('The AI took too long and was stopped. Try again.');
+      expect(failureText('failed')).toBe('The AI did not answer. Try again.');
+      expect(failureText('no-answer')).toBe('The AI did not give a usable answer. Try again.');
+      expect(failureText('no-source')).toBe('The AI named no page for its answer, so it is not shown. Try again.');
       expect(failureText('signed-out')).toBe('Claude Code is not signed in. In the project folder, run "docker compose exec reader claude" and type /login.');
       expect(failureText('not-installed')).toBe('Claude Code is not running. Start the app again with "docker compose up -d".');
       expect(failureText('wrong-start')).toBe('This version of Claude Code did not start the way this page expects, so nothing was read.');
