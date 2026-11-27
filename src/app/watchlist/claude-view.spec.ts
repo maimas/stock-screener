@@ -425,11 +425,11 @@ describe('factsFor: every indicator of the app', () => {
     return stock;
   };
   const TODAY = '2026-11-21';
-  /** The daily log: marked DIP BUY on Nov 9 at 90 with a target of 150, and every day since. */
+  /** The daily log (days of a weekend, as every made-up day here): marked DIP BUY on Nov 8 at 90 with a target of 150, and since. */
   const log = (() => {
-    let made = record(emptyLog(), '2026-10-20', {s: {ACME: {p: 95, v: 'W', t: 150}}});
-    for (const day of ['2026-11-09', '2026-11-15', TODAY]) {
-      made = record(made, day, {s: {ACME: {p: day === '2026-11-09' ? 90 : 80, v: 'D', t: day === TODAY ? 120 : 150}}});
+    let made = record(emptyLog(), '2026-10-18', {s: {ACME: {p: 95, v: 'W', t: 150}}});
+    for (const day of ['2026-11-08', '2026-11-15', TODAY]) {
+      made = record(made, day, {s: {ACME: {p: day === '2026-11-08' ? 90 : 80, v: 'D', t: day === TODAY ? 120 : 150}}});
     }
     return made;
   })();
@@ -453,7 +453,7 @@ describe('factsFor: every indicator of the app', () => {
 
   it('sends what the daily log knows: since when it is marked, the price since, and how analysts moved their target', () => {
     const facts = factsFor(marked(), NOW, undefined, {log, today: TODAY});
-    expect(facts.markedDaysAgo).toBe(12);
+    expect(facts.markedDaysAgo).toBe(13);
     expect(facts.sinceMarked).toBe(-11.1);
     expect(facts.targetChange).withContext('120 against 150 four weeks ago').toBe(-20);
   });
@@ -477,5 +477,39 @@ describe('factsFor: every indicator of the app', () => {
   it('still sends nothing about what is held', () => {
     const facts = factsFor(marked(), NOW, undefined, {log, today: TODAY, market: {vix: 20, spy: 500, spyHigh52: 600}});
     expect(Object.keys(facts).join(' ')).not.toMatch(/held|hold|share|cash|portfolio|amount|position|limit/i);
+  });
+});
+
+describe('factsFor: what a review of the indicators found', () => {
+  const marked = (): Stock => makeStock({
+    symbol: 'ACME', price: 80, high52: 100, quarters: reportedQuarters(8, {baseRevenue: 100, latestRevenue: 120}), closes: flatCloses(250, 80),
+  });
+  const TODAY = '2026-11-21';
+
+  // The daily log also records what is held. A stock that was bought while it was marked, and put on a list later,
+  // is in the log from the day it was bought: "marked since 13 days" would then be the age of a holding, and untrue
+  // of the mark.
+  it('says since when a stock is marked only when the log knew the stock before that day', () => {
+    let fromItsFirstDay = record(emptyLog(), '2026-11-08', {s: {ACME: {p: 90, v: 'D'}}});
+    fromItsFirstDay = record(fromItsFirstDay, TODAY, {s: {ACME: {p: 80, v: 'D'}}});
+    const unknown = factsFor(marked(), NOW, undefined, {log: fromItsFirstDay, today: TODAY});
+    expect(unknown.markedDaysAgo).toBeUndefined();
+    expect(unknown.sinceMarked).toBeUndefined();
+
+    const before = record(fromItsFirstDay, '2026-11-01', {s: {ACME: {p: 99, v: 'W'}}});
+    const known = factsFor(marked(), NOW, undefined, {log: before, today: TODAY});
+    expect(known.markedDaysAgo).toBe(13);
+    expect(known.sinceMarked).toBe(-11.1);
+  });
+
+  it('says whether fear is high of the figure it sends: 24.96 is sent as 25, and 25 is high', () => {
+    const facts = factsFor(marked(), NOW, undefined, {market: {vix: 24.96}});
+    expect([facts.vix, facts.fearHigh]).toEqual([25, 'yes']);
+    expect(factsFor(marked(), NOW, undefined, {market: {vix: 24.94}}).fearHigh).toBe('no');
+  });
+
+  it('says how long one stock can take, now that the judgment is made with care', () => {
+    expect(ASKING_ONE).toContain('Usually about half a minute, at most three.');
+    expect(ASK_ONE_TIP).toContain('Usually about half a minute.');
   });
 });

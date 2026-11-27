@@ -339,7 +339,7 @@ test('does not keep "no clear reason" from a view: what the page shows of the fa
 
 test('a view\'s reading takes the place of a kept "no clear reason" of that day, and never of a reading of a later day', async () => {
   const unclear = {what: '', about: 'unclear', sources: [], readAt: '2026-11-20T10:00:00.000Z', day: '2026-11-03', percent: 12, model: 'm', version: '1'};
-  const later = {what: 'About a later fall.', about: 'market', sources: [page], readAt: '2026-11-25T10:00:00.000Z', day: '2026-11-24', percent: 9, model: 'm', version: '1'};
+  const later = {what: 'About a later fall.', about: 'market', sources: [page], readAt: '2026-11-22T10:00:00.000Z', day: '2026-11-22', percent: 9, model: 'm', version: '1'};
   await storage.merge('readings', {v: 1, readings: {ABCD: unclear, EFGH: later}});
   const fell = symbol => stock(symbol, {bigDropDay: '2026-11-03', bigDropPercent: -12});
   await post({list: [fell('ABCD'), fell('EFGH')]});
