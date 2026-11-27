@@ -647,10 +647,12 @@ export function typicalCaseTip(cases: TestedCases, bought?: string): string {
     shownFor(bought);
 }
 
-/** In a stock's details on the Watchlist: the heading over its size in each portfolio, and the sentences under it. */
+/**
+ * In the details of a stock marked DIP BUY on the Watchlist: the heading over its size in each portfolio, and the
+ * sentences under it. A stock without the mark has no size and no such section.
+ */
 export const FITS_TITLE = 'Where it fits';
 export const FITS_NOTE = `Its size in each of your portfolios, as a share of what that portfolio is worth. The Portfolio view lists it under "${COULD_ADD}".`;
-export const FITS_NOT_MARKED = 'Only a stock marked DIP BUY gets a size: the tests measured no others, so the app works out no amount for this one.';
 export const FITS_NO_PORTFOLIO = 'None of your portfolios is worth anything yet. Enter the cash of one on the Portfolio view to see a size.';
 
 /** A stock marked DIP BUY, with what the tests found for stocks of its kind. */

@@ -54,6 +54,13 @@
       </ul>
     </section>
 
+    <!-- "The business": how much of its sales the company keeps and what it earns on the money in it, each beside
+         its industry. Context, not part of the mark; nothing is shown for a fund or where the data source sends
+         none of it. A section of its own, built elsewhere (business-facts/). It stands in this column, between the
+         risk and the other context: since the AI's view came to stand under "Why it dropped", the three columns
+         are nearest in height this way (it stood there itself for an afternoon, when that column was the short one). -->
+    <app-business-facts [stock]="stock"></app-business-facts>
+
     <section *ngIf="context.length">
       <h4>Context, not part of the mark<app-more key="details.context" what="the context that is not part of the mark"></app-more></h4>
       <!-- The markers in front of the lines are drawn, not written: said once in words, for the eye and for a
@@ -87,17 +94,18 @@
       </app-drop-reading>
     </section>
 
-    <!-- "The business": how much of its sales the company keeps and what it earns on the money in it, each beside
-         its industry, and companies like it. Context, not part of the mark; nothing is shown for a fund or where
-         the data source sends none of it. A section of its own, built elsewhere (business-facts/). It stands in this
-         column: under "Risk of this stock" it made the first column twice as tall as the other two. -->
-    <app-business-facts [stock]="stock"></app-business-facts>
+    <!-- The AI's own view of this stock, asked for by the owner of the page ("add the claude response details in
+         the expanded section"): its word and short reason, its sentence, its sources, and one button that asks
+         about this one stock. Not tested, and its heading says so. A section of its own, built elsewhere
+         (claude-view-detail/). It stands in this column, with the other things that are about the company and are
+         not part of the mark. -->
+    <app-claude-view-detail [stock]="stock" [today]="today"></app-claude-view-detail>
   </div>
 
-  <!-- How much of it fits each portfolio and "What you own of it", supplied by the page. -->
-  <div class="group your-stake">
-    <ng-content></ng-content>
-  </div>
+  <!-- How much of it fits each portfolio and "What you own of it", supplied by the page: each only when it has
+       something to say (a stock with the mark; a stock that is held). With neither, the group is empty and takes
+       no room (the stylesheet tells by `:empty`, so nothing but what the page hands in may stand in this element). -->
+  <div class="group your-stake"><ng-content></ng-content></div>
 
   <div class="group the-rule" *ngIf="tests.length || afterBuying.length">
     <!-- Said once, so that who opens several stocks in a row knows this part can be skipped the second time. -->

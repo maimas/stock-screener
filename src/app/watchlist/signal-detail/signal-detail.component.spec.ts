@@ -1,4 +1,7 @@
+import {provideHttpClient} from "@angular/common/http";
+import {provideHttpClientTesting} from "@angular/common/http/testing";
 import {Component} from "@angular/core";
+import {NgIf} from "@angular/common";
 import {TestBed} from "@angular/core/testing";
 import {By} from "@angular/platform-browser";
 import {dropFacts, headlinesLine, resultsSoonLine, SignalDetailComponent, verdictFacts, verdictInputs} from "./signal-detail.component";
@@ -81,7 +84,7 @@ describe('"Why it dropped" (the fall on the chart, the headlines of that week, a
 
     beforeEach(() => {
       readings = new FakeReadings();
-      TestBed.configureTestingModule({imports: [SignalDetailComponent], providers: [{provide: ReadingService, useValue: readings}]});
+      TestBed.configureTestingModule({imports: [SignalDetailComponent], providers: [provideHttpClient(), provideHttpClientTesting(), {provide: ReadingService, useValue: readings}]});
     });
 
     /** The lines of the "Why it dropped" part of a stock's details, top to bottom. */
@@ -155,7 +158,7 @@ describe('"Why it dropped" (the fall on the chart, the headlines of that week, a
 
 describe('SignalDetailComponent: more about the stock, outside the app', () => {
   it("links to the stock's page at the data source by name, in a new tab so that the app stays open", () => {
-    TestBed.configureTestingModule({imports: [SignalDetailComponent], providers: [{provide: ReadingService, useValue: new FakeReadings()}]});
+    TestBed.configureTestingModule({imports: [SignalDetailComponent], providers: [provideHttpClient(), provideHttpClientTesting(), {provide: ReadingService, useValue: new FakeReadings()}]});
     const fixture = TestBed.createComponent(SignalDetailComponent);
     fixture.componentRef.setInput('stock', makeStock({symbol: 'ABCD', price: 80, high52: 100}));
     fixture.detectChanges();
@@ -170,13 +173,15 @@ describe('SignalDetailComponent: more about the stock, outside the app', () => {
 describe('SignalDetailComponent: DIP BUY, WATCH and PASS are called a mark, as in the legend', () => {
   /** The headings of a stock's details and the sentence they open with. */
   function shown(spec: Parameters<typeof makeStock>[0], noVerdict: 'fund' | 'too-new' | 'no-data' = 'no-data') {
-    TestBed.configureTestingModule({imports: [SignalDetailComponent], providers: [{provide: ReadingService, useValue: new FakeReadings()}]});
+    TestBed.configureTestingModule({imports: [SignalDetailComponent], providers: [provideHttpClient(), provideHttpClientTesting(), {provide: ReadingService, useValue: new FakeReadings()}]});
     const fixture = TestBed.createComponent(SignalDetailComponent);
     fixture.componentRef.setInput('stock', makeStock(spec));
     fixture.componentRef.setInput('noVerdict', noVerdict);
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
-    return {headings: Array.from(el.querySelectorAll('h4')).map(it => it.textContent?.trim()), lead: el.querySelector('.lead')?.textContent?.trim()};
+    // The headings of the details' own sections: the AI's view is a part of its own, with a heading of its own.
+    const own = Array.from(el.querySelectorAll('h4')).filter(it => !it.closest('app-claude-view-detail'));
+    return {headings: own.map(it => it.textContent?.trim()), lead: el.querySelector('.lead')?.textContent?.trim()};
   }
 
   afterEach(() => TestBed.resetTestingModule());
@@ -197,7 +202,7 @@ describe('SignalDetailComponent: DIP BUY, WATCH and PASS are called a mark, as i
 
   // The details open under a symbol. They say first which company that is, in words: not everyone knows a symbol.
   it('says first which company this is: its name, then its sector and its industry', () => {
-    TestBed.configureTestingModule({imports: [SignalDetailComponent], providers: [{provide: ReadingService, useValue: new FakeReadings()}]});
+    TestBed.configureTestingModule({imports: [SignalDetailComponent], providers: [provideHttpClient(), provideHttpClientTesting(), {provide: ReadingService, useValue: new FakeReadings()}]});
     const fixture = TestBed.createComponent(SignalDetailComponent);
     fixture.componentRef.setInput('stock', makeStock({symbol: 'ABCD'}));
     fixture.detectChanges();
@@ -247,7 +252,7 @@ describe('SignalDetailComponent: what is about this stock, what is about you, an
   // About two thirds of the words under a DIP BUY are the same for every DIP BUY. They used to stand between the
   // few sentences that are about this company and the reader could not tell the two apart.
   it('groups the sections in that order, the rule last', () => {
-    TestBed.configureTestingModule({imports: [DetailsWithTheStake], providers: [{provide: ReadingService, useValue: new FakeReadings()}]});
+    TestBed.configureTestingModule({imports: [DetailsWithTheStake], providers: [provideHttpClient(), provideHttpClientTesting(), {provide: ReadingService, useValue: new FakeReadings()}]});
     const fixture = TestBed.createComponent(DetailsWithTheStake);
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
@@ -257,7 +262,8 @@ describe('SignalDetailComponent: what is about this stock, what is about you, an
     // that are the same under every stock, set quiet with them. It is about this stock, so it stands with it.
     expect(groups).toEqual([
       ['about-stock', ['Why DIP BUY', 'Risk of this stock', 'Context, not part of the mark']],
-      ['dropped', ['Why it dropped']],
+      // The company itself: why its price dropped, then the AI's own view of it (not tested, and headed so).
+      ['dropped', ['Why it dropped', 'AI view · not tested']],
       ['your-stake', ['Where it fits', 'What you own of it']],
       ['the-rule', ['What the tests say', 'After you buy']],
     ]);
@@ -271,7 +277,7 @@ describe('SignalDetailComponent: what is about this stock, what is about you, an
   // The owner, of these details: "too much text and not much signal". They opened with a sentence and two bullets
   // that said the sentence again with its numbers.
   it('shows what the mark rests on as rows, a name and a figure each, and keeps the sentence behind "more"', () => {
-    TestBed.configureTestingModule({imports: [DetailsWithTheStake], providers: [{provide: ReadingService, useValue: new FakeReadings()}]});
+    TestBed.configureTestingModule({imports: [DetailsWithTheStake], providers: [provideHttpClient(), provideHttpClientTesting(), {provide: ReadingService, useValue: new FakeReadings()}]});
     const fixture = TestBed.createComponent(DetailsWithTheStake);
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
@@ -306,7 +312,7 @@ describe('SignalDetailComponent: what is about this stock, what is about you, an
   });
 
   it('has no group for the rule where no rule applies: a stock without a mark', () => {
-    TestBed.configureTestingModule({imports: [SignalDetailComponent], providers: [{provide: ReadingService, useValue: new FakeReadings()}]});
+    TestBed.configureTestingModule({imports: [SignalDetailComponent], providers: [provideHttpClient(), provideHttpClientTesting(), {provide: ReadingService, useValue: new FakeReadings()}]});
     const fixture = TestBed.createComponent(SignalDetailComponent);
     fixture.componentRef.setInput('stock', makeStock({symbol: 'ABCD'}));
     fixture.componentRef.setInput('noVerdict', 'fund');
@@ -317,7 +323,7 @@ describe('SignalDetailComponent: what is about this stock, what is about you, an
 
 describe('SignalDetailComponent: the way back', () => {
   function details(back: string) {
-    TestBed.configureTestingModule({imports: [SignalDetailComponent], providers: [{provide: ReadingService, useValue: new FakeReadings()}]});
+    TestBed.configureTestingModule({imports: [SignalDetailComponent], providers: [provideHttpClient(), provideHttpClientTesting(), {provide: ReadingService, useValue: new FakeReadings()}]});
     const fixture = TestBed.createComponent(SignalDetailComponent);
     fixture.componentRef.setInput('stock', makeStock({symbol: 'ABCD'}));
     fixture.componentRef.setInput('back', back);
@@ -349,7 +355,7 @@ describe('SignalDetailComponent: closing the details from where the reading ends
 
   // The row's own button is at the top of a panel that can be a screen and a half tall.
   it('offers "Close these details" at the foot, also for a stock without a page at the data source', () => {
-    TestBed.configureTestingModule({imports: [SignalDetailComponent], providers: [{provide: ReadingService, useValue: new FakeReadings()}]});
+    TestBed.configureTestingModule({imports: [SignalDetailComponent], providers: [provideHttpClient(), provideHttpClientTesting(), {provide: ReadingService, useValue: new FakeReadings()}]});
     const fixture = TestBed.createComponent(SignalDetailComponent);
     const stock = makeStock({symbol: 'ABCD'});
     fixture.componentRef.setInput('stock', stock);
@@ -373,7 +379,7 @@ describe('SignalDetailComponent: the Esc key', () => {
   afterEach(() => TestBed.resetTestingModule());
 
   it('closes the details while the keyboard is inside them, as "Close these details" does', () => {
-    TestBed.configureTestingModule({imports: [SignalDetailComponent], providers: [{provide: ReadingService, useValue: new FakeReadings()}]});
+    TestBed.configureTestingModule({imports: [SignalDetailComponent], providers: [provideHttpClient(), provideHttpClientTesting(), {provide: ReadingService, useValue: new FakeReadings()}]});
     const fixture = TestBed.createComponent(SignalDetailComponent);
     fixture.componentRef.setInput('stock', makeStock({symbol: 'ABCD'}));
     fixture.detectChanges();
@@ -382,5 +388,87 @@ describe('SignalDetailComponent: the Esc key', () => {
     const close = (fixture.nativeElement as HTMLElement).querySelector('button.close') as HTMLButtonElement;
     close.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
     expect(asked).toBe(1);
+  });
+});
+
+/**
+ * A stock's details in a list of a given width, with the parts about the reader's stake handed in only when they
+ * have something to say, as the page hands them in.
+ */
+@Component({
+  standalone: true,
+  imports: [SignalDetailComponent, NgIf],
+  template: `
+    <div class="list" style="container-type: inline-size" [style.width.px]="width">
+      <app-signal-detail [stock]="stock" [news]="news" today="2026-11-21">
+        <div class="panel" *ngIf="fits"><h4>Where it fits</h4></div>
+        <div class="panel" *ngIf="owned"><h4>What you own of it</h4></div>
+      </app-signal-detail>
+    </div>`,
+})
+class DetailsInAList {
+  width = 1000;
+  fits = false;
+  owned = false;
+  stock = makeStock({
+    symbol: 'ABCD', price: 80, high52: 100, quarters: reportedQuarters(8, {baseRevenue: 100, latestRevenue: 120}),
+    closes: flatCloses(250, 80), medianTarget: 120, recommendationRate: 1.5,
+  });
+  news: DropNews = {drop: {date: new Date('2026-11-03T00:00:00.000Z'), changePercent: -12.04}, headlines: []};
+}
+
+// The owner had the reader's stake taken out of the details where it had nothing to say (a stock without the mark
+// that is not held). The column it stood in must not stay behind as a gap.
+describe('SignalDetailComponent: details that say nothing about the reader\'s stake', () => {
+  afterEach(() => TestBed.resetTestingModule());
+
+  function shownAt(width: number, o: { fits?: boolean, owned?: boolean } = {}) {
+    TestBed.configureTestingModule({imports: [DetailsInAList], providers: [provideHttpClient(), provideHttpClientTesting(), {provide: ReadingService, useValue: new FakeReadings()}]});
+    const fixture = TestBed.createComponent(DetailsInAList);
+    Object.assign(fixture.componentInstance, {width, ...o});
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    const box = (group: string) => el.querySelector<HTMLElement>(`.sections > .${group}`)!.getBoundingClientRect();
+    return {el, box};
+  }
+
+  it('gives the stake no room when nothing is handed in, and its room when something is', () => {
+    const none = shownAt(1000);
+    expect(getComputedStyle(none.el.querySelector('.your-stake')!).display).toBe('none');
+    TestBed.resetTestingModule();
+    const some = shownAt(1000, {owned: true});
+    expect(getComputedStyle(some.el.querySelector('.your-stake')!).display).not.toBe('none');
+    expect(some.box('your-stake').width).toBeGreaterThan(300);
+  });
+
+  it('puts why it dropped beside the stock, in a list of middling width, where the stake would have stood', () => {
+    const {box} = shownAt(1000);
+    expect(box('dropped').left).withContext('to the right of what is about the stock').toBeGreaterThan(box('about-stock').right);
+    expect(Math.abs(box('dropped').top - box('about-stock').top)).withContext('on the same line').toBeLessThan(1);
+    expect(box('dropped').right).withContext('the right half is used').toBeGreaterThan(900);
+  });
+
+  // With a stake to show, the stake stands at the top of the right half and why it dropped under it, beside the
+  // stock. Why it dropped used to stand under the stock on the left: since the AI's view and the business came into
+  // the details that made the left column twice the right one (868px beside a line or two).
+  it('puts why it dropped under the stake there, in the right half, when the stake has something to say', () => {
+    const {box} = shownAt(1000, {fits: true});
+    expect(box('your-stake').left).withContext('the stake to the right of what is about the stock').toBeGreaterThan(box('about-stock').right);
+    expect(Math.abs(box('your-stake').top - box('about-stock').top)).withContext('on the same line as it').toBeLessThan(1);
+    expect(Math.abs(box('dropped').left - box('your-stake').left)).withContext('why it dropped in the same half').toBeLessThan(1);
+    expect(box('dropped').top).withContext('under the stake').toBeGreaterThanOrEqual(box('your-stake').bottom - 1);
+  });
+
+  // The same two columns under every stock of a wide list, whether or not it has a third: a column that moved or
+  // changed its width from one stock to the next would have to be found anew each time.
+  it('leaves the first two columns where they are in a wide list', () => {
+    const without = shownAt(1300);
+    const [stock, dropped] = [without.box('about-stock'), without.box('dropped')];
+    TestBed.resetTestingModule();
+    const withStake = shownAt(1300, {fits: true, owned: true});
+    expect(Math.abs(withStake.box('about-stock').width - stock.width)).toBeLessThan(1);
+    expect(Math.abs(withStake.box('dropped').left - dropped.left)).toBeLessThan(1);
+    expect(Math.abs(withStake.box('dropped').width - dropped.width)).toBeLessThan(1);
+    expect(dropped.left).toBeGreaterThan(stock.right);
   });
 });

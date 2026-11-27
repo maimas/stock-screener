@@ -1,4 +1,6 @@
-<h4>{{ heading }}</h4>
+<!-- For a stock that is held. The page shows the panel under no other; without a holding nothing stands here, not
+     the heading either (it stood over "Not in this portfolio." and a button, which the owner had removed). -->
+<h4 *ngIf="row">{{ heading }}</h4>
 
 <ng-container *ngIf="row && !editing && !recording">
   <!-- The holding as figures with their names, read down: what is held, what it is worth, how long, how much of the
@@ -87,19 +89,8 @@
   </div>
 </form>
 
-<!-- A stock that is not held: a sentence and one button. The form opens on the button, as "Bought more" does;
-     standing open under every stock, with its filled button, it looked like an order ticket. -->
-<ng-container *ngIf="!row && !entering">
-  <!-- The fact; what entering a holding gives opens with the other sentences of the details. -->
-  <p class="intro">Not in this portfolio.<span appMoreRest="details.words"> {{ whyEnter }}</span></p>
-  <div class="actions">
-    <button mat-stroked-button type="button" data-opens="first" (click)="startEntering()">Enter what you hold</button>
-  </div>
-</ng-container>
-
-<form *ngIf="showForm" (ngSubmit)="submit()" (keydown.escape)="escape($event)" (input)="changed()" (change)="touched = true" novalidate>
-  <!-- What the form is, as the purchase forms of "Could add" say it first. -->
-  <p class="what" *ngIf="!row">{{ recordsOnly }}</p>
+<!-- "Edit": a correction of what is recorded, in the holding's own numbers. It never touches the cash. -->
+<form *ngIf="row && editing" (ngSubmit)="submit()" (keydown.escape)="escape($event)" (input)="changed()" (change)="touched = true" novalidate>
   <div class="fields">
     <label>
       <span>Shares</span>
@@ -114,19 +105,11 @@
       <input type="date" name="day" [max]="today" [(ngModel)]="day">
     </label>
   </div>
-  <label class="check" *ngIf="!row && cash !== undefined">
-    <input type="checkbox" name="firstFromCash" [(ngModel)]="viaCash" (change)="cashChosen = true">
-    <span>Paid from this portfolio's cash ({{ cashShown }})</span>
-  </label>
-  <p class="result" *ngIf="firstResult" role="status">{{ firstResult }}</p>
-  <p class="caution" *ngIf="!row && slipNote" role="status">{{ slipNote }}</p>
-  <p class="caution" *ngIf="!row && keptNote" role="status">{{ keptNote }}</p>
   <p class="problem" *ngIf="telling && problem" role="alert">{{ problem }}</p>
   <div class="actions">
-    <button mat-stroked-button type="submit">{{ saveLabel }}</button>
+    <button mat-stroked-button type="submit">Save</button>
     <button mat-button type="button" (click)="cancel()">Cancel</button>
   </div>
 </form>
 
-<!-- How big a stock that is not held could be, in each portfolio, is said next to this panel ("Where it fits"). -->
 <p class="hint" *ngIf="row && casesText" appMoreRest="details.words">{{ casesText }}</p>

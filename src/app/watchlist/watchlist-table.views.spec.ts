@@ -141,6 +141,31 @@ describe('WatchlistTableComponent: the two views of the one page', () => {
     expect(page.backFrom('ACME')).withContext('the way back is used up').toBe('');
   }));
 
+  // Found by a review: Esc closed the details of a stock that was opened from the plan and left the reader on the
+  // Watchlist, a view away from what they were doing.
+  it('goes back to the plan when the details of a stock opened from it are closed', fakeAsync(() => {
+    const fixture = create(), page = fixture.componentInstance;
+    const asked: PageView[] = [];
+    page.go.subscribe(view => asked.push(view));
+    page.showStock('ACME');
+    show(fixture, 'watchlist');
+    flush();
+    expect(page.backFrom('ACME')).not.toBe('');
+    page.closeStock({quote: {symbol: 'ACME'}} as never);
+    flush();
+    expect(asked).withContext('to the Watchlist for the stock, and back on closing it').toEqual(['watchlist', 'portfolio']);
+  }));
+
+  it('says beside "Your lists" that a click on one heading ordered every list, and gives the way back', () => {
+    const fixture = create(), page = fixture.componentInstance;
+    expect(page.orderSays).withContext('as the lists start, by mark: nothing to say').toBe('');
+    page.sortLists({active: 'growth', direction: 'desc'});
+    fixture.detectChanges();
+    expect(page.orderSays).toBe('All lists ordered by "Growing"');
+    page.orderByMark();
+    expect(page.orderSays).toBe('');
+  });
+
   it('starts at the top again when the watchlist is opened by its tab: there is nothing to go back to', fakeAsync(() => {
     const fixture = create(), page = fixture.componentInstance;
     show(fixture, 'watchlist');

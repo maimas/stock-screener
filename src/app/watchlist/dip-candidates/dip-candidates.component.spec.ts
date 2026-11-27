@@ -260,6 +260,16 @@ describe('DipCandidatesComponent: the stocks marked DIP BUY, one to a row', () =
       expect(asked).toHaveBeenCalledTimes(1);
     });
 
+    // Found by a review: folded, the box showed a green "Market fear high" and the marks' counts, and nothing of
+    // what limits them. The strip stays in the folded box (the stylesheet shows it where that box is a wide strip).
+    it('keeps the tested figures, the risk among them, in the folded box too, drawn as the page draws figures', () => {
+      const {el} = shown({folded: true, candidates: [candidate('AMD')], marks: {dipBuy: 1, watch: 0, pass: 0, none: 0}});
+      const strip = el.querySelector('.tested-figures')!;
+      expect(strip).not.toBeNull();
+      expect(strip.querySelector('dl')!.className).withContext('the look of the strip in the plan\'s box').toBe('facts');
+      expect(text(strip.querySelector('dl .risk dt'))).toBe('1 in 10 DIP BUYs lost');
+    });
+
     it('keeps how to read the table behind one control, whole, and out of the folded box', () => {
       const {el} = shown({candidates: [candidate('AMD'), candidate('ARM')], marks: {dipBuy: 2, watch: 0, pass: 0, none: 0}});
       const about = el.querySelector('.about app-about')!;

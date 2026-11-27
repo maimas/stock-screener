@@ -141,14 +141,6 @@ input:focus-visible {
   margin: 8px 0 4px;
 }
 
-// What the first-entry form is, before anything else in it: in the full ink, as in the forms of "Could add".
-.what {
-  margin: 0 0 6px;
-  font-size: var(--text-data);
-  font-weight: 500;
-  color: var(--ink);
-}
-
 // "Remove" takes a holding away: it stays in the line of the other three (a wider gap dropped it to a line of its own).
 .actions .remove {
   margin-left: 0;

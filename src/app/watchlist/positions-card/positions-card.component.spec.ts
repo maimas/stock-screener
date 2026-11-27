@@ -808,7 +808,7 @@ describe('PositionsCardComponent, as shown: one box for a portfolio\'s plan and 
     const inSight = Array.from(el.querySelectorAll('mat-card p'))
       .filter(p => !p.closest('[hidden]') && !p.classList.contains('saved') && !p.classList.contains('lines')).map(text);
     // And, by the owner's word, one quiet line about the three cases under the table that shows them.
-    expect(inSight).toEqual([CASES_LIMIT, 'Bought or sold? Click the stock\'s symbol, here or in "Could add", to record it.']);
+    expect(inSight).toEqual([CASES_LIMIT, 'Bought or sold? Click the stock\'s symbol here to record it; a first purchase is recorded with "Add" in "Could add".']);
     const caveat = el.querySelector('p.caveat')!;
     expect(caveat.previousElementSibling?.classList.contains('table-scroll')).withContext('right under the table').toBeTrue();
     expect(shown(page => page.card = cardWith([row('SPCX', {marked: false})])).querySelector('p.caveat'))
@@ -912,15 +912,18 @@ describe('PositionsCardComponent, as shown: one box for a portfolio\'s plan and 
   it('keeps the heading and says how to start while the portfolio holds nothing', () => {
     const el = shown(page => page.card = cardWith([]));
     expect(order(el)).toEqual(['Your plan today', 'names', 'lines', 'settings', 'What you own', 'saved']);
-    // The lists are on the other view, so the sentence says where: "below" would point at nothing.
+    // It sent the reader to a stock's details on the Watchlist, to "Enter what you hold". The owner had that button
+    // removed from the details, so the sentence names the place that is left: the rows of "Could add".
     expect(text(el.querySelector('.empty'))).toBe(
-      'Nothing in this portfolio yet. Open a stock on the Watchlist and enter what you hold. Each one then gets a row here: ' +
+      'Nothing in this portfolio yet. Record a purchase with "Add" in "Could add". Each stock you own then gets a row here: ' +
       'how it is doing, how it compares with the market, and what a bad or a good half-year could mean for it.');
   });
 
-  // Once a portfolio holds something, nothing on this view said where a purchase or a sale is recorded.
+  // Once a portfolio holds something, nothing on this view said where a purchase or a sale is recorded. A stock in
+  // "Could add" is not owned yet, and its details have no form any more: its row's "Add" records the purchase.
   it('says, under the table, how to change what is recorded for a stock', () => {
-    expect(text(shown().querySelector('p.note.how'))).toBe('Bought or sold? Click the stock\'s symbol, here or in "Could add", to record it.');
+    expect(text(shown().querySelector('p.note.how'))).toBe(
+      'Bought or sold? Click the stock\'s symbol here to record it; a first purchase is recorded with "Add" in "Could add".');
     expect(shown().querySelector('.holdings-main p.note.how')).withContext('with the table, not at the foot of the box').not.toBeNull();
     expect(shown(page => page.card = cardWith([])).querySelector('p.note.how')).withContext('the empty portfolio has its own sentence').toBeNull();
   });
@@ -1058,6 +1061,27 @@ describe('PositionsCardComponent, as shown: which columns "What you own" has', (
     expect(Array.from(t.el.querySelector('tbody .verdict')!.classList).sort()).withContext('drawn as the mark is drawn in the lists')
       .toEqual(['dip', 'verdict', 'verdict-pill']);
     expect(t.el.querySelector('tbody .row-actions button')!.getAttribute('aria-label')).toBe('Remove ARM from what you own');
+  });
+
+  // With every column, a window of about 1,100px had the table 132px wider than its box (147px with the window's
+  // scroll bar): "Bought" and the remove button were off the edge. In a box under 1,100px the table is set a size
+  // smaller, a stock's mark stands under its symbol, and the result in percent under the result in dollars. Where
+  // the cells stand close the arrow of the sorted column is smaller, so that it does not reach the next heading.
+  it('sets every column closer in a narrow box, so that the last ones are not off the edge', () => {
+    const t = table(page => page.allColumns = true);
+    const looks = (width: string) => {
+      t.el.style.width = width;
+      const of = (name: string) => getComputedStyle(t.el.querySelector(`table.every ${name}`)!);
+      return [of('tbody td').fontSize, of('tbody .verdict').display, of('tbody td .percent').display];
+    };
+    expect(looks('1500px')).withContext('a box with room').toEqual(['13px', 'inline-block', 'inline-block']);
+    expect(looks('1040px')).withContext('a narrow box').toEqual(['12px', 'block', 'block']);
+    const arrow = (width: string) => {
+      t.el.style.width = width;
+      return getComputedStyle(t.el.querySelector('table.every thead .sort')!, '::after').transform;
+    };
+    expect(arrow('1500px')).withContext('room after the heading: the arrow at its full size').toBe('none');
+    expect(arrow('1300px')).withContext('cells 8px apart: a smaller arrow').not.toBe('none');
   });
 
   it('offers the choice beside the heading, in the words of the lists\' own choice, and tells the page what was chosen', () => {

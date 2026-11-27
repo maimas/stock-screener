@@ -12,8 +12,8 @@ The app has two views, with a link to each in the bar at the top.
 | Watchlist | `/watchlist` | What is on sale? | "Dip candidates" (where the market stands, the stocks marked DIP BUY, what the marks mean) and "Your lists", with each stock's details |
 
 The Watchlist finds, the Portfolio sizes. One thing travels between them: a stock marked DIP BUY on the Watchlist
-shows on the Portfolio view under "Could add", with the size it would take in the portfolio being shown; and in a
-stock's details on the Watchlist, "Where it fits" says its size in each portfolio.
+shows on the Portfolio view under "Could add", with the size it would take in the portfolio being shown; and in
+its details on the Watchlist, "Where it fits" says its size in each portfolio.
 
 Both addresses are one page (`pageView` in `src/app/app.routing.ts` matches both, `DashboardComponent` tells the
 page which view to show). The view that is not shown is only hidden, so going from one to the other loads no price
@@ -281,8 +281,9 @@ were made in whatever it is called, and they are gone when another portfolio is 
 Like every size on the page, the split is arithmetic and not a tested rule.
 
 "Fit" is a fact, not a reason to pick: nothing is ordered or hidden by it. (Choosing the stock least tied to what is
-owned was looked at and earned less.) In a stock's details on the Watchlist, "Where it fits" gives the size in each
-portfolio, a line each, or says that only a stock marked DIP BUY gets a size.
+owned was looked at and earned less.) In the details of a stock marked DIP BUY on the Watchlist, "Where it fits"
+gives the size in each portfolio, a line each. A stock without the mark has no size, and its details have no such
+section.
 
 The page works the recommendations out with the plan, for every portfolio (`planFor` in
 `src/app/watchlist/portfolio-plan.ts`); the box is `src/app/watchlist/could-add/`, the section in the details
@@ -363,17 +364,22 @@ The page is made for a browser window that fills a large monitor, and still work
   What the two cases of the marked stocks add up to if they all come true is a row at the foot of the table
   ("Both marked DIP BUY at once · bad case 7.4% of this portfolio", then the two sums under their columns), from
   two marked stocks on. A stock without a purchase date says "add date" where its weeks would stand. Under the
-  table one line says how a purchase or a sale is told to the page ("Bought or sold? Click the stock's symbol,
-  here or in "Could add", to record it."). Under the fields stand figures with their names, for what the fields
+  table one line says how a purchase or a sale is told to the page ("Bought or sold? Click the stock's symbol
+  here to record it; a first purchase is recorded with "Add" in "Could add"."). Under the fields stand figures
+  with their names, for what the fields
   do not show: what the portfolio is worth with its cash and how much of it is cash, the limit in dollars, the
   share kept outside stocks in dollars with whether the cash covers it, and, with a level picked for taking a
   profit, both sides of that level in its test. Beside the headline of "What you own" the comparison with the
   market is two such figures ("Against the market  $383 ahead", "Money in for  18 weeks: too early to mean
   much"); while no stock has a purchase date the first says "needs a purchase date".
 - **A list shows what a mark rests on, a line a stock**: Stock, Group, Mark · dropped, Price, Growing, Next
-  results, Swings, Past year. (One fact has one name on the page: "Dropped", "Growing" and "Swings" are the
-  headings of "Dip candidates" and "Could add" too, and the rows of a stock's details; a stock without a mark is
-  "NO MARK" in its row, in the legend and in its details, with the reason beside it.) Every list has those columns at the same places, so a column can be read down the page. "All columns"
+  results, Swings, Past year, and last "Claude · not tested". (One fact has one name on the page: "Dropped",
+  "Growing" and "Swings" are the headings of "Dip candidates" and "Could add" too, and the rows of a stock's
+  details; a stock without a mark is "NO MARK" in its row, in the legend and in its details, with the reason
+  beside it.) Every list has those columns at the same places, so a column can be read down the page. The nine
+  shares are measured so that no cell is cut where two lists stand side by side on a 2560px monitor, also once
+  the window's own scroll bar has taken its 15px; in a window of about 1100px the lists show eight of them:
+  "Past year", the one that is context, gives way there and stays under "All columns". "All columns"
   adds the rest (the analysts' target, the range of the past year, valuation and the other context) and, over each
   list, its typical price changes (the middle stock of the list for each period, which one stock with an extreme
   year does not pull). In the key columns colour is for the mark and what it rests on (the mark itself, growth
@@ -404,7 +410,9 @@ The page is made for a browser window that fills a large monitor, and still work
   box is then a strip 232px wide and the lists get the rest; from 2480px two lists stand side by side while they
   show their key columns, so the seven lists take four rows and most of the Watchlist is on one screen. In a
   narrower window the folded box is one short strip above the lists. "Show more" brings it all back; the choice
-  is kept in this browser.
+  is kept in this browser. Until the reader has chosen, the box starts open where it stands beside the lists
+  (a window of 1800px or more) and folded where it stands above them: open, it filled the first screen of a laptop
+  and the lists began under it.
 - **Signal before sentences on the Watchlist** (the owner, of a page where every explanation already showed only
   its first sentence: "there is too much text and not much signal"). A box shows its title, its marks, figures or
   table, and at most one sentence; what explains how to read it is behind one control a box, "How to read this",
@@ -468,6 +476,14 @@ The page is made for a browser window that fills a large monitor, and still work
   ("Over all 994 test stocks, ..."): it quotes every tested list together, while the strip of tested figures on
   both views quotes the newest one, and "In tests, ..." beside it read as a second answer to one question. The BUY
   line stays as it was: a line with amounts would put an untested split of the cash into the plan's own words.
+- **Three faults a third fresh review found on the Portfolio view** (2026-11-26). The room kept for the answer to
+  a tick was an empty band of 80 to 110px above the table of "Could add": the instruction now stands in that
+  room while nothing is ticked, and the answer takes its place (the table still does not move). "What you own"
+  with every column was 132px wider than its box in a window of about 1,100px, with "Bought" and the remove
+  button off the edge: in a box under 1,100px that table is set a size smaller, a stock's mark stands under its
+  symbol and the result in percent under the result in dollars, and between 1,100 and 1,400px the amount beside
+  the plan's word may stand under it. And the arrow of the sorted column reached into the next heading where the
+  cells stand 8px apart: it is smaller there.
 - **Six points the owner said yes to** (2026-11-26: "do all 6"). A "Typical" figure stands between "Bad case" and
   "Good case" in both tables, with a sum of its own in the row at the foot of "What you own". The plan's box shows
   the strip of tested figures in place of its sentence (above). While something is ticked in "Could add", the
@@ -480,9 +496,18 @@ The page is made for a browser window that fills a large monitor, and still work
   line under each of the two tables says when the cases were tested: "Bad, typical and good case: tested in
   2022–2026, when the market was rising. In a falling market they can be worse.".
 - **A stock's details are three columns, a column a subject**, where the list is 1280px wide or more (two in a
-  narrower list, with the reader's stake on the right): what the mark rests on and what is risky about this one
-  stock; why it dropped; your stake in it ("Where it fits", then "What you own of it", which names the portfolio
-  when there is more than one). What the mark rests on is a row a fact: its name, its figure, and a tick where
+  narrower list, with the reader's stake on the right): what the mark rests on, what is risky about this one
+  stock and "The business"; why its price dropped, then the AI's own view of it ("AI view · not tested"); your
+  stake in it ("Where it fits", then
+  "What you own of it", which names the portfolio when there is more than one). Each of those two is there only
+  when it has something to say: "Where it fits" under a stock marked DIP BUY, "What you own of it" under a stock
+  that is held. A stock with neither has no third column: in a wide list its two columns stand where they stand
+  under every other stock, and in a narrower one why it dropped stands on the right. Beside a stock's size in the
+  portfolio being shown stand the three amounts of its row in "Could add": what that size could lose or make in 6
+  months ("Bad case −$825 · Typical +$48 · Good case +$1,711"), the bad one first. The sentences that say a
+  figure in words open together, with one control at the head of the details ("Read these details in
+  sentences"), and stay open under every stock once asked for; a row opened near the foot of the window brings
+  its details into the window. What the mark rests on is a row a fact: its name, its figure, and a tick where
   it is enough for DIP BUY ("Dropped  20.0% below its highest price of the past year · DIP BUY needs 15% or
   more"), so a WATCH or a PASS shows at a glance which of the two it is short of; a third row says since when the
   stock has the mark. The sentence that says the same in words is behind "more" at the heading, and each line
@@ -672,9 +697,9 @@ The page is made for a browser window that fills a large monitor, and still work
   counted twice, as the stock and as cash, and every size in the plan would be too large. A purchase that cost
   more than the cash recorded is refused with the two ways on (untick the box, or correct "Cash" first). The holding
   and the cash are saved in one step; a sentence then says what was recorded ("Bought 30 more shares of ACME at
-  60.00. Cash is now $3,200."), and its Undo takes both back. The first entry of a stock works the same way; "Edit"
-  never touches the cash, and what it replaced can be taken back too ("ACME is now recorded as 12.5 shares at
-  96.00.", with Undo).
+  60.00. Cash is now $3,200."), and its Undo takes both back. A first purchase, recorded with "Add" in "Could
+  add", works the same way; "Edit" never touches the cash, and what it replaced can be taken back too ("ACME is
+  now recorded as 12.5 shares at 96.00.", with Undo).
 - **A message with "Undo"** (a list or a stock removed, a holding removed or a trade recorded on the Watchlist, a
   purchase added in "Could add" while the plan box with its notice is out of sight) stays for 30 seconds.
 - **Deleting a portfolio is asked about once.** "Delete" turns into a question in place, naming what goes ("Delete
@@ -726,9 +751,19 @@ The page is made for a browser window that fills a large monitor, and still work
 - **On the Watchlist "held" means held in any portfolio**, and the tag says in which ("You hold this in Savings
   and Brokerage.", also in the stock's mouse-over and in what its row says to the keyboard). It used to follow
   the portfolio last chosen on the other view (the owner: "mapping to a random portfolio is odd"). In a stock's
-  details a small row "Record in" chooses, right there, which portfolio its forms are about.
-- **A stock that is not held shows one button, "Enter what you hold"**: the form opens on it, with Cancel, and
-  says first that it records a purchase and buys nothing. "Delete list" in a list's editor asks in place, the
+  details a small row "Record in" chooses, right there, which portfolio its forms are about. The row stands only
+  under a stock that some portfolio holds; where the portfolio being shown holds none of it, the row says which
+  one does ("You hold this in Savings.") and a click on that name shows the holding.
+- **A stock's details say nothing about a stake there is none of.** Under a stock without the mark stood "Where
+  it fits" over "No size: it is not marked DIP BUY.", and under a stock that is not held "What you own of it" over
+  "Not in this portfolio." and a button "Enter what you hold", which opened a form for a first entry. The owner,
+  with a picture of the three: "remove that - I don't need it there"; asked how much of it, they chose "only when
+  it is empty". So "Where it fits" is under a stock marked DIP BUY only, "What you own of it" under a stock that
+  is held only, and the first-entry form is gone with its button. A first purchase is recorded with "Add" in
+  "Could add", which lists the stocks marked DIP BUY. What is given up, and was said with the choice: a holding of
+  a stock without the mark that was never recorded can no longer be typed in on the page ("Import" at the foot of
+  the plan box replaces every portfolio at once).
+- **Small things.** "Delete list" in a list's editor asks in place, the
   answer that keeps the list first, as deleting a portfolio does. An address that is no page of the app leads to
   the Portfolio view. On a day no price arrives the Watchlist says so once above its lists.
 - **"Dip candidates" is a table**, a row a stock, under the headings "Stock", "Dropped" and "Growing" ("Next results"

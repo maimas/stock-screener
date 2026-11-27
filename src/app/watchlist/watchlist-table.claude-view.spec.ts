@@ -73,11 +73,12 @@ describe("WatchlistTableComponent: Claude's view of the stocks of a list", () =>
     expect(held.querySelector('app-claude-ask')).toBeNull();
   });
 
-  it('shows the column in the short view of the table, after the tested columns, with the word alone', () => {
+  // The owner: "Move "Claude · not tested" as a column next to Mark · dropped". It stood last, after the tested columns.
+  it('shows the column in the short view of the table, right after the mark, with the word alone', () => {
     page().setView('decision');
     fixture.detectChanges();
     const shown = headings(listOf(page().watchLists[0].title));
-    expect(shown.filter(it => it !== 'Details').pop()).withContext('last, but for the button that opens the details').toBe(VIEW_HEADING);
+    expect(shown[shown.indexOf('Mark · dropped') + 1]).withContext('the column after "Mark · dropped"').toBe(VIEW_HEADING);
     const cells = fixture.debugElement.queryAll(By.directive(ClaudeViewCellComponent)).map(it => it.componentInstance as ClaudeViewCellComponent);
     expect(cells.length).toBe(3);
     expect(cells.every(it => it.compact)).toBeTrue();
@@ -91,13 +92,6 @@ describe("WatchlistTableComponent: Claude's view of the stocks of a list", () =>
     expect(headings(listOf(page().watchLists[0].title))).toContain(VIEW_HEADING);
     const cells = fixture.debugElement.queryAll(By.directive(ClaudeViewCellComponent)).map(it => it.componentInstance as ClaudeViewCellComponent);
     expect(cells.some(it => it.compact)).toBeFalse();
-  });
-
-  it('tells the cell of a held stock that it is held, in whichever portfolio', () => {
-    page().book.portfolios[0].positions['EFGH'] = {symbol: 'EFGH', shares: 2, price: 50};
-    fixture.detectChanges();
-    const cells = fixture.debugElement.queryAll(By.directive(ClaudeViewCellComponent)).map(it => it.componentInstance as ClaudeViewCellComponent);
-    expect(cells.filter(it => it.held).map(it => it.symbol)).toEqual(['EFGH']);
   });
 
   it('says on the heading what the column is, that it is not tested, and how its past views turned out', () => {

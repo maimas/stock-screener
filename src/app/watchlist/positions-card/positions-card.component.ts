@@ -481,10 +481,12 @@ export class PositionsCardComponent {
   }
 
   /**
-   * How a purchase or a sale is told to the page: said under the table once a portfolio holds something. It names
-   * both places a stock is acted on from, since a stock that is not owned yet has no row in this table.
+   * How a purchase or a sale is told to the page: said under the table once a portfolio holds something. A stock
+   * that is owned is acted on from its details (its symbol here opens them). One that is not owned yet has no row
+   * in this table and no form in its details (the owner had "Enter what you hold" removed from them): its first
+   * purchase is recorded from its row in "Could add".
    */
-  readonly howToChange = 'Bought or sold? Click the stock\'s symbol, here or in "Could add", to record it.';
+  readonly howToChange = 'Bought or sold? Click the stock\'s symbol here to record it; a first purchase is recorded with "Add" in "Could add".';
 
   /** What the user's limit comes to in dollars, once it is known. */
   get limitText(): string {

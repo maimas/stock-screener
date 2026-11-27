@@ -34,6 +34,7 @@
 // the marks mean, the sentences and the other two columns are left out; the page makes the box a narrow strip.
 .folded .market.index,
 .folded .market .fear-label ~ span,
+.folded .tested-figures,
 .folded .legend dd,
 .folded .about .note,
 .folded .note.how,
@@ -82,6 +83,34 @@
 // and the fear line. The stocks themselves are in the lists right under it.
 @container (min-width: 700px) {
   .folded .stocks {
+    display: none;
+  }
+
+  // In that strip the green "Market fear high" keeps the sentence that says what it has meant and that fear can get
+  // worse first, and the tested figures stand under the marks, the risk among them: a review found the good-time
+  // signal and the green marks there without their risk, beside a thousand pixels of empty box.
+  .folded .market .fear-label ~ span {
+    display: inline;
+  }
+
+  .folded .market {
+    max-width: none;
+  }
+
+  .folded .tested-figures {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 20px;
+    max-width: none;
+    margin-top: 8px;
+  }
+
+  .folded .tested-figures .tested-title {
+    margin: 0;
+  }
+
+  .folded .tested-limits {
     display: none;
   }
 
@@ -195,10 +224,6 @@ mat-card-content {
     margin-top: 0;
   }
 
-  // The four figures in one line, the risk last.
-  .candidates:not(.folded) .tested-figures dl {
-    grid-template-columns: repeat(4, max-content);
-  }
 
   // What the figures are of, and what they do not say by themselves, on one line over them.
   .candidates:not(.folded) .tested-figures {
@@ -438,29 +463,10 @@ tbody tr:hover .symbol,
   margin: 0;
 }
 
-// Two by two at every width (the gain on average and the typical one, the market and the risk): left to wrap,
-// the fourth number stood alone under the other three.
-.tested-figures dl {
-  display: grid;
-  grid-template-columns: repeat(2, max-content);
-  gap: 8px 32px;
-  margin: 0;
-}
-
-.tested-figures dt {
-  font-size: var(--text-meta);
-  line-height: 1.4;
-  color: var(--ink-2);
-}
-
-.tested-figures dd {
-  margin: 0;
-  font-family: var(--font-figures);
-  font-size: var(--text-heading);
-  font-weight: 600;
-  line-height: 1.3;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink);
+// The figures are the page's `dl.facts` (styles.scss): the same look as the strip in the plan's box, which a
+// review found drawn two ways. The one figure that is a loss wears the colour of a loss, there and here.
+.tested-figures .risk dd {
+  color: var(--loss);
 }
 
 // Darker than the notes around it, not bolder: three lines of bold shout.

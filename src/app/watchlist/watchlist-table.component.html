@@ -67,6 +67,9 @@
   <!-- With the details of two or more stocks open (each stock opened from the plan stays open): one click closes
        them all. They could only be closed one by one, each at its own foot. -->
   <button type="button" class="link-button close-all" *ngIf="openDetails > 1" (click)="closeAllDetails()">Close all {{ openDetails }} open details</button>
+  <!-- A click on a heading in one list orders every list: said here once it has happened, with the way back to
+       how they start. -->
+  <span class="order-says" *ngIf="orderSays" role="status">{{ orderSays }} · <button type="button" class="link-button" (click)="orderByMark()">back to by mark</button></span>
   <!-- At the top, beside the title of the lists: a new list is added first, right under it. -->
   <div class="new-list">
     <button mat-stroked-button type="button" *ngIf="newListTitle === undefined; else newListForm" (click)="newListTitle = ''">New list</button>
@@ -163,17 +166,23 @@
 <ng-template #detailTemplate let-row="row">
   <app-signal-detail [stock]="row" [noVerdict]="noVerdictFor(row)" [news]="newsFor(row)" [log]="log" [today]="today"
                      [back]="backFrom(symbolOf(row))" (goBack)="backToPlan()" (closeDetails)="closeStock(row)">
-    <!-- The reader's stake in the stock: how much of it fits each portfolio, then what the shown one holds of it. -->
-    <app-where-it-fits [lines]="fitsOf(row)" [marked]="isMarked(row)" [cases]="fitCasesOf(row)"></app-where-it-fits>
+    <!-- The reader's stake in the stock: what the shown portfolio holds of it, and only for a stock that is held.
+         The owner had the rest removed: first the parts that had nothing to say ("No size: it is not marked DIP
+         BUY.", "Not in this portfolio." and the button "Enter what you hold": "I don't need it there"), then "Where
+         it fits", the stock's size as a share of each portfolio, altogether: "remove the where it fits from the app
+         - it should not be in the watchlist". So a stock that is not held has no third column, and nothing but the
+         two parts below may stand here (the details tell an empty stake by `:empty`). -->
     <!-- Which portfolio the forms under it are about is chosen here, where they stand: the Watchlist used to follow
-         whichever portfolio the other view showed (the owner: "mapping to a random portfolio is odd"). -->
-    <div class="record-in" *ngIf="book.portfolios.length > 1" role="group" aria-label="Portfolio that what you record goes into">
-      <span class="record-in-label">Record in</span>
+         whichever portfolio the other view showed (the owner: "mapping to a random portfolio is odd"). Only under a
+         stock that some portfolio holds; where the one being shown holds none of it, the row says which does. -->
+    <div class="record-in" *ngIf="book.portfolios.length > 1 && isHeld(row)" role="group"
+         [attr.aria-label]="positionOf(row) ? 'Portfolio that what you record goes into' : 'Portfolio whose holding is shown'">
+      <span class="record-in-label">{{ positionOf(row) ? 'Record in' : heldWhere(row) }}</span>
       <button type="button" class="name" *ngFor="let p of book.portfolios; trackBy: trackByPortfolio"
               [class.shown]="p.id === book.active" [attr.aria-pressed]="p.id === book.active"
               (click)="selectPortfolio(p.id)">{{ p.name }}</button>
     </div>
-    <app-position-panel [stock]="row" [row]="positionOf(row)" [cases]="casesOf(row)" [budget]="positions.budget"
+    <app-position-panel *ngIf="positionOf(row) as held" [stock]="row" [row]="held" [cases]="casesOf(row)" [budget]="positions.budget"
                         [today]="today" [portfolio]="book.portfolios.length > 1 ? shownName : ''" [cash]="portfolio.cash"
                         [keep]="positions.reserve?.dollars"
                         (save)="savePosition($event)" (remove)="removePosition($event)" (trade)="recordTrade($event)">
@@ -203,7 +212,7 @@
 
 <!-- Claude's own view of the stock, not a tested mark: the word alone in the short view, so its rows stay one line. -->
 <ng-template #claudeViewCellTemplate let-templateData="templateData">
-  <app-claude-view-cell [symbol]="templateData.symbol" [held]="templateData.held" [today]="today" [compact]="view === 'decision'"></app-claude-view-cell>
+  <app-claude-view-cell [symbol]="templateData.symbol" [today]="today" [compact]="view === 'decision'"></app-claude-view-cell>
 </ng-template>
 
 <ng-template #neutralPercentCellTemplate let-templateData="templateData">

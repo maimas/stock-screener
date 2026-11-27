@@ -89,21 +89,41 @@
   grid-column: 1 / -1;
 }
 
+// Nothing to say about the reader's stake (a stock without the mark that is not held: the owner had the two
+// headings with "No size" and "Not in this portfolio" under them removed): the group takes no room.
+.your-stake:empty {
+  display: none;
+}
+
 @container (min-width: 760px) {
   .sections {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  // Two columns: this stock down the left (the mark and its risk, then why it dropped), the reader's stake on
-  // the right, beside both.
-  .about-stock,
-  .dropped {
+  // Two columns: what the mark rests on, its risk and the business down the left; on the right the reader's
+  // stake and, under it, why the price dropped with the AI's view. The stake of a stock that is not held is a
+  // line or two, and with both of the tall groups down the left the details were 868px beside an empty half;
+  // this way the two columns are near each other in height (for a stock that is held they are as they were).
+  .about-stock {
     grid-column: 1;
+    grid-row: 1 / span 2;
   }
 
   .your-stake {
     grid-column: 2;
-    grid-row: 1 / span 2;
+    grid-row: 1;
+  }
+
+  .dropped,
+  .sections:has(> .your-stake:empty) .dropped {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  // (Without a stake to show the first row of the right half is empty and takes no room: why it dropped then
+  // starts at the top, beside the stock.)
+  .sections {
+    grid-template-rows: auto 1fr;
   }
 
   // Opened, the rule's two parts stand side by side.
@@ -117,15 +137,22 @@
 
 // From 1280px: three columns of 380px or more, a column a subject. In a narrower list (one of two side by side
 // on a wide window is 1,116px) three columns were 280px each, a few words a line, and the buttons of "What you
-// own of it" wrapped.
+// own of it" wrapped. The three tracks stay under a stock without a stake to show: its two columns then stand
+// where they stand under every other stock, as wide as there, and not stretched over the width.
 @container (min-width: 1280px) {
   .sections {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .sections {
+    grid-template-rows: none;
+  }
+
   .about-stock,
-  .dropped {
+  .dropped,
+  .sections:has(> .your-stake:empty) .dropped {
     grid-column: auto;
+    grid-row: auto;
   }
 
   .your-stake {

@@ -127,9 +127,9 @@
         <!-- What the mark was worth in the tests, as numbers a reader can compare at a glance: the average and
              the typical stock with the mark, beside any stock that dropped and the market. It was a sentence of
              four lines; the sentence, with its limits, is behind "How to read this". -->
-        <div class="tested-figures" *ngIf="candidates.length > 0 && !folded">
+        <div class="tested-figures" *ngIf="candidates.length > 0">
           <h3 class="tested-title">{{ tested.title }}</h3>
-          <dl>
+          <dl class="facts">
             <div *ngFor="let it of tested.figures" [class.risk]="it.risk">
               <dt>{{ it.label }}</dt>
               <dd>{{ it.value }}</dd>

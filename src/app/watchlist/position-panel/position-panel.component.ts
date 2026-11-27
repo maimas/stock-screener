@@ -32,12 +32,16 @@ export type Trade = {
 };
 
 /**
- * "What you own of it" inside a row's details: record or edit what you hold in this stock and see how it is doing,
- * with what a tested bad half-year would cost against your limit. For a stock that is held it also takes a purchase
- * ("Bought more") or a sale ("Sold some") by itself and works out the holding that results, so that the reader does
- * not have to add shares up or average a price; "Edit" stays for correcting what is recorded. The typical result and the good case of the same
- * tests are shown beside the bad case, so it is never the only number on the page. How big a stock that is not
- * held could be, in each portfolio, is said by the part of the details next to this one ("Where it fits").
+ * "What you own of it" inside a row's details, for a stock that is held: how the holding is doing, with what a
+ * tested bad half-year would cost against your limit. It takes a purchase ("Bought more") or a sale ("Sold some")
+ * by itself and works out the holding that results, so that the reader does not have to add shares up or average a
+ * price; "Edit" stays for correcting what is recorded. The typical result and the good case of the same tests are
+ * shown beside the bad case, so it is never the only number on the page.
+ *
+ * The page shows it only under a stock that is held. Under any other it stood as this heading over "Not in this
+ * portfolio." and a button "Enter what you hold" that opened a form for a first entry; the owner had that removed
+ * ("I don't need it there"). A first purchase is recorded with "Add" in "Could add". Without a holding the panel
+ * shows nothing.
  */
 @Component({
   selector: "app-position-panel",
@@ -48,7 +52,7 @@ export type Trade = {
 })
 export class PositionPanelComponent implements OnChanges {
   @Input() stock!: Stock;
-  /** The holding in this stock, when there is one. */
+  /** The holding in this stock. Without one the panel shows nothing. */
   @Input() row?: PositionRow;
   /** What tested DIP BUYs of this volatility did, when the stock is a DIP BUY now. */
   @Input() cases?: TestedCases;
@@ -56,8 +60,8 @@ export class PositionPanelComponent implements OnChanges {
   @Input() budget?: number;
   @Input() today = '';
   /**
-   * The name of the portfolio this panel is about, when there is more than one: the heading and the button that
-   * adds a holding then say it. Left empty while there is only one portfolio, which needs no name.
+   * The name of the portfolio this panel is about, when there is more than one: the heading then says it. Left
+   * empty while there is only one portfolio, which needs no name.
    */
   @Input() portfolio = '';
 
@@ -73,7 +77,7 @@ export class PositionPanelComponent implements OnChanges {
   /** A correction of what is recorded ("Edit"). */
   @Output() save = new EventEmitter<Position>();
   @Output() remove = new EventEmitter<string>();
-  /** A purchase or a sale that happened: the first entry of a stock, "Bought more", "Sold some". */
+  /** A purchase or a sale that happened: "Bought more", "Sold some". */
   @Output() trade = new EventEmitter<Trade>();
 
   editing = false;
@@ -124,75 +128,36 @@ export class PositionPanelComponent implements OnChanges {
 
   /**
    * "What you own of it": the name the page uses for a holding. With more than one portfolio it says which one:
-   * the panel reads and writes the portfolio chosen on the Portfolio view, and nothing else on the Watchlist says
-   * which that is.
+   * the panel reads and writes the portfolio being shown, chosen in the row "Record in" over it.
    */
   get heading(): string {
     return this.portfolio ? `${OWN_TABLE} of it in ${this.portfolio}` : `${OWN_TABLE} of it`;
   }
 
-  /**
-   * The button of the form: "Save" for a correction, and for a stock that is not held the same words as on every
-   * other form that records a purchase (it read "Add to what I own": one act had four names on the page).
-   */
-  get saveLabel(): string {
-    return this.row ? 'Save' : 'Record this purchase';
-  }
-
-  /** The form with the holding's own numbers is open: a correction of a holding, or the first entry of a stock. */
-  get showForm(): boolean {
-    return this.row ? this.editing : this.entering;
-  }
-
-  /** The first entry of a stock that is not held was asked for ("Enter what you hold"). */
-  entering = false;
-  /** Under a stock that is not held, after "Not in this portfolio.": what entering a holding gives. */
-  readonly whyEnter = 'Enter what you hold to see how it is doing, how it compares with the market, and what a bad half-year could cost.';
-  /** What that form is, said as its first line, in the words of the purchase forms of "Could add". */
-  readonly recordsOnly = 'This records a purchase you have made. Nothing is bought here.';
-
-  /** "Enter what you hold": opens the form for a stock that is not held, with the keyboard in its first field. */
-  startEntering(): void {
-    this.fill();
-    this.entering = true;
-    this.opener = 'first';
-    setTimeout(() => this.host?.nativeElement.querySelector<HTMLElement>('input[name="shares"]')?.focus());
-  }
-
+  /** What is wrong with the correction being typed ("Edit"). A correction never touches the cash. */
   get problem(): string | undefined {
-    return positionProblem({shares: this.shares ?? undefined, price: this.price ?? undefined, day: this.day}, this.today)
-      ?? (this.row ? undefined : this.overCash((this.shares ?? 0) * (this.price ?? 0)));
-  }
-
-  /** For a stock that is not held yet: what the entry does to the cash, said before anything is saved. */
-  get firstResult(): string {
-    const cost = (this.shares ?? 0) * (this.price ?? 0);
-    // The sum first, as in every form that records a purchase: it is the check on what was typed.
-    return this.row || this.problem ? '' : `That is ${money(cost)}.${this.cashAfter(-cost)}${leftAsItIs(cost, this.cash, this.viaCash)}`;
+    return positionProblem({shares: this.shares ?? undefined, price: this.price ?? undefined, day: this.day}, this.today);
   }
 
   /**
-   * What looks like a slip of a finger in the purchase being entered (a price paid today that is far from today's
-   * price), said while it is typed, as in the forms of "Could add". It stops nothing.
-   */
-  /**
-   * The same question for a sale whose price is far from today's. Only while the money goes to the cash: that is
-   * all the price of a sale is used for.
+   * The question a purchase is asked, for a sale whose price is far from today's. Only while the money goes to the
+   * cash: that is all the price of a sale is used for.
    */
   get saleSlip(): string {
     return this.recording !== 'sold' || !this.viaCash || this.saleProblem ? ''
       : saleCaution(this.soldPrice ?? undefined, this.stock.quote?.price);
   }
 
+  /**
+   * What looks like a slip of a finger in the purchase being entered (a price paid today that is far from today's
+   * price), said while it is typed, as in the forms of "Could add". It stops nothing. Never for a correction: that
+   * may be of a purchase made long ago.
+   */
   get slipNote(): string {
-    const buying = this.recording === 'bought', first = !this.row;
-    if (!buying && !first) {
+    if (this.recording !== 'bought') {
       return '';
     }
-    const typed = buying ? {shares: this.boughtShares ?? undefined, price: this.boughtPrice ?? undefined, day: this.boughtDay || undefined}
-      : {shares: this.shares ?? undefined, price: this.price ?? undefined, day: this.day || undefined};
-    const wrong = buying ? this.purchaseProblem : this.problem;
-    const said = wrong ? '' : purchaseCaution(typed, {todayPrice: this.stock.quote?.price, today: this.today});
+    const said = this.purchaseProblem ? '' : purchaseCaution(this.purchase, {todayPrice: this.stock.quote?.price, today: this.today});
     return said ? `${said} ${CHECK_FIRST}` : '';
   }
 
@@ -202,13 +167,8 @@ export class PositionPanelComponent implements OnChanges {
    */
   changed(): void {
     this.touched = true;
-    if (this.cashChosen) {
-      return;
-    }
-    if (this.recording === 'bought') {
+    if (!this.cashChosen && this.recording === 'bought') {
       this.viaCash = coveredByCash((this.boughtShares ?? 0) * (this.boughtPrice ?? 0), this.cash);
-    } else if (!this.row) {
-      this.viaCash = coveredByCash((this.shares ?? 0) * (this.price ?? 0), this.cash);
     }
   }
 
@@ -217,10 +177,8 @@ export class PositionPanelComponent implements OnChanges {
    * takes the cash under it: said in the forms of "Could add" too. It stops nothing.
    */
   get keptNote(): string {
-    const cost = this.recording === 'bought' ? (this.boughtShares ?? 0) * (this.boughtPrice ?? 0)
-      : !this.row ? (this.shares ?? 0) * (this.price ?? 0) : 0;
-    const wrong = this.recording === 'bought' ? this.purchaseProblem : this.problem;
-    return cost > 0 && !wrong ? keptShareCaution(cost, {cash: this.cash, keep: this.keep, viaCash: this.viaCash}) : '';
+    const cost = this.recording === 'bought' ? (this.boughtShares ?? 0) * (this.boughtPrice ?? 0) : 0;
+    return cost > 0 && !this.purchaseProblem ? keptShareCaution(cost, {cash: this.cash, keep: this.keep, viaCash: this.viaCash}) : '';
   }
 
   /** "30 shares bought Nov 1, 2026 at 100.00." or, recorded without a date, "56 shares at an average price of 160.70." */
@@ -411,7 +369,7 @@ export class PositionPanelComponent implements OnChanges {
   }
 
   /** Which of the buttons under a holding opened the form that is open: the keyboard goes back to it on Cancel or Esc. */
-  private opener?: 'bought' | 'sold' | 'edit' | 'first';
+  private opener?: 'bought' | 'sold' | 'edit';
 
   /** Not there when a test makes the panel by hand; the keyboard is then left where it is. */
   constructor(@Optional() private readonly host?: ElementRef<HTMLElement>) {
@@ -509,19 +467,18 @@ export class PositionPanelComponent implements OnChanges {
 
   cancel(): void {
     this.editing = false;
-    this.entering = false;
     this.fill();
     this.backToOpener();
   }
 
   /**
    * The Esc key in a form: Cancel. The key is then used up, so that the details around the panel do not close with
-   * it. In the form for a stock that is not held there is nothing to cancel, and the key goes on to the details.
+   * it. With no form open there is nothing to cancel, and the key goes on to the details.
    */
   escape(event: Event): void {
     if (this.recording) {
       this.stopRecording();
-    } else if (this.editing || this.entering) {
+    } else if (this.editing) {
       this.cancel();
     } else {
       return;
@@ -529,43 +486,32 @@ export class PositionPanelComponent implements OnChanges {
     event.stopPropagation();
   }
 
+  /** "Save" in the form of "Edit": a correction of what is recorded. The cash is not touched. */
   submit(): void {
     this.attempted = true;
-    if (this.problem) {
+    if (!this.row || this.problem) {
       return;
     }
     const position: Position = {symbol: this.symbol, shares: this.shares!, price: this.price!};
     if (this.day) {
       position.day = this.day;
     }
-    if (this.row) {
-      this.save.emit(position);   // a correction of what is recorded: the cash is not touched
-    } else {
-      this.entering = false;   // recorded: the stock is held from now on, and its own buttons take over
-      this.trade.emit({
-        symbol: this.symbol,
-        holding: position,
-        cashChange: this.viaCash ? -position.shares * position.price : 0,
-        text: `Added ${shareCount(position.shares)} share${position.shares === 1 ? '' : 's'} of ${this.symbol} at ${position.price.toFixed(2)}.`,
-      });
-    }
+    this.save.emit(position);
     this.editing = false;
     this.attempted = false;
   }
 
-  /** Fills the form from the holding, or with today's price and date for a new one. */
+  /** Fills the form of "Edit" from the holding. A holding recorded without a date keeps its date empty. */
   private fill(): void {
     this.attempted = false;
     this.touched = false;
     const held = this.row?.view.position;
-    const price = this.stock.quote?.price;
     this.shares = held?.shares ?? null;
-    this.price = held?.price ?? (typeof price === 'number' && Number.isFinite(price) ? Number(price.toFixed(2)) : null);
-    // A holding recorded without a date keeps its date empty; only a new position starts from today.
-    this.day = held ? held.day ?? '' : this.today;
-    // A stock entered for the first time is paid from the cash while the cash recorded covers it; a correction never is.
+    this.price = held?.price ?? null;
+    this.day = held?.day ?? '';
+    // A correction is never settled against the cash; the box of a purchase or a sale is set when its form opens.
     this.cashChosen = false;
-    this.viaCash = !held && coveredByCash((this.shares ?? 0) * (this.price ?? 0), this.cash);
+    this.viaCash = false;
   }
 }
 

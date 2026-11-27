@@ -84,25 +84,16 @@ describe('PositionPanelComponent, in everyday words', () => {
       'A typical half-year in the same tests (+2.4%) would mean +$130, and a good one (+85%) +$4,590.');
   });
 
-  // How big a stock that is not held could be in each portfolio is said beside this panel ("Where it fits"), so the
-  // panel itself no longer works a size out from the limit.
   it('names a holding the way the page does, without the trade\'s word for it', () => {
-    expect(panel().heading).toBe('What you own of it');
-    expect(panel({shares: 10}).saveLabel).toBe('Save');
-    // One act, one name: the first entry of a stock is recorded under the words of every other purchase form.
-    expect(panel().saveLabel).toBe('Record this purchase');
-    expect([panel().heading, panel().saveLabel].join(' ')).not.toMatch(/position/i);
+    expect(panel({shares: 10}).heading).toBe('What you own of it');
+    expect(panel({shares: 10}).heading).not.toMatch(/position/i);
   });
 
   // The panel is on the watchlist's view; which portfolio it reads and writes was chosen on the other view and
-  // stood nowhere here. With several accounts, a holding typed into the wrong one is an error nobody sees.
-  it('says which portfolio it is about when there is more than one, and on what it adds to', () => {
-    const one = panel();
-    expect(one.heading).withContext('one portfolio needs no name').toBe('What you own of it');
-    const named = Object.assign(panel(), {portfolio: 'Retirement'});
-    expect(named.heading).toBe('What you own of it in Retirement');
-    expect(named.saveLabel).withContext('the heading names the portfolio; the button says what is done').toBe('Record this purchase');
-    expect(Object.assign(panel({shares: 10}), {portfolio: 'Retirement'}).saveLabel).withContext('a holding that is there is only saved').toBe('Save');
+  // stood nowhere here. With several accounts, a trade recorded in the wrong one is an error nobody sees.
+  it('says which portfolio it is about when there is more than one', () => {
+    expect(panel({shares: 10}).heading).withContext('one portfolio needs no name').toBe('What you own of it');
+    expect(Object.assign(panel({shares: 10}), {portfolio: 'Retirement'}).heading).toBe('What you own of it in Retirement');
   });
 });
 
@@ -254,18 +245,7 @@ describe('PositionPanelComponent: a purchase or a sale and the cash of the portf
     }]);
   });
 
-  it('settles the first entry of a stock the same way, and never a correction', () => {
-    const fresh = Object.assign(panel({}), {cash: 5000});
-    fresh.ngOnChanges();
-    const saved: unknown[] = [];
-    fresh.trade.subscribe(trade => saved.push(trade));
-    Object.assign(fresh, {shares: 10, price: 90, day: TODAY});
-    expect(fresh.firstResult).toBe('That is $900. Cash would go from $5,000 to $4,100.');
-    fresh.submit();
-    expect(saved).toEqual([{
-      symbol: 'NVDA', holding: {symbol: 'NVDA', shares: 10, price: 90, day: TODAY}, cashChange: -900, text: 'Added 10 shares of NVDA at 90.00.',
-    }]);
-
+  it('never settles a correction against the cash', () => {
     const owned = heldWith(5000);
     owned.ngOnChanges();
     const corrected: unknown[] = [], traded: unknown[] = [];
@@ -323,19 +303,23 @@ describe('PositionPanelComponent, as shown: what can be done with a holding', ()
     expect(buttons()).toEqual(['Record this sale', 'Cancel']);
   });
 
-  // Found by a review of the page: under every stock that is not held stood an open form with a quantity, a price,
-  // a date and a filled button, with no Cancel and without the line that nothing is bought. It opens on a button
-  // now, as "Bought more" does.
-  it('offers one button for a stock that is not held, and opens the form on it: nothing like an order stands open', () => {
-    const {el, buttons, press} = shown({});
-    expect(buttons()).toEqual(['Enter what you hold']);
-    expect(el.querySelector('form')).toBeNull();
-    expect(el.querySelector('.intro')?.textContent).toContain('Not in this portfolio.');
-    press('Enter what you hold');
-    expect(buttons()).toEqual(['Record this purchase', 'Cancel']);
-    expect(el.querySelector('form .what')?.textContent?.trim()).toBe('This records a purchase you have made. Nothing is bought here.');
+  it('opens a correction on "Edit", in the holding\'s own numbers, with Save and Cancel', () => {
+    const {el, buttons, press} = shown({shares: 10});
+    press('Edit');
+    expect(Array.from(el.querySelectorAll('label > span')).map(it => it.textContent?.trim())).toEqual(['Shares', 'Price paid', 'Bought on (optional)']);
+    expect(buttons()).toEqual(['Save', 'Cancel']);
     press('Cancel');
-    expect(buttons()).withContext('Cancel puts the one button back').toEqual(['Enter what you hold']);
+    expect(buttons()).withContext('Cancel puts the four back').toEqual(['Bought more', 'Sold some', 'Edit', 'Remove']);
+  });
+
+  // Under every stock that is not held stood this heading over "Not in this portfolio." and a button "Enter what you
+  // hold", which opened a form for a first entry. The owner, with a picture of it: "remove that - I don't need it
+  // there". The page shows the panel under a held stock only; without a holding it has nothing to show.
+  it('shows nothing without a holding: no heading, no sentence, no button, no form', () => {
+    const {el, buttons} = shown({});
+    expect(el.textContent?.trim()).toBe('');
+    expect(buttons()).toEqual([]);
+    expect(el.querySelector('h4, form, p')).toBeNull();
   });
 });
 
@@ -398,7 +382,7 @@ describe('PositionPanelComponent: when a problem is said', () => {
 // and the form turned red as soon as three shares were typed with little cash recorded; in "Could add" it arrived
 // unticked. One rule now, in every form: ticked while the cash covers what is entered, until the reader sets it.
 describe('PositionPanelComponent: the cash box follows the numbers, as in every purchase form', () => {
-  const withCash = (cash: number, o: Parameters<typeof panel>[0] = {shares: 10}) => Object.assign(panel(o), {cash});
+  const withCash = (cash: number) => Object.assign(panel({shares: 10}), {cash});
 
   it('unticks itself when the purchase typed is more than the cash, and says why instead of refusing', () => {
     const p = withCash(40);
@@ -432,15 +416,6 @@ describe('PositionPanelComponent: the cash box follows the numbers, as in every 
     p.changed();
     expect(p.viaCash).toBeTrue();
     expect(p.purchaseProblem).toContain('more than the $1,000 of cash recorded');
-  });
-
-  it('does the same for a stock that is not held yet', () => {
-    const p = withCash(40, {});
-    p.ngOnChanges();
-    Object.assign(p, {shares: 3, price: 200});
-    p.changed();
-    expect(p.viaCash).toBeFalse();
-    expect(p.firstResult).toBe('That is $600. It is more than the $40 of cash recorded, so the cash is left as it is.');
   });
 
   it('leaves the box of a sale alone: what a sale brings goes to the cash whatever its size', () => {
@@ -491,11 +466,7 @@ describe('PositionPanelComponent: a slip in a purchase is pointed out here too',
     expect(p.slipNote).toBe('');
   });
 
-  it('does so for a stock that is not held yet, and never for a sale or a correction', () => {
-    const fresh = panel({});
-    fresh.ngOnChanges();
-    Object.assign(fresh, {shares: 3, price: 9});
-    expect(fresh.slipNote).toContain("90% below today's price of 90.00");
+  it('never does so for a sale or a correction', () => {
     const held = panel({shares: 10});
     held.startRecording('sold');
     expect(held.slipNote).toBe('');

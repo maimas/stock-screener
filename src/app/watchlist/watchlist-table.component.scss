@@ -21,6 +21,12 @@
   margin: 32px 0 12px;
 }
 
+// That the lists follow a column the reader clicked: a quiet line in the bar, with the way back.
+.order-says {
+  font-size: var(--text-meta);
+  color: var(--ink-2);
+}
+
 .lists-title {
   margin: 0;
   font-size: var(--text-title);
@@ -47,26 +53,27 @@
 // starts at the same place in each list, so the lists can be read down the page as one table. The cells live
 // inside the smart table, hence ::ng-deep.
 ::ng-deep .smart-table.short {
-  // Nine columns since "Claude · not tested" came last among them: the shares add up to 100, each measured against
+  // Nine columns since the column of Claude's untested view came (it stands right after the mark, at the owner's
+  // word; the order is the page's list of columns, not this one's): the shares add up to 100, each measured against
   // its widest usual cell in a list of two side by side (1116px), where the cells stand 10px apart (see the smart
   // table's stylesheet). A column added here has to take its share from these, or it is 0px wide.
-  // Measured there (of 1068px beside the row's own button): what each column's widest cell or heading needs is
-  // within 2px of its share, so a wider heading or a longer cell in one column is cut: change them together.
-  .mat-column-symbol { width: 10.8%; }
+  // Measured there (of 1061px beside the row's own button, the cells 6px apart each side): what each column's
+  // widest cell or heading needs is within a pixel or two of its share, so a wider heading or a longer cell in one
+  // column is cut: change them together, and run the check for cut cells at each width and at 15px less.
+  .mat-column-symbol { width: 10.7%; }
   // "Group" between the stock and its mark: a dot and a letter; its heading is the wider of the two.
-  .mat-column-group { width: 5.9%; }
-  .mat-column-signal { width: 13.3%; }
-  .mat-column-price { width: 7.2%; }
+  .mat-column-group { width: 5.8%; }
+  .mat-column-signal { width: 13.25%; }
+  .mat-column-price { width: 7.1%; }
   // The widest cell of all: two figures with their ticks ("Profit +44.3% ✓ Sales +379.3% ✓").
   .mat-column-growth { width: 20.5%; }
-  // "Next results" was cut in a list of two side by side ("Dec 9 in 13 days · re-check a") below about 194px.
-  .mat-column-earnings { width: 18.3%; }
-  .mat-column-volatility { width: 9.1%; }
-  .mat-column-oneYear { width: 7.2%; }
-  // One short word ("BUY SOME", "WAIT", "AVOID", "no answer") and nothing else in the key columns.
-  .mat-column-claudeView { width: 7.7%; }
-  // Its heading is two words longer than its cells ("Claude · not tested" over "WAIT"): it takes two lines there,
-  // so the column is as wide as its cells need and no wider.
+  // "Next results" was cut in a list of two side by side ("Dec 9 in 13 days · re-check a") below about 193px.
+  .mat-column-earnings { width: 18.25%; }
+  .mat-column-volatility { width: 9%; }
+  .mat-column-oneYear { width: 7.1%; }
+  // The AI's word, small and quiet, and a star after it where it is the pick of its group ("Buy some ★").
+  .mat-column-claudeView { width: 8.3%; }
+  // Its heading ("AI · not tested") takes two lines there, so the column is as wide as its cells need and no wider.
   th.mat-column-claudeView {
     white-space: normal;
     line-height: 1.25;

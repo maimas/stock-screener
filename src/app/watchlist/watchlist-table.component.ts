@@ -64,7 +64,6 @@ import {
   lastEarnings,
   MarketFear,
   marketFear,
-  MIN_REPORTED_QUARTERS,
   nextEarningsDate,
   signalFor,
   signalSortValue,
@@ -83,7 +82,7 @@ import {addDays, biggestDropSinceHigh, DROP_WORDS, DropNews, isoDay, newsQuery, 
 import {movingTogetherText, oneBetFacts, oneBetText} from "./concentration";
 import {GROUP_HELP, groupBySymbol, groupsAmong, groupTip, NO_GROUPS, TiedGroup, TiedGroups, tiedGroups} from "./tied-groups";
 import {heldIn, heldText} from "./held-in";
-import {CARD_NOTE, VOLATILITY_COLUMN_NOTE} from "./evidence";
+import {VOLATILITY_COLUMN_NOTE} from "./evidence";
 import {
   dayChange, DayLog, dipBuySince, loadLog, mergeLogs, missingIn, parseLog, record, saveLog, snapshotOf, SnapshotLog, trackRecord,
   trimChange
@@ -92,7 +91,6 @@ import {copyLine, evidenceLine, joinNotes, recorderLine} from "./status-lines";
 import {DipCandidate, DipCandidatesComponent} from "./dip-candidates/dip-candidates.component";
 import {latestQuoteTime, PriceStatusService} from "./price-status.service";
 import {CouldAddComponent} from "./could-add/could-add.component";
-import {WhereItFitsComponent} from "./where-it-fits/where-it-fits.component";
 import {FocusWhenShownDirective} from "./focus-when-shown.directive";
 import {FillsColumnDirective} from "./fills-column.directive";
 import {listColumns} from "./list-columns";
@@ -165,7 +163,6 @@ export type ListState = 'loading' | 'ready' | 'error' | 'empty';
     PlanEvidenceComponent,
     DipCandidatesComponent,
     CouldAddComponent,
-    WhereItFitsComponent,
     EarningsDateCellComponent,
     DebtEquityCellComponent,
     CostDistributionCellComponent,
@@ -734,9 +731,17 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
    */
   closeStock(stock: Stock): void {
     const symbol = stock.quote?.symbol;
+    // Opened from the plan (a symbol in "What you own" or "Could add"), these details are a look-up: closing them,
+    // with Esc or at their foot, goes back to where the reader was, as "Back to your plan" does. Staying on the
+    // Watchlist left the reader a view away from what they were doing (a review, of the Esc key).
+    const toPlan = !!symbol && this.backFrom(symbol) !== '';
     this.tables?.forEach(table => table.collapse(stock));
     if (symbol === this.shownStock) {
       this.tellStock(undefined);
+    }
+    if (toPlan) {
+      this.backToPlan();
+      return;
     }
     setTimeout(() => {
       const row = document.querySelector(`[data-symbol="${symbol}"]`)?.closest('tr');
@@ -756,6 +761,25 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
    * ("which fell furthest this year?") had to be asked list by list.
    */
   listSort: { active: string, direction: 'asc' | 'desc' } = {active: 'signal', direction: 'desc'};
+
+  /**
+   * Said beside "Your lists" once the reader has ordered them: a click on a heading in one list orders every list,
+   * and nothing on the page said so (a review: "sorting one list re-sorts all six"). Nothing while the lists stand
+   * as they start, by mark.
+   */
+  get orderSays(): string {
+    const {active, direction} = this.listSort;
+    if (active === 'signal' && direction === 'desc') {
+      return '';
+    }
+    const name = this.tableDefinition.find(it => it.columnName === active)?.columnDisplayName ?? '';
+    return name ? `All lists ordered by "${name}"` : '';
+  }
+
+  /** Back to how the lists start: by mark. */
+  orderByMark(): void {
+    this.sortLists({active: 'signal', direction: 'desc'});
+  }
 
   /** A heading was clicked in one list: the other lists follow, and a list shown later starts the same way. */
   sortLists(order: { active: string, direction: 'asc' | 'desc' }): void {
@@ -1617,19 +1641,36 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
         // The figure beside the mark (how far the price is below its highest of the past year) had no name in sight,
         // and "Past year" stood in the same row: the heading names both, in the word of "Dip candidates" and "Could add".
         columnDisplayName: 'Mark · dropped',
+        // Short: it was 184 words, covered five rows and was cut off at the foot in a window of 1100px; and it
+        // quoted the pooled tests' average beside a strip that quotes the newest test. What was tested is in the
+        // strip of "Dip candidates" and behind its "How to read this".
         columnTooltip: 'DIP BUY: the price is ' + DIP_PERCENT + '% or more below its highest of the past year and the business is ' +
-          'growing (profit per share on course to grow ' + GROWTH_EPS_PERCENT + '% or more, or sales up ' + GROWTH_REVENUE_PERCENT +
-          '% or more on a year ago; see Growing). WATCH: growing, but no such drop yet. PASS: not growing enough. ' +
-          'No mark for funds, or for companies with fewer than ' + MIN_REPORTED_QUARTERS +
-          ' reported quarters or less than a year of prices.\n\n' + CARD_NOTE + '\n\n' +
-          'The % next to the mark is how far the price is below its highest of the past year; a flag means the company reports ' +
-          'its results within 2 weeks. Sorted by mark, then A to Z: no order inside a mark has passed a test. ' +
-          'Open a row for the evidence, the risks and the context. Not financial advice.',
+          'growing. WATCH: growing, but no such drop yet. PASS: not growing enough. NO MARK: a fund, or too little history ' +
+          'to judge.\n\nThe % beside the mark is that drop; a flag means results within 2 weeks. What the tests found is ' +
+          'in "Dip candidates".',
         template: this.signalCellTemplate,
         templateData: (it: Stock) => ({signal: signalFor(it), noVerdict: this.noVerdictFor(it)}),
         sortValue: (it: Stock) => signalSortValue(signalFor(it), it.quote?.symbol ?? ''),
         sticky: true,
         stickyWideOnly: true
+      },
+      {
+        // Claude's own view of the stock, asked for by the owner of the page. Not a tested mark, and said so in its
+        // name. It stands beside the mark at the owner's word ("as a column next to Mark · dropped"); its word is set
+        // small and quiet in its cell, so that it does not read as a second mark. Its heading also says how its past
+        // views turned out.
+        columnName: 'claudeView',
+        columnDisplayName: VIEW_HEADING,
+        get columnTooltip(): string {
+          return page.claudeViewHelp();
+        },
+        template: this.claudeViewCellTemplate,
+        // The symbol and nothing else: the AI is never told what the reader holds (the owner: "AI should not know
+        // what I own"), and its cell says nothing about holdings.
+        templateData: (it: Stock) => ({symbol: it.quote?.symbol ?? ''}),
+        // Like every column, it can order the rows: BUY SOME first, then WAIT, AVOID, and the stocks with no view.
+        sortValue: (it: Stock) => VIEW_ORDER.get(this.claudeViews.state$.value.views[it.quote?.symbol ?? '']?.view ?? '') ?? VIEW_WORDS.length,
+        sortStart: 'asc',
       },
       {
         columnName: 'price',
@@ -1822,20 +1863,6 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
         template: this.plainPercentCellTemplate,
         templateData: (it: Stock) => it.quote?.return1Year,
         sortValue: (it: Stock) => it.quote?.return1Year
-      },
-      {
-        // Claude's own view of the stock, asked for by the owner of the page. Not a tested mark, and said so in its
-        // name; it stands after the columns the tests are about. Its heading also says how its past views turned out.
-        columnName: 'claudeView',
-        columnDisplayName: VIEW_HEADING,
-        get columnTooltip(): string {
-          return page.claudeViewHelp();
-        },
-        template: this.claudeViewCellTemplate,
-        templateData: (it: Stock) => ({symbol: it.quote?.symbol ?? '', held: this.isHeld(it)}),
-        // Like every column, it can order the rows: BUY SOME first, then WAIT, AVOID, and the stocks with no view.
-        sortValue: (it: Stock) => VIEW_ORDER.get(this.claudeViews.state$.value.views[it.quote?.symbol ?? '']?.view ?? '') ?? VIEW_WORDS.length,
-        sortStart: 'asc',
       },
       {
         columnName: 'eps-ttm',
