@@ -102,7 +102,8 @@ test('refuses an answer that names no stock of the group, or gives no reason', (
 
 test('cuts the sentence to 25 words', () => {
   const words = n => Array.from({length: n}, (_, i) => `w${i + 1}`).join(' ');
-  assert.equal(pickFrom({first: 'ABCD', why: words(40)}, group().members, NOW).pick.why, `${words(25)}.`);
+  assert.equal(pickFrom({first: 'ABCD', why: words(40)}, group().members, NOW).pick.why, `${words(25)}…`, 'a sentence that was cut says so');
+  assert.equal(pickFrom({first: 'ABCD', why: `${words(24)} end,`}, group().members, NOW).pick.why, `${words(24)} end,.`.replace(',.', '.'), 'a whole one ends with a full stop');
 });
 
 test('compares the stocks also by what they keep of their sales and earn on the money invested', () => {

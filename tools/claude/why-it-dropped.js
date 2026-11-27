@@ -151,4 +151,17 @@ function readingFrom(output, links, now) {
   return {ok: true, reading: {what: /[.!?]$/.test(sentence) ? sentence : `${sentence}.`, about: output.about, sources, readAt}};
 }
 
-module.exports = {recipe, requestFrom, promptFor, readingFrom, oneLine, plainName, isDay, returnedSources};
+/**
+ * A sentence of Claude's in at most so many words, as the page shows it. One that had to be cut ends with "…", so
+ * that it does not read as if it were whole; a whole one ends with a full stop, whatever sign it came with.
+ */
+function sentenceOf(text, mostWords) {
+  const words = oneLine(text).split(' ').filter(Boolean);
+  if (words.length > mostWords) {
+    return `${words.slice(0, mostWords).join(' ').replace(/[.,;:!?]+$/, '')}…`;
+  }
+  const whole = words.join(' ');
+  return !whole || /[.!?…]$/.test(whole) ? whole : `${whole.replace(/[,;:]+$/, '')}.`;
+}
+
+module.exports = {recipe, requestFrom, promptFor, readingFrom, oneLine, plainName, isDay, returnedSources, sentenceOf};

@@ -41,8 +41,8 @@ describe('ClaudeViewCellComponent (Claude\'s view of a stock, in its row)', () =
   it('shows the word and the short reason, and the sentence under the pointer', () => {
     views.knows({views: {ABCD: {'2026-11-14': keptView('WAIT')}}});
     fixture.detectChanges();
-    expect(el().querySelector('.word')!.textContent).toBe('WAIT');
-    expect(say()).toBe('WAIT Results due next week');
+    expect(el().querySelector('.word')!.textContent).toBe('Wait');
+    expect(say()).toBe('Wait Results due next week');
     expect(tip()).toBe('It reports its results next week. Asked Nov 14.');
   });
 
@@ -50,7 +50,7 @@ describe('ClaudeViewCellComponent (Claude\'s view of a stock, in its row)', () =
     views.knows({views: {ABCD: {'2026-11-14': keptView('BUY SOME')}}});
     fixture.componentRef.setInput('compact', true);
     fixture.detectChanges();
-    expect(say()).toBe('BUY SOME');
+    expect(say()).toBe('Buy some');
     expect(tip()).toContain('It reports its results next week.');
   });
 
@@ -68,7 +68,7 @@ describe('ClaudeViewCellComponent (Claude\'s view of a stock, in its row)', () =
     views.knows({views: {ABCD: {'2026-11-10': keptView('WAIT')}}});
     fixture.detectChanges();
     expect(el().querySelector('.view')!.classList.contains('stale')).toBeTrue();
-    expect(say()).toBe('WAIT Results due next week from Nov 10');
+    expect(say()).toBe('Wait Results due next week from Nov 10');
   });
 
   it('says on a held stock that Claude was not told so', () => {
@@ -84,22 +84,36 @@ describe('ClaudeViewCellComponent (Claude\'s view of a stock, in its row)', () =
     expect(say()).toBe('asking…');
     views.knows({views: {ABCD: {'2026-11-20': keptView('AVOID')}}, queue: {symbols: ['ABCD', 'EFGH'], done: ['ABCD'], failed: {}}});
     fixture.detectChanges();
-    expect(say()).toBe('AVOID Results due next week');
+    expect(say()).toBe('Avoid Results due next week');
   });
 
   it('says "no answer", with the reason under the pointer, when Claude gave none', () => {
     views.knows({views: {}, failed: {ABCD: 'timeout'}});
     fixture.detectChanges();
-    expect(say()).toBe('no answer');
+    expect(say()).toBe('No answer');
     expect(tip()).toBe('Claude took too long and was stopped. Ask again.');
   });
 
-  it('is not dressed as the tested mark: a plain word, no colour of its own for buy or avoid', () => {
+  // Found by a review of the page: in capitals, at 14px and weight 600, the word was louder than the tested mark
+  // beside it ("PASS … BUY SOME"), and read as the page's verdict. It is said like the table's other quiet text.
+  it('is not dressed as the tested mark, nor louder than it: a quiet word in small letters, no colour for buy or avoid', () => {
+    document.documentElement.style.setProperty('--text-meta', '12px');
     views.knows({views: {ABCD: {'2026-11-14': keptView('BUY SOME')}}});
     fixture.detectChanges();
-    const word = el().querySelector<HTMLElement>('.word')!;
-    expect(getComputedStyle(word).backgroundColor).toBe('rgba(0, 0, 0, 0)');
-    expect(getComputedStyle(word).color).toBe(getComputedStyle(el().querySelector<HTMLElement>('.view')!).color);
+    const word = el().querySelector<HTMLElement>('.word')!, look = getComputedStyle(word);
+    expect(word.textContent).withContext('capitals are the tested mark\'s').toBe('Buy some');
+    expect(look.textTransform).toBe('none');
+    expect(look.fontSize).toBe('12px');
+    expect(Number(look.fontWeight)).toBeLessThanOrEqual(500);
+    expect(look.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    expect(look.color).toBe(getComputedStyle(el().querySelector<HTMLElement>('.view')!).color);
+    document.documentElement.style.removeProperty('--text-meta');
+  });
+
+  it('says "No answer" in the same quiet way', () => {
+    views.knows({views: {}, failed: {ABCD: 'timeout'}});
+    fixture.detectChanges();
+    expect(el().querySelector('.word')!.textContent).toBe('No answer');
   });
 });
 
@@ -118,7 +132,7 @@ describe('ClaudeViewCellComponent in the short view of the table', () => {
     views.knows({views: {ABCD: {'2026-11-10': keptView('WAIT')}}});
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
-    expect((el.textContent ?? '').replace(/\s+/g, ' ').trim()).toBe('WAIT');
+    expect((el.textContent ?? '').replace(/\s+/g, ' ').trim()).toBe('Wait');
     expect(el.querySelector('.view')!.classList.contains('stale')).toBeTrue();
     expect(fixture.debugElement.query(By.directive(MatTooltip)).injector.get(MatTooltip).message).toContain('Asked Nov 10.');
   });
@@ -151,22 +165,22 @@ describe('ClaudeViewCellComponent: Claude\'s pick among stocks that move togethe
 
   it('marks the pick with a star and "first of A" after its word, before the short reason', () => {
     create('ABCD');
-    expect(say()).toBe('BUY SOME ★ first of A Results due next week');
+    expect(say()).toBe('Buy some ★ first of A Results due next week');
     expect(el().querySelector('.first')!.getAttribute('aria-label')).withContext('read aloud as words, not as "black star"').toBe('first of A');
     expect(tip()).toContain('Of the 2 stocks of group A that Claude compared (ABCD, EFGH), it would take this one first: It makes a profit and swings less.');
   });
 
   it('marks no other stock of the group, and says under the pointer which one Claude would take first', () => {
     create('EFGH');
-    expect(say()).toBe('WAIT Results due next week');
+    expect(say()).toBe('Wait Results due next week');
     expect(el().querySelector('.first')).toBeNull();
     expect(tip()).toContain('it would take ABCD first: It makes a profit and swings less.');
   });
 
-  it('keeps the word alone in the short view of the table: its columns have no room for the star; the pick is under the pointer', () => {
+  it('shows the star alone after the word in the short view of the table, the group and the reason under the pointer', () => {
     create('ABCD', true);
-    expect(say()).toBe('BUY SOME');
-    expect(el().querySelector('.first')).toBeNull();
+    expect(say()).toBe('Buy some ★');
+    expect(el().querySelector('.first')!.getAttribute('aria-label')).toBe('first of A');
     expect(tip()).toContain('it would take this one first');
   });
 

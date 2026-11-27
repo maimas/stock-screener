@@ -16,7 +16,7 @@
  * The same limits as for a view: the run can search the web and do nothing else; a request carries only symbols,
  * cleaned names and checked figures, and only of stocks in the reader's own lists, so nothing says what is owned.
  */
-const {oneLine} = require('./why-it-dropped');
+const {sentenceOf} = require('./why-it-dropped');
 const {FACT_FIELDS, stocksFrom} = require('./claude-view');
 
 const MAX_GROUPS = 8;
@@ -136,13 +136,13 @@ function pickFrom(output, members, now) {
   if (!isObject(output) || typeof output.first !== 'string' || !symbols.includes(output.first) || typeof output.why !== 'string') {
     return {ok: false, reason: 'no-answer'};
   }
-  const sentence = oneLine(output.why).split(' ').slice(0, MAX_WHY_WORDS).join(' ');
+  const sentence = sentenceOf(output.why, MAX_WHY_WORDS);
   if (!sentence || /https?:\/\//i.test(sentence)) {
     return {ok: false, reason: 'no-answer'};
   }
   return {
     ok: true,
-    pick: {first: output.first, why: /[.!?]$/.test(sentence) ? sentence : `${sentence}.`, members: symbols, asked: now.toISOString()},
+    pick: {first: output.first, why: sentence, members: symbols, asked: now.toISOString()},
   };
 }
 

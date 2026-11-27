@@ -10,13 +10,13 @@ import {TipOnFocusDirective} from "../../tip-on-focus.directive";
  * Claude's view of a stock, in its row: one of three words (BUY SOME, WAIT, AVOID) and a few words of why; the
  * sentence shows where the pointer rests or the Tab key stops.
  *
- * It is Claude's opinion, not a tested mark, and it is not dressed as one: a plain word in the row's own colour, no
- * filled shape, no green or red. The short view of the table ("Key columns") shows the word alone, so its rows stay
- * one line tall.
+ * It is Claude's opinion, not a tested mark, and it is not dressed as one, nor louder than one: a quiet word in small
+ * letters ("Buy some"), the size of the table's other secondary text, no filled shape, no green or red. The short
+ * view of the table ("Key columns") shows the word alone, so its rows stay one line tall.
  *
  * The stock Claude would take first among those of its group that it compared (the stocks that move together) wears
- * a plain star and the words "first of A" under "All columns"; every compared stock says under the pointer which one
- * that is and why. The key columns have no room for the star: there the pick is under the pointer only.
+ * a plain star, and under "All columns" the words "first of A"; every compared stock says under the pointer which
+ * one that is and why.
  */
 @Component({
   selector: "app-claude-view-cell",
@@ -25,10 +25,10 @@ import {TipOnFocusDirective} from "../../tip-on-focus.directive";
   template: `
     <span class="view" *ngIf="cell.word; else none" [class.stale]="cell.stale" [class.failed]="cell.word === 'no answer'"
           tabindex="0" appTipOnFocus [matTooltip]="cell.tip" matTooltipClass="multiline-tooltip">
-      <span class="word">{{ cell.word }}</span>
+      <span class="word">{{ word }}</span>
       <!-- The space before each is for what reads the row aloud or copies it: the gap on the screen is the layout's. -->
       <!-- Claude's pick among the stocks of its group that it compared. Read aloud as its words, not as "black star". -->
-      <span class="first" *ngIf="!compact && cell.first" role="img" [attr.aria-label]="cell.first"> ★ {{ cell.first }}</span>
+      <span class="first" *ngIf="cell.first" role="img" [attr.aria-label]="cell.first"> ★<ng-container *ngIf="!compact"> {{ cell.first }}</ng-container></span>
       <span class="short" *ngIf="!compact && cell.short"> {{ cell.short }}</span>
       <span class="from" *ngIf="!compact && cell.from"> {{ cell.from }}</span>
     </span>
@@ -37,7 +37,9 @@ import {TipOnFocusDirective} from "../../tip-on-focus.directive";
     /* The word, then its few words of why beside it: one line a cell. */
     .view { display: inline-flex; align-items: baseline; gap: 2px; white-space: pre; border-radius: 3px; }
     .view:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: 2px; }
-    .word { font-weight: 600; }
+    /* Quiet, in small letters: capitals, weight and size are the tested mark's, and this is not one. */
+    .view { color: var(--ink-2); }
+    .word { font-size: var(--text-meta); font-weight: 500; }
     .first { font-size: var(--text-meta); }
     .short, .from { font-size: var(--text-meta); color: var(--ink-3); }
     .view.stale .word, .view.failed .word { font-weight: 400; color: var(--ink-3); }
@@ -66,6 +68,12 @@ export class ClaudeViewCellComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.watching?.unsubscribe();
+  }
+
+  /** Claude's word as the row says it: "Buy some", "Wait", "Avoid", "No answer". */
+  get word(): string {
+    const said = this.cell.word;
+    return said.charAt(0).toUpperCase() + said.slice(1).toLowerCase();
   }
 
   get cell(): ViewCell {

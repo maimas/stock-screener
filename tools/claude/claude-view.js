@@ -16,7 +16,7 @@
  * Nothing about what anybody owns is among them, and the run has no way to read a file. Each stock is judged on its
  * own: no order among the stocks of a list, because no order among marked stocks held up in the tests.
  */
-const {oneLine, plainName, isDay, returnedSources} = require('./why-it-dropped');
+const {oneLine, plainName, isDay, returnedSources, sentenceOf} = require('./why-it-dropped');
 
 const VIEWS = ['BUY SOME', 'WAIT', 'AVOID'];
 const MAX_STOCKS = 10;
@@ -228,14 +228,14 @@ function viewFrom(output, links, now) {
     return {ok: false, reason: 'no-answer'};
   }
   const short = firstWords(oneLine(output.short), MAX_SHORT_WORDS).replace(/[.,;:]+$/, '');
-  const sentence = firstWords(oneLine(output.why), MAX_WHY_WORDS);
+  const sentence = sentenceOf(output.why, MAX_WHY_WORDS);
   if (!short || !sentence || [short, sentence].some(text => /https?:\/\//i.test(text))) {
     return {ok: false, reason: 'no-answer'};
   }
   return {
     ok: true,
     view: {
-      view: output.view, short, why: /[.!?]$/.test(sentence) ? sentence : `${sentence}.`,
+      view: output.view, short, why: sentence,
       sources: returnedSources(output.sources, links), asked: now.toISOString(),
     },
   };

@@ -158,7 +158,7 @@ test('cuts the short reason to 6 words and the sentence to 25', () => {
   const words = n => Array.from({length: n}, (_, i) => `w${i + 1}`).join(' ');
   const made = viewFrom({view: 'BUY SOME', short: words(9), why: words(40), sources: []}, [], NOW).view;
   assert.equal(made.short, words(6));
-  assert.equal(made.why, `${words(25)}.`);
+  assert.equal(made.why, `${words(25)}…`, 'a sentence that was cut says so: it does not end as if it were whole');
 });
 
 test('the page and this recipe agree on every figure: its name, its least and most, its decimals, its fixed words', () => {
