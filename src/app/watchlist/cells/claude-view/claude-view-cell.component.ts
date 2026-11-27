@@ -17,6 +17,9 @@ import {TipOnFocusDirective} from "../../tip-on-focus.directive";
  * The stock the AI would take first among those of its group that it compared (the stocks that move together) wears
  * a plain star, and under "All columns" the words "first of A"; every compared stock says under the pointer which
  * one that is and why.
+ *
+ * In the table at the top of the Watchlist ("Dip candidates") the cell has the room of a wide window: there it shows
+ * the few words of why under "Key columns" too (the owner: "I want it"), by the class "when-wide" (see the styles).
  */
 @Component({
   selector: "app-claude-view-cell",
@@ -28,7 +31,7 @@ import {TipOnFocusDirective} from "../../tip-on-focus.directive";
       <span class="word">{{ word }}</span>
       <!-- The space before each is for what reads the row aloud or copies it: the gap on the screen is the layout's. -->
       <!-- Claude's pick among the stocks of its group that it compared. Read aloud as its words, not as "black star". -->
-      <span class="first" *ngIf="cell.first" role="img" [attr.aria-label]="cell.first"> ★<ng-container *ngIf="!compact"> {{ cell.first }}</ng-container></span>
+      <span class="first" *ngIf="cell.first" role="img" [attr.aria-label]="cell.first"> ★<span class="first-of" *ngIf="!compact"> {{ cell.first }}</span></span>
       <span class="short" *ngIf="!compact && cell.short"> {{ cell.short }}</span>
       <span class="from" *ngIf="!compact && cell.from"> {{ cell.from }}</span>
     </span>
@@ -44,6 +47,18 @@ import {TipOnFocusDirective} from "../../tip-on-focus.directive";
     .short, .from { font-size: var(--text-meta); color: var(--ink-3); }
     .view.stale .word, .view.failed .word { font-weight: 400; color: var(--ink-3); }
     .none { color: var(--ink-3); }
+    /* In the table at the top of the Watchlist (the page gives its cells the class "when-wide"): the word and the
+       star alone until the table's box is 1780px wide, the least at which the page gives this column the room for
+       the few words of why (the same figure stands in the page's style sheet, at the column's share). The box
+       decides, not a flag, so a window made narrower needs nothing worked out again. */
+    :host(.when-wide) { display: block; min-width: 0; }
+    :host(.when-wide) .view { display: flex; max-width: 100%; }
+    :host(.when-wide) .word, :host(.when-wide) .first, :host(.when-wide) .from { flex: none; }
+    /* A reason longer than its column is cut with "…": the sentence is under the pointer. */
+    :host(.when-wide) .short { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    @container (max-width: 1779px) {
+      :host(.when-wide) .first-of, :host(.when-wide) .short, :host(.when-wide) .from { display: none; }
+    }
   `]
 })
 export class ClaudeViewCellComponent implements OnInit, OnDestroy {

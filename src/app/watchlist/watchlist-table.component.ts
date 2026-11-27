@@ -1604,7 +1604,10 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  /** The columns of the table at the top: the lists' own, and after the last key column one that says the list. */
+  /**
+   * The columns of the table at the top: the lists' own, with more room for the AI's column, and after the last key
+   * column one that says the list.
+   */
   private withListColumn(columns: TableDef[]): TableDef[] {
     const list: TableDef = {
       columnName: 'list',
@@ -1615,8 +1618,20 @@ export class WatchlistTableComponent implements OnInit, OnChanges, OnDestroy {
       sortValue: (it: Stock) => this.listsOf(it),
       sortStart: 'asc',
     };
-    const after = columns.findIndex(it => it.columnName === 'oneYear');
-    return [...columns.slice(0, after + 1), list, ...columns.slice(after + 1)];
+    // The AI's column has the room of a wide window in this table: its cells are told so ("roomy"), and show the
+    // few words of why where the table's box is wide (the owner: "I want it"). The column is the lists' own
+    // otherwise: it stands behind this one (`Object.create`), so what its heading says is read from it each time
+    // (how the past views turned out changes while the page is open).
+    const mine = columns.map(column => {
+      if (column.columnName !== 'claudeView') {
+        return column;
+      }
+      const roomy: TableDef = Object.create(column);
+      roomy.templateData = (it: Stock) => ({...column.templateData(it), roomy: true});
+      return roomy;
+    });
+    const after = mine.findIndex(it => it.columnName === 'oneYear');
+    return [...mine.slice(0, after + 1), list, ...mine.slice(after + 1)];
   }
 
   /** The names of the lists a stock is in, in the lists' order: "AI CHIPS", or "BIG TECH, AI CHIPS". */

@@ -5,6 +5,7 @@ import {By} from "@angular/platform-browser";
 import {WatchlistTableComponent} from "./watchlist-table.component";
 import {SmartTableComponent} from "../dashboard/dashboard-components/smart-table/smart-table.component";
 import {ClaudeAskComponent} from "./claude-ask/claude-ask.component";
+import {ClaudeViewCellComponent} from "./cells/claude-view/claude-view-cell.component";
 import {ClaudeViewService} from "./claude-view.service";
 import {ReadingService} from "./reading.service";
 import {FakeClaudeViews} from "./testing/fake-claude-views";
@@ -163,6 +164,35 @@ describe('WatchlistTableComponent: the stocks marked DIP BUY as a table at the t
     expect(ask.stocks.map(it => it.quote!.symbol)).toEqual(['ABCD', 'EFGH', 'MNOP']);
     expect(ask.tied).toBe(page().tied);
     expect(say(box().querySelector('.head app-claude-ask button'))).toBe('Ask AI about these 3');
+  });
+
+  // The owner, told that the top table has room on a wide screen for the AI's short reason: "I want it". Under
+  // "Key columns" a list's cell is the word alone; the top table's cell holds the reason too and shows it where the
+  // table's box is wide (the cell's own style sheet decides by the box).
+  it('gives the AI\'s cells of the top table their few words of why, to show where the box is wide; a list keeps the word alone', () => {
+    load();
+    const cellsIn = (within: Element) => Array.from(within.querySelectorAll<HTMLElement>('app-claude-view-cell'));
+    const top = cellsIn(box()), listed = cellsIn(el().querySelector('.lists')!);
+    expect(top.length).toBe(4);
+    expect(top.every(it => it.classList.contains('when-wide'))).toBeTrue();
+    expect(listed.some(it => it.classList.contains('when-wide'))).toBeFalse();
+    const compact = (within: Element) => fixture.debugElement.queryAll(By.directive(ClaudeViewCellComponent))
+      .filter(it => within.contains(it.nativeElement)).map(it => (it.componentInstance as ClaudeViewCellComponent).compact);
+    expect(compact(box())).toEqual([false, false, false, false]);
+    expect(compact(el().querySelector('.lists')!).every(it => it)).toBeTrue();
+
+    page().setView('all');
+    fixture.detectChanges();
+    expect(cellsIn(box()).some(it => it.classList.contains('when-wide'))).withContext('with every column a cell shows all of it, as in a list').toBeFalse();
+    expect(compact(box())).toEqual([false, false, false, false]);
+  });
+
+  it('keeps what the AI column\'s heading says in the top table as in the lists, also after a new answer', () => {
+    load();
+    const tables = fixture.debugElement.queryAll(By.directive(SmartTableComponent)).map(it => it.componentInstance as SmartTableComponent);
+    const tipOf = (table: SmartTableComponent) => table.tableDefinition.find(it => it.columnName === 'claudeView')!.columnTooltip;
+    expect(tipOf(tables[0])).toBe(tipOf(tables[1]));
+    expect(tipOf(tables[0])).toContain('not tested');
   });
 
   it('hands the box the counts of the marks over every stock of the page', () => {

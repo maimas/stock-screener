@@ -493,6 +493,25 @@
   }
 }
 
+// From 1780px the AI's column has the room for its few words of why beside the word ("Buy some ★ first of A
+// Strong business, unusually cheap price now" is about 370px; the owner, told the table has the room: "I want
+// it"). The cell shows them from the same width (the figure stands in the cell's own styles too: change both).
+// The other columns keep what their widest cells need; what is left over goes to the reason.
+@container (min-width: 1780px) {
+  ::ng-deep .dip-table .smart-table.short {
+    .mat-column-symbol { width: 7.3%; }
+    .mat-column-group { width: 4.28%; }
+    .mat-column-signal { width: 8.88%; }
+    .mat-column-claudeView { width: 24.66%; }
+    .mat-column-price { width: 5.08%; }
+    .mat-column-growth { width: 14.19%; }
+    .mat-column-earnings { width: 12.8%; }
+    .mat-column-volatility { width: 6.69%; }
+    .mat-column-oneYear { width: 5.08%; }
+    .mat-column-list { width: 11.04%; }
+  }
+}
+
 // How far apart the cells stand in this table (the selectors name the table twice over, to weigh more than the
 // smart table's own rule for the same cells): 8px each side from 1340 to 1500px, which is what ten columns need
 // there, and 6px under it (as a list's cells stand under 1200px): at 12px a swing of three figures ("112%

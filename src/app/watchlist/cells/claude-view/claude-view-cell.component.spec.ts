@@ -244,3 +244,91 @@ describe('ClaudeViewCellComponent: the pick, as a review asked for it', () => {
     expect(fixture.componentInstance.cell.word).toBe('WAIT');
   });
 });
+
+// The owner, of the table of "Dip candidates" across the top of the Watchlist, told that it has room on a wide screen
+// for the AI's short reason next to its word: "I want it". The page marks the cells of that table (class "when-wide");
+// such a cell shows its few words of why where the table's box is wide, and the word alone where it is not. The box
+// decides (a container query), so nothing is worked out again when the window changes.
+describe('ClaudeViewCellComponent: in a table that shows the reason where its box is wide', () => {
+  let views: FakeClaudeViews;
+  let fixture: ComponentFixture<ClaudeViewCellComponent>;
+  let box: HTMLElement;
+
+  beforeEach(() => {
+    views = new FakeClaudeViews();
+    TestBed.configureTestingModule({
+      imports: [ClaudeViewCellComponent, NoopAnimationsModule],
+      providers: [{provide: ClaudeViewService, useValue: views}],
+    });
+    fixture = TestBed.createComponent(ClaudeViewCellComponent);
+    fixture.componentRef.setInput('symbol', 'ABCD');
+    fixture.componentRef.setInput('today', '2026-11-15');
+    views.setTied({groups: [{letter: 'A', index: 0, symbols: ['ABCD', 'EFGH'], level: 0.7, sector: ''}], alone: [], unknown: []});
+    views.knows({
+      views: {ABCD: {'2026-11-14': keptView('BUY SOME')}, EFGH: {'2026-11-14': keptView('WAIT')}},
+      picks: {'2026-11-14': {A: {first: 'ABCD', why: 'It makes a profit.', members: ['ABCD', 'EFGH']}}},
+    });
+    // The box the table scrolls in, which is what the cell measures (the smart table's ".table-scroll").
+    box = document.createElement('div');
+    box.style.containerType = 'inline-size';
+    const cell: HTMLElement = fixture.nativeElement;
+    cell.parentElement!.insertBefore(box, cell);
+    box.appendChild(cell);
+    fixture.detectChanges();
+  });
+
+  afterEach(() => box.remove());
+
+  const el = (): HTMLElement => fixture.nativeElement;
+  const shown = (selector: string): boolean => {
+    const part = el().querySelector<HTMLElement>(selector);
+    return !!part && getComputedStyle(part).display !== 'none';
+  };
+  function boxed(width: number, marked = true): void {
+    box.style.width = `${width}px`;
+    el().classList.toggle('when-wide', marked);
+    fixture.detectChanges();
+  }
+
+  it('shows the word, the star with its words and the few words of why in a box of 1780px or more', () => {
+    boxed(1780);
+    expect((el().textContent ?? '').replace(/\s+/g, ' ').trim()).toBe('Buy some ★ first of A Results due next week');
+    expect(['.word', '.first', '.first-of', '.short'].map(shown)).toEqual([true, true, true, true]);
+  });
+
+  it('shows the word and the star alone in a narrower box: a row of the table stays one line', () => {
+    boxed(1779);
+    expect(['.word', '.first'].map(shown)).toEqual([true, true]);
+    expect(['.first-of', '.short'].map(shown)).toEqual([false, false]);
+    expect(el().querySelector('.first')!.getAttribute('aria-label')).withContext('still read aloud as its words').toBe('first of A');
+  });
+
+  it('says since when an older view stands only where the box is wide, too', () => {
+    fixture.componentRef.setInput('today', '2026-11-29');
+    boxed(1780);
+    expect((el().querySelector('.from')!.textContent ?? '').trim()).toBe('from Nov 14');
+    expect(shown('.from')).toBeTrue();
+    boxed(1779);
+    expect(shown('.from')).toBeFalse();
+    expect(el().querySelector('.view')!.classList.contains('stale')).withContext('an older view still looks older').toBeTrue();
+  });
+
+  it('leaves a cell without that class as it is: under "All columns" a list shows the reason in a box of any width', () => {
+    boxed(900, false);
+    expect(['.first-of', '.short'].map(shown)).toEqual([true, true]);
+  });
+
+  // The column is as wide as its share of the table: a reason longer than that is cut with "…" (the whole sentence
+  // is under the pointer), and never runs over the next column.
+  it('cuts a reason that is longer than its column, and not the word or the star', () => {
+    boxed(1780);
+    el().style.display = 'block';
+    el().style.width = '200px';
+    const view = el().querySelector<HTMLElement>('.view')!, short = el().querySelector<HTMLElement>('.short')!;
+    expect(view.getBoundingClientRect().width).withContext('the cell keeps to its column').toBeLessThanOrEqual(200.5);
+    expect(short.scrollWidth).withContext('the reason is what gives way').toBeGreaterThan(short.clientWidth);
+    expect(getComputedStyle(short).textOverflow).toBe('ellipsis');
+    const word = el().querySelector<HTMLElement>('.word')!;
+    expect(word.scrollWidth).toBeLessThanOrEqual(word.clientWidth + 1);
+  });
+});

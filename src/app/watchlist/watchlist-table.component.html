@@ -233,7 +233,10 @@
 
 <!-- Claude's own view of the stock, not a tested mark: the word alone in the short view, so its rows stay one line. -->
 <ng-template #claudeViewCellTemplate let-templateData="templateData">
-  <app-claude-view-cell [symbol]="templateData.symbol" [today]="today" [compact]="view === 'decision'"></app-claude-view-cell>
+  <!-- "roomy" is the table at the top, in "Dip candidates": under "Key columns" its cell holds the few words of
+       why too and shows them where the table's box is wide (the cell's own styles: "when-wide"). -->
+  <app-claude-view-cell [symbol]="templateData.symbol" [today]="today" [compact]="view === 'decision' && !templateData.roomy"
+                        [class.when-wide]="view === 'decision' && !!templateData.roomy"></app-claude-view-cell>
 </ng-template>
 
 <ng-template #neutralPercentCellTemplate let-templateData="templateData">
