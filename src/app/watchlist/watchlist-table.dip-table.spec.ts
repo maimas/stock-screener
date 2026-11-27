@@ -136,6 +136,36 @@ describe('WatchlistTableComponent: the stocks marked DIP BUY as a table at the t
     expect(document.activeElement).toBe(toggle());
   }));
 
+  // The stock's row in the top table comes first on the page: a search of the whole page for its row would put the
+  // keyboard there, a screen away from the list the reader was in.
+  it('puts the keyboard back on the row in the list when details opened there are closed at their foot', fakeAsync(() => {
+    load();
+    const lists = () => el().querySelector<HTMLElement>('.lists')!;
+    const toggle = () => lists().querySelector<HTMLButtonElement>('button.toggle[aria-label$="details for ABCD"]')!;
+    toggle().click();
+    fixture.detectChanges();
+    lists().querySelector<HTMLElement>('tr.detail-row.open[data-detail="ABCD"] button')!.focus();
+    page().closeStock(page().watchLists[0].dataSource.data.find(it => it.quote?.symbol === 'ABCD')!);
+    fixture.detectChanges();
+    flush();
+    expect(el().querySelector('tr.detail-row.open')).toBeNull();
+    expect(document.activeElement).withContext('the row in the list, not the one at the top').toBe(toggle());
+  }));
+
+  it('goes back to the table the details were open in when the keyboard was elsewhere (Esc from the page)', fakeAsync(() => {
+    load();
+    const lists = () => el().querySelector<HTMLElement>('.lists')!;
+    const toggle = () => lists().querySelector<HTMLButtonElement>('button.toggle[aria-label$="details for ABCD"]')!;
+    toggle().click();
+    fixture.detectChanges();
+    (document.activeElement as HTMLElement | null)?.blur();
+    expect(document.activeElement).withContext('the keyboard in no table').toBe(document.body);
+    page().closeStock(page().watchLists[0].dataSource.data.find(it => it.quote?.symbol === 'ABCD')!);
+    fixture.detectChanges();
+    flush();
+    expect(document.activeElement).toBe(toggle());
+  }));
+
   // The lists are ordered together (a click on a heading in one orders them all). The top table is not one of
   // them: it starts A to Z, as the box always showed its stocks, and an order given to it is its own.
   it('keeps an order of its own: the lists\' order leaves it A to Z, and its order leaves the lists as they are', () => {

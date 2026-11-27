@@ -184,6 +184,31 @@ describe('DipCandidatesComponent: the frame of the table of stocks marked DIP BU
       expect(behind[lead + 1]).withContext('right after its lead-in').toMatch(/^In tests on \d+ stocks/);
     });
 
+    // Found by a review: the sentence was behind "Groups" and a second "more", and gone on a day the stocks fell
+    // into no group or the table was put away.
+    describe('how far the marked stocks are one bet', () => {
+      const ONE_BET = '11 of these 18 stocks are in Technology. Their prices move closely together: owning all 18 is nearer to one big bet than to 18 separate ones.';
+      const behind = (el: HTMLElement) => el.querySelector<HTMLElement>('app-about .about-body')!;
+
+      it('is said whole, right after the account of the tests', () => {
+        const {el} = shown({oneBet: ONE_BET});
+        expect(text(behind(el).querySelector('.one-bet'))).toBe(ONE_BET);
+        expect(behind(el).querySelector('app-more')).withContext('no second "more" inside').toBeNull();
+        const notes = Array.from(behind(el).querySelectorAll(':scope > p'));
+        expect(notes.findIndex(p => p.classList.contains('one-bet')))
+          .toBe(notes.findIndex(p => p.classList.contains('tested')) + 1);
+      });
+
+      it('is said on a day the stocks fall into no group, and with the table put away', () => {
+        const {el} = shown({oneBet: 'All 3 of these stocks are in Technology.', tied: {groups: [], alone: ['ACME', 'BOLT', 'CHIP'], unknown: []}, folded: true});
+        expect(text(behind(el).querySelector('.one-bet'))).toBe('All 3 of these stocks are in Technology.');
+      });
+
+      it('is left out when there is nothing to say', () => {
+        expect(shown({oneBet: ''}).el.querySelector('.one-bet')).toBeNull();
+      });
+    });
+
     it('says that an order of the rows is the reader\'s own, once there are two stocks to order', () => {
       expect(text(shown().el.querySelector('app-about .order-note'))).toContain('the page ranks nothing');
       TestBed.resetTestingModule();
@@ -310,7 +335,8 @@ describe('DipCandidatesComponent: a day no price arrives', () => {
 
 // The owner, of the sentence that the candidates are nearer to one big bet: "I can't leverage it since I don't know
 // what stocks move together - maybe we can add something to show the tied group". The letters are a column of the
-// table now, as in every list; who is in which group, and the sentence about one bet, are behind "Groups".
+// table now, as in every list; who is in which group is behind "Groups", and the sentence about one bet behind
+// "How to read this".
 describe('DipCandidatesComponent: which of the candidates move together', () => {
   const TIED = {
     groups: [
@@ -334,13 +360,13 @@ describe('DipCandidatesComponent: which of the candidates move together', () => 
     expect(legend(el).hidden).toBeTrue();
   });
 
-  it('lists the groups on a click: the letter, its stocks, how many and their sector, under the sentence about one bet', () => {
+  it('lists the groups on a click: the letter, its stocks, how many and their sector', () => {
     const {fixture, el} = withGroups();
     control(el).click();
     fixture.detectChanges();
     expect(control(el).getAttribute('aria-expanded')).toBe('true');
     expect(legend(el).hidden).toBeFalse();
-    expect(text(legend(el).querySelector('.one-bet'))).toBe('Their prices move closely together.');
+    expect(legend(el).querySelector('.one-bet')).withContext('said once, behind "How to read this"').toBeNull();
     expect(text(legend(el).querySelector('h3'))).toBe('Which of them move together');
     const lines = Array.from(legend(el).querySelectorAll('li')).map(li =>
       [text(li.querySelector('.tied-tag')), text(li.querySelector('.members')), text(li.querySelector('.brief'))]);

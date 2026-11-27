@@ -51,8 +51,9 @@
 
     <!-- The third line: what the mark was worth in the tests, as numbers a reader can compare at a glance (the
          average and the typical stock with the mark, the market, the risk), and the controls that open what is said
-         about them and about the table. The account in sentences, with its limits, is behind "How to read this";
-         which stocks move together is behind "Groups". Opened, each stands under the line, as wide as the box. -->
+         about them and about the table. The account in sentences, with its limits and how far the marked stocks are
+         one bet, is behind "How to read this"; which stocks move together is behind "Groups". Opened, each stands
+         under the line, as wide as the box. -->
     <div class="tested-line" *ngIf="loaded && marks.dipBuy > 0">
       <div class="tested-figures">
         <h3 class="tested-title">{{ tested.title }}</h3>
@@ -75,15 +76,16 @@
         <!-- The figures in sight are the newest test's; the account of all the tested lists follows its lead-in. -->
         <p class="note bridge">{{ tested.bridge }}</p>
         <p class="note tested">{{ cardNote }}</p>
+        <!-- How far owning all of them is one bet: whole, on a day without groups and with the table put away too
+             (a review found it behind "Groups" and a second "more", and gone in those two cases). -->
+        <p class="note one-bet" *ngIf="oneBet">{{ oneBet }}</p>
         <p class="note tied-note" *ngIf="tied.groups.length > 0">{{ tiedNote }}</p>
         <p class="note order-note" *ngIf="marks.dipBuy > 1">{{ orderNote }}</p>
       </app-about>
       <button type="button" class="groups-toggle" *ngIf="tied.groups.length > 0 && !folded"
               [attr.aria-expanded]="groupsOpen" [attr.aria-controls]="groupsId" (click)="toggleGroups()">Groups</button>
-      <!-- Which of them are tied: a line a group, with the letter its rows carry in the table's "Group" column,
-           under the sentence that says how far these stocks are one bet. -->
+      <!-- Which of them are tied: a line a group, with the letter its rows carry in the table's "Group" column. -->
       <div class="tied" [id]="groupsId" *ngIf="tied.groups.length > 0" [hidden]="!groupsOpen || folded">
-        <p class="note one-bet" *ngIf="oneBet"><app-more key="dip.onebet" [text]="oneBet"></app-more></p>
         <h3 class="tied-title">{{ tiedTitle }}</h3>
         <ul>
           <li *ngFor="let g of tied.groups; trackBy: trackByLetter">

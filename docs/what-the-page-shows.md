@@ -721,8 +721,8 @@ The page is made for a browser window that fills a large monitor, and still work
   details and opens in a new tab.
 - **"Dip candidates" says which of its stocks move together.** The sentence "owning all 9 is nearer to one big
   bet than to 9 separate ones" could not be used without knowing which stocks are tied (the owner: "I can't
-  leverage it since I don't know what stocks move together"). Both are behind the control "Groups" in the box,
-  closed until asked for and remembered: the sentence, and under it "Which of them move together", a line a group:
+  leverage it since I don't know what stocks move together"). The groups are behind the control "Groups" in the
+  box, closed until asked for and remembered: "Which of them move together", a line a group:
   a letter, its stocks, how many they are and the sector they share ("A · ACME, BOLT, CHIP · 3 stocks, mostly
   Technology"), and last the stocks that moved with none of the others. Each row of the table
   carries its group's letter in a column "Group", with a dot of the group's colour in front of it (a dash for a
@@ -733,7 +733,9 @@ The page is made for a browser window that fills a large monitor, and still work
   stay apart for every pair, also for a reader who does not tell red from green, and are none of the page's
   green, red or amber; a fourth group wears grey, and the letter always says which group. It is a fact about the
   past year, not a tested reason to pick, and the note under the list says so: whether spreading a purchase over
-  groups lowers the risk was not tested. Nothing is ranked by it.
+  groups lowers the risk was not tested. Nothing is ranked by it. The sentence on one bet itself is behind "How
+  to read this", whole, after the account of the tests: also on a day the stocks fall into no group, and with the
+  table put away (a review found it behind "Groups" and a second "more", and gone in those two cases).
 - **The group letter is in every table, under one grouping for the whole page** (the owner: "add the group
   everywhere so that I can see"): the lists, "Dip candidates", "What you own" and "Could add" each have a column
   "Group", and a letter means the same group in all of them. A table that shows only some of a group's stocks

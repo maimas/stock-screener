@@ -1,6 +1,5 @@
 import {ORDER_NOTE} from "../recommendations";
 import {groupBrief, NO_GROUPS, TIED_NOTE, TIED_TITLE, TiedGroup, TiedGroups} from "../tied-groups";
-import {MoreComponent} from "../more/more.component";
 import {AboutComponent} from "../more/about.component";
 import {MoreService} from "../more/more.service";
 import {ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, Output} from "@angular/core";
@@ -61,7 +60,7 @@ const GROUPS_KEY = 'dip.groups';
 @Component({
   selector: "app-dip-candidates",
   standalone: true,
-  imports: [NgIf, NgForOf, MatCardModule, MatTooltipModule, MoreComponent, AboutComponent],
+  imports: [NgIf, NgForOf, MatCardModule, MatTooltipModule, AboutComponent],
   templateUrl: "./dip-candidates.component.html",
   styleUrls: ["./dip-candidates.component.scss"]
 })
@@ -80,7 +79,7 @@ export class DipCandidatesComponent implements OnDestroy {
   @Input() indexLine = '';
   /** How fearful the market is, from the VIX. */
   @Input() fear?: MarketFear;
-  /** How much the candidates are one bet: shared sector and how closely they have moved together. */
+  /** How much the candidates are one bet: shared sector and how closely they have moved together. Behind "How to read this". */
   @Input() oneBet = '';
   /**
    * Which of the candidates moved together over the past year, as groups under a letter. The sentence about one

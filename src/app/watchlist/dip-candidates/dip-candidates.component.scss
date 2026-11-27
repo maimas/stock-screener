@@ -272,7 +272,6 @@ app-about .meanings {
   color: var(--ink);
 }
 
-.tied .one-bet + .tied-title,
 .tied-title:first-child {
   margin-top: 0;
 }
@@ -312,8 +311,8 @@ app-about .meanings {
   color: var(--ink-2);
 }
 
+// The one caution about today's stocks among the notes on the tests: in the darker ink of the box's figures.
 .note.one-bet {
-  margin-top: 0;
   color: var(--ink);
 }
 
