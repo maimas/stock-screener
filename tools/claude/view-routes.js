@@ -28,12 +28,13 @@ const {localDay} = require('../store/day');
 const {runRecipe} = require('./claude-cli');
 const {installedCheck} = require('./reader-routes');
 const {recipe, listFrom, promptFor, testedHeadline, viewFrom} = require('./claude-view');
-const {recipe: compareRecipe, groupsFrom, comparePrompt, pickFrom} = require('./claude-compare');
+const {recipe: compareRecipe, groupsFrom, comparePrompt, pickFrom, isView} = require('./claude-compare');
 
 const KEY = 'claude-views';
 const ROUTE = '/claude/views';
 /** A view counts in a comparison while it is this fresh: as long as the page shows it without calling it old. */
 const FRESH_DAYS = 7;
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const dayNumber = day => Date.parse(`${day}T12:00:00Z`) / 86_400_000;
 
 /** The figures the backtests record, or nothing when they are not there: then nothing is quoted as tested. */
@@ -82,6 +83,7 @@ function viewRoutes({
 }) {
   let queue;                                        // the list being asked about: {symbols, done, failed, comparing?}
   const failed = new Map();                         // stock -> why it got no view the last time it was asked about
+  const failedGroups = new Map();                   // group's letter -> why it could not be compared the last time
 
   /** Asks, and asks again while Claude is busy with something else. */
   const untilFree = async (ask, question) => {
@@ -121,8 +123,9 @@ function viewRoutes({
     const all = (await storage.read(KEY)).value?.views ?? {};
     const views = {};
     const members = group.members.filter(member => {
-      const newest = Object.keys(all[member.symbol] ?? {}).sort().pop();
-      if (!newest || dayNumber(today) - dayNumber(newest) > FRESH_DAYS) {
+      // What is kept is read with care: only under a day, only one of the three words.
+      const newest = Object.keys(all[member.symbol] ?? {}).filter(day => DAY.test(day)).sort().pop();
+      if (!newest || dayNumber(today) - dayNumber(newest) > FRESH_DAYS || !isView(all[member.symbol][newest])) {
         return false;
       }
       views[member.symbol] = all[member.symbol][newest];
@@ -163,11 +166,17 @@ function viewRoutes({
     }
     for (const group of groups) {
       const started = Date.now();
-      const reason = await compareOne(group).catch(() => 'failed');
+      // Only a group one of whose stocks got a view just now: otherwise there is nothing new to compare, and a pick
+      // dated today would rest on older views alone.
+      const fresh = group.members.some(member => queue.done.includes(member.symbol));
+      const reason = fresh ? await compareOne(group).catch(() => 'failed') : 'nothing-new';
       queue.comparing = queue.comparing.filter(letter => letter !== group.letter);
-      if (reason === 'too-few') {
+      if (reason === 'nothing-new') {
+        log.log(`[claude] group ${group.letter} was not compared: none of its stocks got a view this time`);
+      } else if (reason === 'too-few') {
         log.log(`[claude] group ${group.letter} was not compared: fewer than two of its stocks have a view`);
       } else if (reason) {
+        failedGroups.set(group.letter, reason);
         log.warn(`[claude] no pick in group ${group.letter}: ${reason}`);
       } else {
         log.log(`[claude] compared group ${group.letter} (${Math.round((Date.now() - started) / 1000)}s)`);
@@ -178,6 +187,7 @@ function viewRoutes({
   const start = (list, groups) => {
     queue = {symbols: list.map(it => it.symbol), done: [], failed: {}, ...(groups.length ? {comparing: groups.map(it => it.letter)} : {})};
     list.forEach(it => failed.delete(it.symbol));
+    groups.forEach(it => failedGroups.delete(it.letter));
     askAll(list, groups).catch(error => log.warn(`[claude] the list was not asked through: ${error?.message}`)).finally(() => {
       queue = undefined;
     });
@@ -196,6 +206,7 @@ function viewRoutes({
       ...(kept?.picks && Object.keys(kept.picks).length ? {picks: kept.picks} : {}),
       ...(queue ? {queue: standing()} : {}),
       failed: Object.fromEntries(failed),
+      ...(failedGroups.size ? {failedGroups: Object.fromEntries(failedGroups)} : {}),
     };
   };
 
