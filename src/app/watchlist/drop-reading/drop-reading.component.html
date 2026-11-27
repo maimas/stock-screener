@@ -17,5 +17,6 @@
 
 <p class="busy" *ngIf="busy" role="status" aria-busy="true">{{ readingNow }}</p>
 <p class="failed" *ngIf="failure" role="alert">{{ failure }}</p>
-<button mat-stroked-button type="button" class="ask" *ngIf="canAsk && !reading" (click)="read()"
+<!-- Not where the AI's view of the stock can be asked for: that question reads the fall too ("Ask AI about this stock"). -->
+<button mat-stroked-button type="button" class="ask" *ngIf="canAsk && !reading && !viaView" (click)="read()"
         [matTooltip]="readTip" matTooltipClass="multiline-tooltip">{{ readLabel }}</button>

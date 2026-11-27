@@ -8,6 +8,7 @@ import {
   failureText, NOT_TESTED_NOTE, READ_AGAIN, READ_BUTTON, READ_TIP, readByLine, Reading, READING_NOW, ReadingSource, readingSentences, ReadingState, shownFor,
   siteOf, sourceTitle
 } from "../reading";
+import {ClaudeViewService} from "../claude-view.service";
 import {ReadingService} from "../reading.service";
 
 /**
@@ -46,11 +47,36 @@ export class DropReadingComponent implements OnChanges, OnDestroy {
   byLine = '';
 
   private work?: Subscription;
+  /** The AI's view of this stock, as it was last known: a new one may have brought a reading of the fall. */
+  private viewAsked?: string;
+  private readonly watching: Subscription;
 
-  constructor(private readings: ReadingService) {
+  constructor(private readings: ReadingService, private views: ClaudeViewService) {
+    // The AI's view of a stock also says why it fell, and the server keeps that as the stock's reading: when a view
+    // of this stock arrives while its details are open, what is kept is asked for once more.
+    this.watching = this.views.state$.subscribe(state => {
+      const asked = state.views[this.symbol]?.asked;
+      if (asked !== this.viewAsked) {
+        const first = this.viewAsked === undefined && asked === undefined;
+        this.viewAsked = asked;
+        if (!first && asked && this.available && !this.busy && this.drop) {
+          this.readings.state(this.symbol).subscribe(kept => this.show(kept));
+        }
+      }
+    });
+  }
+
+  /**
+   * The AI's view of this stock can be asked for (its button stands a few lines below, for every stock of the
+   * reader's lists): that one question reads the fall too, so this part offers no reading of its own then. The owner
+   * asked for the two to be one.
+   */
+  get viaView(): boolean {
+    return this.views.listed().some(it => it.quote?.symbol === this.symbol);
   }
 
   ngOnChanges(): void {
+    this.viewAsked = this.views.state$.value.views[this.symbol]?.asked;
     this.work?.unsubscribe();
     this.available = false;
     this.show({state: 'none'});
@@ -69,6 +95,7 @@ export class DropReadingComponent implements OnChanges, OnDestroy {
 
   ngOnDestroy(): void {
     this.work?.unsubscribe();
+    this.watching.unsubscribe();
   }
 
   get canAsk(): boolean {

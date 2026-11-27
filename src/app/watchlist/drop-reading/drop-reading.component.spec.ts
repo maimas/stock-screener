@@ -7,6 +7,9 @@ import {ReadingService} from "../reading.service";
 import {Reading, ReadingState} from "../reading";
 import {BiggestDrop} from "../drop-news";
 import {FakeReadings} from "../testing/fake-readings";
+import {ClaudeViewService} from "../claude-view.service";
+import {FakeClaudeViews, keptView} from "../testing/fake-claude-views";
+import {makeStock} from "../testing/fixtures";
 
 const reading: Reading = {
   day: '2026-11-03', what: 'The company lowered its sales forecast for next quarter.', about: 'company', readAt: '2026-11-22T12:00:00.000Z',
@@ -31,12 +34,56 @@ class StockDetails {
 
 describe('DropReadingComponent ("Read it for me", under "Why it dropped")', () => {
   let readings: FakeReadings;
+  let views: FakeClaudeViews;
   let fixture: ComponentFixture<StockDetails>;
   let el: HTMLElement;
 
   beforeEach(() => {
     readings = new FakeReadings();
-    TestBed.configureTestingModule({imports: [StockDetails], providers: [{provide: ReadingService, useValue: readings}]});
+    views = new FakeClaudeViews();
+    TestBed.configureTestingModule({
+      imports: [StockDetails],
+      providers: [{provide: ReadingService, useValue: readings}, {provide: ClaudeViewService, useValue: views}],
+    });
+  });
+
+  // The owner: "can the read it for me and AI view be combined ?". The AI's view of a stock also reads why it fell
+  // (one question, not two), and its button stands a few lines below; so this part offers no reading of its own there.
+  describe('for a stock the AI can be asked about', () => {
+    beforeEach(() => {
+      views.elsewhere = [makeStock({symbol: 'ABCD'})];
+    });
+
+    it('offers no reading of its own: the AI\'s view reads the fall too', () => {
+      open();
+      expect(buttons()).toEqual([]);
+      expect(text('.headlines')).withContext('what the page found itself still shows').toBe('Headlines from that week');
+    });
+
+    it('still shows what was read, and lets it be read again', () => {
+      readings.kept['ABCD'] = {state: 'done', reading};
+      open();
+      expect(text('.reading')).toContain('The company lowered its sales forecast for next quarter.');
+      expect(buttons()).toEqual(['Read again']);
+    });
+
+    it('shows what a view found about the fall as soon as the view is there, without the details being opened again', () => {
+      open();
+      expect(el.querySelector('.reading')).toBeNull();
+      readings.kept['ABCD'] = {state: 'done', reading};
+      views.knows({views: {ABCD: {'2026-11-22': keptView('WAIT')}}});
+      fixture.detectChanges();
+      expect(text('.reading')).toContain('The company lowered its sales forecast for next quarter.');
+      expect(el.querySelector('.headlines')).withContext('the same news is not on the page twice').toBeNull();
+    });
+  });
+
+  it('does not ask again for what is kept when a view of another stock arrives', () => {
+    open();
+    const asked = spyOn(readings, 'state').and.callThrough();
+    views.knows({views: {WXYZ: {'2026-11-22': keptView('WAIT')}}});
+    fixture.detectChanges();
+    expect(asked).not.toHaveBeenCalled();
   });
 
   const open = () => {
