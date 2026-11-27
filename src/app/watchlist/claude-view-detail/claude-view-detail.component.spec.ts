@@ -304,3 +304,24 @@ describe("ClaudeViewDetailComponent: its signal in sight, its sentences behind t
     document.documentElement.style.removeProperty('--link');
   });
 });
+
+describe('ClaudeViewDetailComponent: every indicator goes with the stock', () => {
+  it('sends the state of the market with the one stock it asks about', () => {
+    const views = new FakeClaudeViews();
+    views.facts = {market: {vix: 14, spy: 600, spyHigh52: 600}};
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [ClaudeViewDetailComponent, NoopAnimationsModule],
+      providers: [{provide: ClaudeViewService, useValue: views}, {provide: ReadingService, useValue: new FakeReadings()}],
+    });
+    const stock = makeStock({symbol: 'ABCD', price: 80, high52: 100});
+    views.elsewhere = [stock];
+    const fixture = TestBed.createComponent(ClaudeViewDetailComponent);
+    fixture.componentRef.setInput('stock', stock);
+    fixture.componentRef.setInput('today', '2026-11-20');
+    fixture.detectChanges();
+    (fixture.nativeElement as HTMLElement).querySelector('button')!.click();
+    expect(views.asked[0][0].facts.fearHigh).toBe('no');
+    expect(views.asked[0][0].facts.marketBelowHigh).toBe(0);
+  });
+});

@@ -79,7 +79,7 @@ test('says whether Claude Code is there, and runs the one recipe it knows', asyn
 });
 
 test('refuses a recipe it does not know, a missing prompt and one that is too long', async () => {
-  for (const body of [{recipe: 'other', prompt: 'x'}, {recipe: 'constructor', prompt: 'x'}, {recipe: 'why-it-dropped'}, {recipe: 'why-it-dropped', prompt: 'x'.repeat(4001)}]) {
+  for (const body of [{recipe: 'other', prompt: 'x'}, {recipe: 'constructor', prompt: 'x'}, {recipe: 'why-it-dropped'}, {recipe: 'why-it-dropped', prompt: 'x'.repeat(8001)}]) {
     const answer = await post('/run', body);
     assert.equal(answer.status, 400);
     assert.equal(answer.body.ok, false);
@@ -193,4 +193,8 @@ test('as it is started, it runs the three jobs the app asks for: why a stock fel
     socketPath = usual;
     await stop(both);
   }
+});
+
+test('takes a question as long as one with every indicator of a stock is', async () => {
+  assert.equal((await post('/run', {recipe: 'why-it-dropped', prompt: 'x'.repeat(8000)})).status, 200);
 });

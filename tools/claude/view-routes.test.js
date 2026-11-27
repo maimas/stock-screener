@@ -234,3 +234,60 @@ test('oneAtATime lets one run through and tells any other it is busy', async () 
   await assert.rejects(failing('c'));
   assert.deepEqual(await other('d'), {ok: true}, 'and after a run that broke');
 });
+
+// The owner: "can the read it for me and AI view be combined?". What the AI finds about the stock's worst day is kept
+// as the stock's reading, in the place and the shape "Why it dropped" already reads.
+test('keeps what the AI found about the fall as the stock\'s reading', async () => {
+  const fell = stock('ABCD', {mark: 'DIP BUY', bigDropDay: '2026-11-03', bigDropPercent: -12});
+  await post({list: [fell]});
+  await asked(1);
+  runs[0].resolve({...answer(), output: {...answer().output, fall: {what: 'The company lowered its sales forecast', about: 'company'}}});
+  await finished();
+  assert.deepEqual((await storage.read('readings')).value, {v: 1, readings: {ABCD: {
+    what: 'The company lowered its sales forecast.', about: 'company', sources: [page], readAt: NOW.toISOString(),
+    day: '2026-11-03', percent: 12, model: 'claude-example-1', version: '9.9.9',
+  }}});
+  assert.deepEqual((await get('/claude/readings/ABCD')).body, {store: 'watchlist', state: 'done', reading: (await storage.read('readings')).value.readings.ABCD});
+});
+
+test('keeps no reading for a stock with no such day, for a fall the answer does not explain, or one it names no page for', async () => {
+  const said = fall => ({...answer(), output: {...answer().output, fall}});
+  await post({list: [stock('ABCD'), stock('EFGH', {bigDropDay: '2026-11-03', bigDropPercent: -12}), stock('IJKL', {bigDropDay: '2026-11-03', bigDropPercent: -12})]});
+  await asked(1);
+  runs[0].resolve(said({what: 'The company lowered its sales forecast', about: 'company'}));          // no day of a fall was given
+  await asked(2);
+  runs[1].resolve(said({what: '', about: 'none'}));
+  await asked(3);
+  runs[2].resolve({...said({what: 'It fell with the market', about: 'market'}), output: {...said({what: 'It fell with the market', about: 'market'}).output, sources: []}});
+  const end = await finished();
+  assert.deepEqual(Object.keys(end.views), ['ABCD', 'EFGH', 'IJKL'], 'each view is kept');
+  assert.equal((await storage.read('readings')).value, null);
+});
+
+test('a reading that could not be kept does not cost the view', async () => {
+  await post({list: [stock('ABCD', {bigDropDay: '2026-11-03', bigDropPercent: -12})]});
+  await asked(1);
+  const merge = storage.merge;
+  storage.merge = async (key, patch) => {
+    if (key === 'readings') {
+      throw new Error('the database is gone');
+    }
+    return merge(key, patch);
+  };
+  runs[0].resolve({...answer(), output: {...answer().output, fall: {what: 'The company lowered its sales forecast', about: 'company'}}});
+  const end = await finished();
+  assert.deepEqual(end.failed, {});
+  assert.deepEqual(Object.keys(end.views), ['ABCD']);
+});
+
+test('quotes the tests in full in the question', async () => {
+  server.close();
+  server = await start({figures: {seventh: {stocks: 202, profit: {mean: 9.3, median: 3.6}, market: {sp500: 10.2}}, regime: {stocks: 424, fromYear: 1994, toYear: 2022, growing: 11, others: 13.5}}});
+  base = `http://127.0.0.1:${server.address().port}`;
+  await post({list: [stock('ABCD')]});
+  await asked(1);
+  assert.match(runs[0].question, /202 stocks/);
+  assert.match(runs[0].question, /Not proven outside those years/);
+  runs[0].resolve(answer());
+  await finished();
+});

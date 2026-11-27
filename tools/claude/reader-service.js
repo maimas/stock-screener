@@ -18,8 +18,9 @@ const {recipe} = require('./why-it-dropped');
 const {recipe: viewRecipe} = require('./claude-view');
 const {recipe: compareRecipe} = require('./claude-compare');
 
-const MAX_PROMPT = 4000;
-const MAX_BODY = 16 * 1024;                          // a prompt of 4000 characters fits many times over
+/** A question with every indicator of a stock and what the tests say in full is about 5000 characters. */
+const MAX_PROMPT = 8000;
+const MAX_BODY = 32 * 1024;                          // a prompt of 8000 characters fits several times over
 
 function send(res, status, body) {
   if (res.destroyed || res.writableEnded) {

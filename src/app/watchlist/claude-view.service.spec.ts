@@ -368,3 +368,30 @@ describe('ClaudeViewService: the request is the service\'s own', () => {
     expect(['ABCD', 'QRST', 'WXYZ', 'NONE'].map(symbol => service.letterOf(symbol))).toEqual(['A', 'B', '', '']);
   });
 });
+
+// The owner: "the AI needs to factor all the app indicators". The state of the market and the daily log are the
+// page's own; the service fetches the first and reads the second for whoever asks about a stock.
+describe('ClaudeViewService: what the page knows beside a stock', () => {
+  it('gives the daily log, the day, and the state of the market from the page\'s own data source', () => {
+    TestBed.configureTestingModule({imports: [HttpClientTestingModule]});
+    const service = TestBed.inject(ClaudeViewService), http = TestBed.inject(HttpTestingController);
+    let context: {log?: unknown, today?: string, market?: unknown} | undefined;
+    service.context().subscribe(it => context = it);
+    const market = http.expectOne(request => request.url.includes('QuoteSummary'));
+    market.flush([]);
+    expect(context!.today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect((context!.log as {v: number}).v).toBe(1);
+    expect(Object.values(context!.market as object).filter(it => it !== undefined)).withContext('a market the data source said nothing of').toEqual([]);
+    http.verify();
+  });
+
+  it('gives the log and the day also when the market cannot be asked', () => {
+    TestBed.configureTestingModule({imports: [HttpClientTestingModule]});
+    const service = TestBed.inject(ClaudeViewService), http = TestBed.inject(HttpTestingController);
+    let context: {log?: unknown, today?: string, market?: unknown} | undefined;
+    service.context().subscribe(it => context = it);
+    http.expectOne(request => request.url.includes('QuoteSummary')).error(new ProgressEvent('error'));
+    expect(context!.today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(context!.market).toEqual({});
+  });
+});

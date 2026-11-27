@@ -2,10 +2,10 @@ import {Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges} from "@an
 import {NgForOf, NgIf} from "@angular/common";
 import {MatButtonModule} from "@angular/material/button";
 import {MatTooltipModule} from "@angular/material/tooltip";
-import {finalize, Subscription} from "rxjs";
+import {finalize, forkJoin, Subscription} from "rxjs";
 import {Stock} from "../../api/microsoft-money.service";
 import {
-  ASK_BUSY, ASK_ONE, ASK_ONE_AGAIN, ASK_ONE_TIP, askedLine, ASKING_ONE, compareFailureText, COMPARING, DETAIL_TITLE, NOT_IN_A_LIST,
+  ASK_BUSY, ASK_ONE, ASK_ONE_AGAIN, ASK_ONE_TIP, askedLine, ASKING_ONE, compareFailureText, COMPARING, DETAIL_TITLE, localDay, NOT_IN_A_LIST,
   PickFor, pickOf, pickSentence, pickShort, View, viewFailureText, ViewSource, ViewsState, wordSaid,
 } from "../claude-view";
 import {groupsFor, requestFor} from "../claude-groups";
@@ -15,12 +15,6 @@ import {siteOf, sourceTitle} from "../reading";
 import {MoreRestDirective} from "../more/more-rest.directive";
 import {ReadingService} from "../reading.service";
 import {TipOnFocusDirective} from "../tip-on-focus.directive";
-
-/** YYYY-MM-DD in this computer's time zone, as the page names its days. */
-function localDay(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
 
 const REFUSED: Record<ViewRefusal['refused'], string> = {
   'busy': ASK_BUSY,
@@ -265,11 +259,11 @@ export class ClaudeViewDetailComponent implements OnChanges, OnInit, OnDestroy {
     this.sending = true;
     this.work?.unsubscribe();
     // What a reading of the stock's biggest fall found is looked up first, as a list's button does.
-    this.work = this.readings.state(this.symbol).subscribe(kept => {
+    this.work = forkJoin([this.readings.state(this.symbol), this.views.context()]).subscribe(([kept, context]) => {
       const reading = kept.state === 'done' ? kept.reading : undefined;
       const about = reading && drop && reading.day === isoDay(drop.date) ? reading.about : undefined;
-      const list = [requestFor(stock, now, about)];
-      this.work = this.views.askAbout(list, groupsFor(list, this.views.tied(), this.views.listed(), now))
+      const list = [requestFor(stock, now, about, context)];
+      this.work = this.views.askAbout(list, groupsFor(list, this.views.tied(), this.views.listed(), now, context))
         .pipe(finalize(() => this.sending = false))
         .subscribe(step => {
           this.sending = false;

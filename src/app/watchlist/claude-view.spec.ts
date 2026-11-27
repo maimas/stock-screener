@@ -3,6 +3,7 @@ import {
   VIEW_HEADING, VIEW_HELP, ViewFacts,
 } from "./claude-view";
 import {costDistributionFor} from "./market-math";
+import {emptyLog, record} from "./snapshot-log";
 import {computeSignal} from "./signal";
 import {flatCloses, makeStock, NOW, reportedQuarters} from "./testing/fixtures";
 import {Stock} from "../api/microsoft-money.service";
@@ -406,5 +407,75 @@ describe("Claude's pick: what a review found", () => {
     const state = parseViews({views: {}, queue: {symbols: ['7203.T'], done: [], failed: {'7203.T': 'timeout'}}, failed: {'7203.T': 'timeout', '.A': 'x'}});
     expect(state.queue!.failed).toEqual({'7203.T': 'timeout'});
     expect(state.failed).toEqual({'7203.T': 'timeout'});
+  });
+});
+
+// The owner: "the AI needs to factor all the app indicators - that indormation needs to be feeded to AI for the
+// decision on the stock". Every indicator the page shows of a stock and of the market goes with it.
+describe('factsFor: every indicator of the app', () => {
+  /** A made-up company marked DIP BUY: 20% below its high, sales up 20%; analysts' middle target at 120. */
+  const marked = (): Stock => {
+    const stock = makeStock({
+      symbol: 'ACME', price: 80, high52: 100, medianTarget: 120, providerForwardEps: 4,
+      quarters: reportedQuarters(8, {baseRevenue: 100, latestRevenue: 120}), closes: flatCloses(250, 80),
+    });
+    const loose = stock as any;
+    Object.assign(loose.quote, {return1Week: -5.94, return1Month: -14.5, return3Month: -20.6, return6Month: -29.8, return1Year: 11, yieldPercent: 1.24});
+    loose.equity.ownershipSummary = {institutionalOwnershipPercent: 71.52};
+    return stock;
+  };
+  const TODAY = '2026-11-21';
+  /** The daily log: marked DIP BUY on Nov 9 at 90 with a target of 150, and every day since. */
+  const log = (() => {
+    let made = record(emptyLog(), '2026-10-20', {s: {ACME: {p: 95, v: 'W', t: 150}}});
+    for (const day of ['2026-11-09', '2026-11-15', TODAY]) {
+      made = record(made, day, {s: {ACME: {p: day === '2026-11-09' ? 90 : 80, v: 'D', t: day === TODAY ? 120 : 150}}});
+    }
+    return made;
+  })();
+
+  it('sends the tested cases of a marked stock, and whether the tests fit it', () => {
+    const facts = factsFor(marked(), NOW);
+    expect(facts.mark).toBe('DIP BUY');
+    expect(facts.badCase).toBeLessThan(0);
+    expect(facts.goodCase).toBeGreaterThan(0);
+    expect(typeof facts.typicalCase).toBe('number');
+    expect(facts.beyondTests).toBe('no');
+  });
+
+  it('sends the rest of the table: how the price moved, the forward P/E, the dividend, who holds it', () => {
+    const facts = factsFor(marked(), NOW);
+    expect([facts.change1W, facts.change1M, facts.change3M, facts.change6M, facts.change1Y]).toEqual([-5.9, -14.5, -20.6, -29.8, 11]);
+    expect(facts.forwardPe).toBe(20);
+    expect(facts.dividendYield).toBe(1.2);
+    expect(facts.institutions).toBe(71.5);
+  });
+
+  it('sends what the daily log knows: since when it is marked, the price since, and how analysts moved their target', () => {
+    const facts = factsFor(marked(), NOW, undefined, {log, today: TODAY});
+    expect(facts.markedDaysAgo).toBe(12);
+    expect(facts.sinceMarked).toBe(-11.1);
+    expect(facts.targetChange).withContext('120 against 150 four weeks ago').toBe(-20);
+  });
+
+  it('sends the state of the market, and whether fear is high by the page\'s tested measure', () => {
+    const fearful = factsFor(marked(), NOW, undefined, {market: {vix: 26.84, spy: 550, spyHigh52: 600}});
+    expect([fearful.vix, fearful.fearHigh, fearful.marketBelowHigh]).toEqual([26.8, 'yes', 8.3]);
+    expect(factsFor(marked(), NOW, undefined, {market: {vix: 14, spy: 600, spyHigh52: 600}}).fearHigh).toBe('no');
+    expect(factsFor(marked(), NOW, undefined, {market: {vix: 14, spy: 610, spyHigh52: 600}}).marketBelowHigh).withContext('never less than nothing').toBe(0);
+  });
+
+  it('leaves out what it was not given, and the tested cases of a stock that is not marked', () => {
+    const plain = factsFor(makeStock({symbol: 'BARE', price: 50, high52: 50}), NOW);
+    for (const missing of ['badCase', 'typicalCase', 'goodCase', 'beyondTests', 'forwardPe', 'dividendYield', 'institutions', 'change1W', 'change1Y',
+      'markedDaysAgo', 'sinceMarked', 'targetChange', 'vix', 'fearHigh', 'marketBelowHigh'] as (keyof ViewFacts)[]) {
+      expect(plain[missing]).withContext(missing).toBeUndefined();
+    }
+    expect(factsFor(marked(), NOW, undefined, {log: emptyLog(), today: TODAY}).markedDaysAgo).withContext('a log that does not know the stock').toBeUndefined();
+  });
+
+  it('still sends nothing about what is held', () => {
+    const facts = factsFor(marked(), NOW, undefined, {log, today: TODAY, market: {vix: 20, spy: 500, spyHigh52: 600}});
+    expect(Object.keys(facts).join(' ')).not.toMatch(/held|hold|share|cash|portfolio|amount|position|limit/i);
   });
 });

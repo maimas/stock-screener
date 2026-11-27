@@ -164,10 +164,11 @@ export class ClaudeAskComponent implements OnChanges, OnInit, OnDestroy {
       biggestDropSinceHigh(it) ? this.readings.state(it.quote!.symbol!) : of<ReadingState>({state: 'none'}));
     this.sending = true;
     this.work?.unsubscribe();
-    this.work = forkJoin(kept).subscribe(states => {
-      const list: ViewRequest[] = stocks.map((stock, at) => requestFor(stock, now, aboutOf(states[at], stock)));
+    // and with it what the page knows beside a stock: the state of the market and the daily log.
+    this.work = forkJoin([forkJoin(kept), this.views.context()]).subscribe(([states, context]) => {
+      const list: ViewRequest[] = stocks.map((stock, at) => requestFor(stock, now, aboutOf(states[at], stock), context));
       // The service follows the list from here; this button only says why a list was not taken.
-      this.work = this.views.askAbout(list, groupsFor(list, this.tied, this.views.listed(), now)).pipe(finalize(() => this.sending = false)).subscribe(step => {
+      this.work = this.views.askAbout(list, groupsFor(list, this.tied, this.views.listed(), now, context)).pipe(finalize(() => this.sending = false)).subscribe(step => {
         this.sending = false;
         if (isRefusal(step)) {
           this.note = REFUSED[step.refused];

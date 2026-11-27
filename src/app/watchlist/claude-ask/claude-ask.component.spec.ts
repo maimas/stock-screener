@@ -293,3 +293,26 @@ describe('ClaudeAskComponent: a group that could not be compared', () => {
     expect(note()).withContext('while it is asked about again').toBe('');
   });
 });
+
+// The owner: "the AI needs to factor all the app indicators". The button sends each stock with what the page knows
+// beside it: the state of the market and the daily log.
+describe('ClaudeAskComponent: every indicator goes with a stock', () => {
+  it('sends the state of the market and what the daily log knows with each stock of the list and of its groups', () => {
+    const views = new FakeClaudeViews();
+    views.facts = {market: {vix: 26.8, spy: 550, spyHigh52: 600}};
+    TestBed.configureTestingModule({
+      imports: [ClaudeAskComponent, NoopAnimationsModule],
+      providers: [{provide: ClaudeViewService, useValue: views}, {provide: ReadingService, useValue: new FakeReadings()}],
+    });
+    const stock = (symbol: string) => makeStock({symbol, price: 80, high52: 100});
+    views.elsewhere = [stock('MNOP')];
+    const fixture = TestBed.createComponent(ClaudeAskComponent);
+    fixture.componentRef.setInput('stocks', [stock('ABCD')]);
+    fixture.componentRef.setInput('tied', {groups: [{letter: 'A', index: 0, symbols: ['ABCD', 'MNOP'], level: 0.7, sector: ''}], alone: [], unknown: []});
+    fixture.detectChanges();
+    (fixture.nativeElement as HTMLElement).querySelector('button')!.click();
+    expect(views.asked[0][0].facts.vix).toBe(26.8);
+    expect(views.asked[0][0].facts.fearHigh).toBe('yes');
+    expect(views.groups[0][0].members[1].facts.marketBelowHigh).withContext('a stock of the group from another list').toBe(8.3);
+  });
+});

@@ -1,6 +1,6 @@
 import {BehaviorSubject, Observable, of, Subject} from "rxjs";
 import {Stock} from "../../api/microsoft-money.service";
-import {GroupRequest, parseViews, ViewRequest, ViewsState} from "../claude-view";
+import {FactsContext, GroupRequest, parseViews, ViewRequest, ViewsState} from "../claude-view";
 import {ViewStep} from "../claude-view.service";
 import {NO_GROUPS, TiedGroups} from "../tied-groups";
 
@@ -23,6 +23,13 @@ export class FakeClaudeViews {
 
   start(): void {
     this.started++;
+  }
+
+  /** What the page would know beside a stock: the daily log, the day, the market. */
+  facts: FactsContext = {};
+
+  context(): Observable<FactsContext> {
+    return of(this.facts);
   }
 
   register(owner: object, stocks: () => Stock[]): void {

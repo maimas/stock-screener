@@ -1,12 +1,14 @@
-import {Stock} from "../api/microsoft-money.service";
+import {MarketSnapshot, Stock} from "../api/microsoft-money.service";
 import {biggestDropSinceHigh, isoDay} from "./drop-news";
 import {EVIDENCE} from "./evidence";
 import {costDistributionFor, trendFor, volatilityFor} from "./market-math";
 import {ReadingAbout} from "./reading";
+import {dipBuySince, SnapshotLog, valueBefore} from "./snapshot-log";
 import {
-  computeSignal, daysUntilEarnings, debtToEquity, growthOutlook, lastEarnings, peFiveYearRange, percentBelow52wHigh,
-  revenueGrowthPercent,
+  computeSignal, daysUntilEarnings, debtToEquity, forwardPE, growthOutlook, lastEarnings, peFiveYearRange, percentBelow52wHigh,
+  revenueGrowthPercent, VIX_HIGH,
 } from "./signal";
+import {casesFor} from "./sizing";
 
 /**
  * Claude's view of a stock: one of three words and a short reason, given by the Claude Code on this computer when
@@ -118,7 +120,38 @@ export type ViewFacts = {
   bigDropDay?: string,
   bigDropPercent?: number,
   dropAbout?: ReadingAbout,
+  badCase?: number,
+  typicalCase?: number,
+  goodCase?: number,
+  beyondTests?: 'yes' | 'no',
+  forwardPe?: number,
+  dividendYield?: number,
+  institutions?: number,
+  change1W?: number,
+  change1M?: number,
+  change3M?: number,
+  change6M?: number,
+  change1Y?: number,
+  markedDaysAgo?: number,
+  sinceMarked?: number,
+  targetChange?: number,
+  vix?: number,
+  fearHigh?: 'yes' | 'no',
+  marketBelowHigh?: number,
 };
+
+/**
+ * What the page knows beside the stock itself, for the figures that need it: the daily log (since when the stock is
+ * marked, how the price moved since, whether analysts moved their target), the day, and the state of the market.
+ * Nothing in it is about what is held.
+ */
+export type FactsContext = { log?: SnapshotLog, today?: string, market?: MarketSnapshot };
+
+/** YYYY-MM-DD in this computer's time zone, as the page names its days. */
+export function localDay(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
 
 export type ViewRequest = { symbol: string, name: string, facts: ViewFacts };
 
@@ -155,6 +188,22 @@ export const FACT_LIMITS = {
   earnsOnMoney: [-1000, 1000, 1],
   industryEarnsOnMoney: [-1000, 1000, 1],
   bigDropPercent: [-100, 0, 1],
+  badCase: [-100, 1000, 1],
+  typicalCase: [-100, 1000, 1],
+  goodCase: [-100, 1000, 1],
+  forwardPe: [-1000, 10000, 1],
+  dividendYield: [0, 100, 1],
+  institutions: [0, 100, 1],
+  change1W: [-100, 100000, 1],
+  change1M: [-100, 100000, 1],
+  change3M: [-100, 100000, 1],
+  change6M: [-100, 100000, 1],
+  change1Y: [-100, 100000, 1],
+  markedDaysAgo: [0, 4000, 1],
+  sinceMarked: [-100, 100000, 1],
+  targetChange: [-100, 1000, 1],
+  vix: [0, 200, 1],
+  marketBelowHigh: [0, 100, 1],
 } as const;
 
 type NumberFact = keyof typeof FACT_LIMITS;
@@ -162,6 +211,8 @@ type NumberFact = keyof typeof FACT_LIMITS;
 /** As few analysts as the details ask for before they quote a target or a rating. */
 const MIN_ANALYSTS = 3;
 const STALE_AFTER_DAYS = 7;
+/** Analysts' target of today is set against the one of at least this many days ago. */
+const TARGET_CHANGE_DAYS = 28;
 
 export const VIEW_HEADING = 'AI · not tested';
 /** What the star is, in the words the page has for a group ("Group": stocks with the same letter moved closely together). */
@@ -231,7 +282,7 @@ const isNum = (value: unknown): value is number => typeof value === 'number' && 
  * The figures of a stock, as its details show them. `dropAbout` is what kind of news a kept reading of its biggest
  * fall found (the kind only, never the sentence).
  */
-export function factsFor(stock: Stock, now: Date = new Date(), dropAbout?: ReadingAbout): ViewFacts {
+export function factsFor(stock: Stock, now: Date = new Date(), dropAbout?: ReadingAbout, context: FactsContext = {}): ViewFacts {
   const facts: ViewFacts = {};
   const put = (field: NumberFact, value: unknown): void => {
     const [low, high, decimals] = FACT_LIMITS[field];
@@ -308,6 +359,49 @@ export function factsFor(stock: Stock, now: Date = new Date(), dropAbout?: Readi
   }
   if (facts.earnsOnMoney !== undefined) {
     put('industryEarnsOnMoney', industry?.returnOnCapital5YearAverage);
+  }
+
+  // Every other indicator the page shows. The tested cases of the plan, for a stock with the mark:
+  const cases = casesFor(signal);
+  if (cases) {
+    put('badCase', -cases.lossPercent);
+    put('typicalCase', cases.typicalPercent);
+    put('goodCase', cases.gainPercent);
+  }
+  if (signal?.verdict === 'DIP BUY') {
+    facts.beyondTests = signal.rareInTests ? 'yes' : 'no';
+  }
+  // the rest of the table:
+  put('forwardPe', forwardPE(stock));
+  put('dividendYield', stock.quote?.yieldPercent || undefined);
+  put('institutions', stock.equity?.ownershipSummary?.institutionalOwnershipPercent);
+  put('change1W', stock.quote?.return1Week);
+  put('change1M', stock.quote?.return1Month);
+  put('change3M', stock.quote?.return3Month);
+  put('change6M', stock.quote?.return6Month);
+  put('change1Y', stock.quote?.return1Year);
+  // what the daily log knows of it:
+  const symbol = stock.quote?.symbol, {log, today, market} = context;
+  if (symbol && log && today) {
+    const since = signal?.verdict === 'DIP BUY' ? dipBuySince(log, symbol, today) : undefined;
+    if (since) {
+      put('markedDaysAgo', daysBetween(since.day, today));
+      if (isNum(price) && since.price > 0) {
+        put('sinceMarked', (price / since.price - 1) * 100);
+      }
+    }
+    const before = valueBefore(log, symbol, 't', today, TARGET_CHANGE_DAYS), target = estimate?.medianPriceTarget;
+    if (before && before.value > 0 && isNum(target) && target > 0) {
+      put('targetChange', (target / before.value - 1) * 100);
+    }
+  }
+  // and the state of the market:
+  if (isNum(market?.vix)) {
+    put('vix', market!.vix);
+    facts.fearHigh = market!.vix! >= VIX_HIGH ? 'yes' : 'no';
+  }
+  if (isNum(market?.spy) && isNum(market?.spyHigh52) && market!.spyHigh52! > 0) {
+    put('marketBelowHigh', Math.max(0, (1 - market!.spy! / market!.spyHigh52!) * 100));
   }
 
   const drop = biggestDropSinceHigh(stock);

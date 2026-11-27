@@ -3,8 +3,9 @@ import {HttpClient, HttpErrorResponse} from "@angular/common/http";
 import {
   BehaviorSubject, catchError, concat, concatMap, filter, map, Observable, of, scan, shareReplay, Subscription, switchMap, take, takeWhile, tap, timer,
 } from "rxjs";
-import {Stock} from "../api/microsoft-money.service";
-import {GroupRequest, parseViews, ViewRequest, ViewsState} from "./claude-view";
+import {MicrosoftMoneyService, Stock} from "../api/microsoft-money.service";
+import {FactsContext, GroupRequest, localDay, parseViews, ViewRequest, ViewsState} from "./claude-view";
+import {loadLog} from "./snapshot-log";
 import {NO_GROUPS, TiedGroups} from "./tied-groups";
 import {POLL_MS, ReadingService} from "./reading.service";
 
@@ -51,7 +52,7 @@ export class ClaudeViewService {
   private tiedNow: TiedGroups = NO_GROUPS;
   private letters = new Map<string, string>();
 
-  constructor(private http: HttpClient, private readings: ReadingService) {
+  constructor(private http: HttpClient, private readings: ReadingService, private money: MicrosoftMoneyService) {
   }
 
   /**
@@ -131,6 +132,15 @@ export class ClaudeViewService {
       }
     }));
     return [...bySymbol.values()];
+  }
+
+  /** What the page knows beside a stock, for its figures: the daily log, the day, the state of the market. */
+  context(): Observable<FactsContext> {
+    const known = (): FactsContext => ({log: loadLog(), today: localDay(new Date())});
+    return this.money.getMarket().pipe(
+      map(market => ({...known(), market})),
+      catchError(() => of<FactsContext>({...known(), market: {}})),
+    );
   }
 
   /** Whether Claude Code can be asked here: the same look-up, made once, as for the readings. */

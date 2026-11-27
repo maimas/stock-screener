@@ -1,5 +1,5 @@
 import {Stock} from "../api/microsoft-money.service";
-import {factsFor, GroupRequest, ViewRequest} from "./claude-view";
+import {FactsContext, factsFor, GroupRequest, ViewRequest} from "./claude-view";
 import {ReadingAbout} from "./reading";
 import {TiedGroups} from "./tied-groups";
 
@@ -17,15 +17,15 @@ export const MOST_GROUPS = 8;
 export const MOST_MEMBERS = 10;
 
 /** A stock as it is sent: its symbol, its name and its figures. */
-export function requestFor(stock: Stock, now: Date, about?: ReadingAbout): ViewRequest {
-  return {symbol: stock.quote!.symbol!, name: stock.quote?.displayName || stock.quote!.symbol!, facts: factsFor(stock, now, about)};
+export function requestFor(stock: Stock, now: Date, about?: ReadingAbout, context: FactsContext = {}): ViewRequest {
+  return {symbol: stock.quote!.symbol!, name: stock.quote?.displayName || stock.quote!.symbol!, facts: factsFor(stock, now, about, context)};
 }
 
 /**
  * The groups to compare after the stocks in `asked`: each group one of them is in, with its stocks that are in any
  * of the reader's lists, the asked ones first. A group with one such stock has nothing to be compared with.
  */
-export function groupsFor(asked: ViewRequest[], tied: TiedGroups, listed: Stock[], now: Date): GroupRequest[] {
+export function groupsFor(asked: ViewRequest[], tied: TiedGroups, listed: Stock[], now: Date, context: FactsContext = {}): GroupRequest[] {
   const mine = new Map(asked.map(it => [it.symbol, it]));
   const others = new Map(listed.filter(stock => !!stock.quote?.symbol).map(stock => [stock.quote!.symbol!, stock]));
   return tied.groups.filter(group => group.symbols.some(symbol => mine.has(symbol)))
@@ -33,7 +33,7 @@ export function groupsFor(asked: ViewRequest[], tied: TiedGroups, listed: Stock[
       letter: group.letter,
       members: [...group.symbols.filter(symbol => mine.has(symbol)), ...group.symbols.filter(symbol => !mine.has(symbol) && others.has(symbol))]
         .slice(0, MOST_MEMBERS)
-        .map(symbol => mine.get(symbol) ?? requestFor(others.get(symbol)!, now)),
+        .map(symbol => mine.get(symbol) ?? requestFor(others.get(symbol)!, now, undefined, context)),
     }))
     .filter(group => group.members.length >= 2)
     .slice(0, MOST_GROUPS);

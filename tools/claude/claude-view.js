@@ -19,6 +19,8 @@
 const {oneLine, plainName, isDay, returnedSources, sentenceOf} = require('./why-it-dropped');
 
 const VIEWS = ['BUY SOME', 'WAIT', 'AVOID'];
+/** What a fall can have been about, as a reading of it says (why-it-dropped.js). */
+const FALL_ABOUT = ['company', 'industry', 'market', 'unclear'];
 const MAX_STOCKS = 10;
 const MAX_SHORT_WORDS = 6;
 const MAX_WHY_WORDS = 25;
@@ -69,15 +71,35 @@ const FACT_FIELDS = {
   bigDropDay: {kind: 'day', label: 'Day of its biggest one-day fall since that highest price', say: plain, tested: false},
   bigDropPercent: number(-100, 0, 'Size of that fall', percent),
   dropAbout: word(['company', 'industry', 'market', 'unclear'], 'What that fall was about, as read from the news earlier'),
+  // Every other indicator the page shows: the tested cases of the plan, the rest of the table, the daily log, the market.
+  badCase: number(-100, 1000, 'Tested, over 6 months, for marked stocks with such swings: a bad case', signed, true),
+  typicalCase: number(-100, 1000, 'the typical case', signed, true),
+  goodCase: number(-100, 1000, 'a good case', signed, true),
+  beyondTests: word(['yes', 'no'], 'Dropped further or swings more than 19 in 20 of the tested stocks, so the tests fit it less well'),
+  forwardPe: number(-1000, 10000, 'Price for the profit analysts expect (forward P/E)', plain),
+  dividendYield: number(0, 100, 'Dividend yield', percent),
+  institutions: number(0, 100, 'Held by institutions (funds, banks, pensions)', percent),
+  change1W: number(-100, 100000, 'Price change, past week', signed),
+  change1M: number(-100, 100000, 'Price change, past month', signed),
+  change3M: number(-100, 100000, 'Price change, past 3 months', signed),
+  change6M: number(-100, 100000, 'Price change, past 6 months', signed),
+  change1Y: number(-100, 100000, 'Price change, past year', signed),
+  markedDaysAgo: number(0, 4000, 'Marked DIP BUY since', value => value === 0 ? 'today' : `${days(value)} ago`),
+  sinceMarked: number(-100, 100000, 'Price since it was first marked', signed),
+  targetChange: number(-100, 1000, 'Analysts\' middle target against 4 weeks ago', signed),
+  vix: number(0, 200, 'Market fear index (VIX)', plain),
+  fearHigh: word(['yes', 'no'], 'Market fear is high, 25 or more: in tests a better time to buy stocks that dropped', true),
+  marketBelowHigh: number(0, 100, 'The market (S&P 500) below its highest price of the past year', percent),
 };
 
 const recipe = {
   name: 'claude-view',
   /** Searching the web is all this job can do: no files, no commands, no fetching of a page by its address. */
   tools: ['WebSearch'],
-  effort: 'medium',
+  // The owner asked for "a high jujment decision" from all the app knows: the judgment is made with care, and given the time for it.
+  effort: 'high',
   maxUsd: 1,
-  timeoutMs: 120_000,
+  timeoutMs: 180_000,
   system: [
     'You give someone new to investing your own view of one stock: whether to buy some of it now, wait, or avoid it. ' +
     'You may search the web for recent news about the company and do nothing else.',
@@ -90,20 +112,30 @@ const recipe = {
     'The figures come from a data provider and can be wrong or out of date. When recent news clearly contradicts one of them ' +
     '(for example, results the figures call reported are in fact still to come), go by the news and begin "why" by saying ' +
     'which figure is wrong, in a few plain words such as "The page says results were reported, but they are due December 1".',
+    'Weigh all the figures: the mark and what it rests on, the risk, the tested cases, the business, what analysts and owners show, ' +
+    'the price\'s path, the state of the market, and what the tests say, together with the news. Say what decides it, not a list.',
     'Answer in the required format:',
     '- view: "BUY SOME" when you would buy a small amount now; "WAIT" when you would wait for something named in your reason; ' +
     '"AVOID" when you would stay away.',
     '- short: your main reason in at most 6 words, plain words a beginner knows, no symbols or abbreviations.',
     '- why: one sentence of at most 25 words that says the reason in full. No price forecast and no price target of your own.',
+    '- fall: about the stock\'s biggest one-day fall since its highest price, when the figures give its day: what, one sentence of at ' +
+    'most 25 words in the past tense saying what happened that day, no advice and no forecast; about, "company" when the cause was ' +
+    'this company\'s own news, "industry" when its whole industry fell for a shared reason, "market" when the whole stock market fell ' +
+    'that day, "unclear" when the news gives no clear reason (leave what empty then). When the figures give no such day: what empty, about "none".',
     '- sources: up to 3 pages you relied on, each with the title and the url exactly as the search returned them. ' +
     'Never invent a url. Leave it empty when your view rests on the figures alone.',
   ].join('\n'),
   schema: {
-    type: 'object', additionalProperties: false, required: ['view', 'short', 'why', 'sources'],
+    type: 'object', additionalProperties: false, required: ['view', 'short', 'why', 'fall', 'sources'],
     properties: {
       view: {type: 'string', enum: VIEWS},
       short: {type: 'string'},
       why: {type: 'string'},
+      fall: {
+        type: 'object', additionalProperties: false, required: ['what', 'about'],
+        properties: {what: {type: 'string'}, about: {type: 'string', enum: [...FALL_ABOUT, 'none']}},
+      },
       sources: {
         type: 'array', maxItems: 3,
         items: {
@@ -203,6 +235,47 @@ function testedHeadline(figures) {
     `6 months and the typical one ${signedOne(median)}, against ${signedOne(market)} for the S&P 500 over the same weeks.`;
 }
 
+const yearOf = day => typeof day === 'string' && /^\d{4}-/.test(day) ? Number(day.slice(0, 4)) : undefined;
+const whole = value => String(Math.round(value));
+
+/**
+ * What the tests say of stocks marked DIP BUY, in full, from the figures the backtests record: the pooled result, the
+ * newest list, how far such a stock traded below its mark, what selling early did, where the rule is not proven, and
+ * what a fearful market meant. A sentence is said only when every figure of it is there.
+ */
+function testedSummary(figures) {
+  const all = isObject(figures) ? figures : {};
+  const s = all.summary, f = all.fresh, r = all.regime, v = all.sentiment;
+  const said = [];
+  if ([s?.stocks, s?.dipBuy?.mean, s?.dipBuy?.median, s?.dipBuy?.up, s?.dipBuy?.fell20, s?.everyDip?.mean, s?.sp500?.mean].every(isNumber)
+    && yearOf(s.firstBuy) && yearOf(s.lastBuy)) {
+    said.push(`On ${s.stocks} stocks never used to build the rule (bought ${yearOf(s.firstBuy)} to ${yearOf(s.lastBuy)}) such stocks gained ` +
+      `${signedOne(s.dipBuy.mean)} on average over 6 months, against ${signedOne(s.everyDip.mean)} for any stock that dropped and ` +
+      `${signedOne(s.sp500.mean)} for the S&P 500; the typical one gained ${signedOne(s.dipBuy.median)}, ${whole(s.dipBuy.up * 100)}% were up, ` +
+      `and ${whole(s.dipBuy.fell20 * 100)}% fell a further 20% first.`);
+  }
+  const newest = testedHeadline(all);
+  if (newest) {
+    said.push(newest);
+  }
+  if (isNumber(s?.lowIn13Weeks)) {
+    said.push(`Within 13 weeks the typical one traded ${whole(Math.abs(s.lowIn13Weeks))}% below the price it was marked at.`);
+  }
+  if ([f?.stocks, f?.holding, f?.withStop, f?.stopPercent].every(isNumber)) {
+    said.push(`Selling after a fall of ${f.stopPercent}% lowered the average result on one list of ${f.stocks} stocks ` +
+      `(${signedOne(f.withStop)} against ${signedOne(f.holding)} for keeping).`);
+  }
+  if ([r?.stocks, r?.fromYear, r?.toYear, r?.growing, r?.others].every(isNumber)) {
+    said.push(`Not proven outside those years: a simpler version of the rule on ${r.stocks} stocks over ${r.fromYear} to ${r.toYear} showed no ` +
+      `advantage (${signedOne(r.growing)} against ${signedOne(r.others)} for the other stocks that dropped).`);
+  }
+  if ([v?.stocks, v?.fromYear, v?.toYear, v?.vixHigh, v?.high?.mean, v?.low?.mean].every(isNumber)) {
+    said.push(`When the fear index was ${v.vixHigh} or more, stocks that dropped gained ${signedOne(v.high.mean)} over 6 months, against ` +
+      `${signedOne(v.low.mean)} at other times (${v.stocks} stocks, ${v.fromYear} to ${v.toYear}).`);
+  }
+  return said.join(' ');
+}
+
 /** The question about one stock: its name, every figure (or "unknown"), what the tests say, and what is asked. */
 function promptFor({symbol, name, facts}, headline) {
   const lines = Object.entries(FACT_FIELDS).map(([field, known]) =>
@@ -232,13 +305,30 @@ function viewFrom(output, links, now) {
   if (!short || !sentence || [short, sentence].some(text => /https?:\/\//i.test(text))) {
     return {ok: false, reason: 'no-answer'};
   }
+  const fall = fallFrom(output.fall);
   return {
     ok: true,
     view: {
       view: output.view, short, why: sentence,
       sources: returnedSources(output.sources, links), asked: now.toISOString(),
     },
+    ...(fall ? {fall} : {}),
   };
 }
 
-module.exports = {recipe, VIEWS, FACT_FIELDS, MAX_STOCKS, listFrom, stocksFrom, testedHeadline, promptFor, viewFrom};
+/**
+ * What the answer says of the stock's biggest one-day fall: what happened in one plain sentence, and which kind of
+ * news it was. Nothing when it says nothing usable; a view is kept either way.
+ */
+function fallFrom(said) {
+  if (!isObject(said) || !FALL_ABOUT.includes(said.about)) {
+    return undefined;
+  }
+  if (said.about === 'unclear') {
+    return {what: '', about: 'unclear'};
+  }
+  const what = typeof said.what === 'string' ? sentenceOf(said.what, MAX_WHY_WORDS) : '';
+  return what && !/https?:\/\//i.test(what) ? {what, about: said.about} : undefined;
+}
+
+module.exports = {recipe, VIEWS, FACT_FIELDS, MAX_STOCKS, listFrom, stocksFrom, testedHeadline, testedSummary, promptFor, viewFrom};

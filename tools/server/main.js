@@ -39,7 +39,8 @@ async function main() {
   // reading routes, which take every other address under /claude as their own.
   const views = viewRoutes(asker
     ? {
-      storage, run: readerClient({socketPath: READER_SOCKET, recipe: 'claude-view'}).run,
+      // A view is given the time its recipe has (three minutes), and a little more for the way there and back.
+      storage, run: readerClient({socketPath: READER_SOCKET, recipe: 'claude-view', timeoutMs: 210_000}).run,
       compare: readerClient({socketPath: READER_SOCKET, recipe: 'claude-compare'}).run, available: askAtMostEvery(asker.available, 60_000),
     }
     : {storage, available: () => false, run: async () => ({ok: false, reason: 'not-installed'}), compare: async () => ({ok: false, reason: 'not-installed'})});

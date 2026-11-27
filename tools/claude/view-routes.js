@@ -27,10 +27,13 @@ const {send, receive} = require('../store/store-server');
 const {localDay} = require('../store/day');
 const {runRecipe} = require('./claude-cli');
 const {installedCheck} = require('./reader-routes');
-const {recipe, listFrom, promptFor, testedHeadline, viewFrom} = require('./claude-view');
+const {recipe, listFrom, promptFor, testedSummary, viewFrom} = require('./claude-view');
+const {readingFrom} = require('./why-it-dropped');
 const {recipe: compareRecipe, groupsFrom, comparePrompt, pickFrom, isView} = require('./claude-compare');
 
 const KEY = 'claude-views';
+/** Where a reading of why a stock fell is kept (reader-routes.js): "Why it dropped" in a stock's details shows it. */
+const READINGS = 'readings';
 const ROUTE = '/claude/views';
 /** A view counts in a comparison while it is this fresh: as long as the page shows it without calling it old. */
 const FRESH_DAYS = 7;
@@ -108,9 +111,36 @@ function viewRoutes({
     const view = {...made.view, model: outcome.model, version: outcome.version};
     try {
       const kept = await storage.merge(KEY, {v: 1, views: {[asked.symbol]: {[localDay(now())]: view}}});
-      return kept.saved ? undefined : 'not-saved';
+      if (!kept.saved) {
+        return 'not-saved';
+      }
     } catch {
       return 'not-saved';
+    }
+    await keepReading(asked, made.fall, outcome);
+    return undefined;
+  };
+
+  /**
+   * The same run said why the stock fell on its worst day: kept as the stock's reading, in the shape and under the
+   * rules of a reading asked for on its own (a sentence about what happened, and at least one page the search really
+   * returned). The view does not depend on it: a reading that is not usable, or cannot be kept, costs nothing.
+   */
+  const keepReading = async (asked, fall, outcome) => {
+    const {bigDropDay: day, bigDropPercent: size} = asked.facts;
+    if (!fall || !day || typeof size !== 'number') {
+      return;
+    }
+    const made = readingFrom({what: fall.what, about: fall.about, sources: outcome.output?.sources}, outcome.links, now());
+    if (!made.ok) {
+      return;
+    }
+    const reading = {...made.reading, day, percent: Math.abs(size), model: outcome.model, version: outcome.version};
+    try {
+      await storage.merge(READINGS, {v: 1, readings: {[asked.symbol]: reading}});
+      log.log(`[claude] and read why ${asked.symbol} fell on ${day}`);
+    } catch (error) {
+      log.warn(`[claude] could not keep why ${asked.symbol} fell: ${error?.message}`);
     }
   };
 
@@ -151,7 +181,7 @@ function viewRoutes({
   };
 
   const askAll = async (list, groups) => {
-    const headline = testedHeadline(figures);
+    const headline = testedSummary(figures);
     for (const asked of list) {
       const started = Date.now();
       const reason = await askOne(asked, headline).catch(() => 'failed');
