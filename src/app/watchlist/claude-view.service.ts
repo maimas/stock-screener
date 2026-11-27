@@ -1,6 +1,8 @@
 import {Injectable} from "@angular/core";
 import {HttpClient, HttpErrorResponse} from "@angular/common/http";
-import {BehaviorSubject, catchError, concat, concatMap, filter, map, Observable, of, scan, Subscription, switchMap, take, takeWhile, tap, timer} from "rxjs";
+import {
+  BehaviorSubject, catchError, concat, concatMap, filter, map, Observable, of, scan, shareReplay, Subscription, switchMap, take, takeWhile, tap, timer,
+} from "rxjs";
 import {Stock} from "../api/microsoft-money.service";
 import {GroupRequest, parseViews, ViewRequest, ViewsState} from "./claude-view";
 import {NO_GROUPS, TiedGroups} from "./tied-groups";
@@ -47,6 +49,7 @@ export class ClaudeViewService {
   private readonly lists = new Map<object, () => Stock[]>();
   /** Which stocks of the page move together, as the lists' buttons were last told. */
   private tiedNow: TiedGroups = NO_GROUPS;
+  private letters = new Map<string, string>();
 
   constructor(private http: HttpClient, private readings: ReadingService) {
   }
@@ -69,7 +72,7 @@ export class ClaudeViewService {
    * changes nothing that is known). From then on the rows are told through `state$`.
    */
   askAbout(list: ViewRequest[], groups: GroupRequest[] = []): Observable<ViewStep> {
-    return this.post(list, groups).pipe(
+    const asked = this.post(list, groups).pipe(
       tap(step => {
         if (!isRefusal(step)) {
           // The answer that the list was taken carries no views: the ones already known stay in their rows.
@@ -81,7 +84,12 @@ export class ClaudeViewService {
           this.lookAgain();
         }
       }),
+      shareReplay(1),
     );
+    // The request is the service's own: its answer is taken in, and the list followed, whatever becomes of the
+    // part of the page that asked (a stock's details can be closed before the server has answered).
+    asked.subscribe();
+    return asked;
   }
 
   /**
@@ -98,11 +106,19 @@ export class ClaudeViewService {
 
   /** The page's groups of stocks that move together: a list's button passes them on, for the part that asks about one stock. */
   setTied(tied: TiedGroups): void {
-    this.tiedNow = tied;
+    if (tied !== this.tiedNow) {
+      this.tiedNow = tied;
+      this.letters = new Map(tied.groups.flatMap(group => group.symbols.map(symbol => [symbol, group.letter] as const)));
+    }
   }
 
   tied(): TiedGroups {
     return this.tiedNow;
+  }
+
+  /** The letter the stock's group has on the page today; '' for a stock in no group. */
+  letterOf(symbol: string): string {
+    return this.letters.get(symbol) ?? '';
   }
 
   /** Every stock of the reader's own lists, each once. */

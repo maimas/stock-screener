@@ -3,7 +3,9 @@ import {NgIf} from "@angular/common";
 import {MatTooltipModule} from "@angular/material/tooltip";
 import {finalize, forkJoin, Observable, of, Subscription} from "rxjs";
 import {Stock} from "../../api/microsoft-money.service";
-import {ASK_BUSY, ASK_BUTTON, ASK_TIP, ASKING, COMPARING, shortDay, viewFailureText, ViewRequest, ViewsState} from "../claude-view";
+import {
+  ASK_BUSY, ASK_BUTTON, ASK_TIP, ASKING, compareFailureText, COMPARING, shortDay, viewFailureText, ViewRequest, ViewsState,
+} from "../claude-view";
 import {groupsFor, requestFor} from "../claude-groups";
 import {ClaudeViewService, isRefusal, ViewRefusal} from "../claude-view.service";
 import {biggestDropSinceHigh, isoDay} from "../drop-news";
@@ -45,7 +47,7 @@ const REFUSED: Record<ViewRefusal['refused'], string> = {
       <button type="button" class="link-button ask-claude" [disabled]="mine || sending" appTipOnFocus [matTooltip]="tip"
               matTooltipClass="multiline-tooltip" (click)="ask()">{{ label }}</button>
       <span class="asked" *ngIf="asked">{{ asked }}</span>
-      <span class="ask-note" role="status">{{ note }}</span>
+      <span class="ask-note" role="status">{{ note || groupNote }}</span>
     </ng-container>`,
   styles: [`
     :host { display: inline-flex; align-items: baseline; gap: 8px; white-space: nowrap; }
@@ -114,6 +116,17 @@ export class ClaudeAskComponent implements OnChanges, OnInit, OnDestroy {
     }
     const count = this.symbols.length;
     return count > MOST_AT_ONCE ? `Ask AI about ${MOST_AT_ONCE} of these ${count}` : ASK_BUTTON(count);
+  }
+
+  /** Which group of this list's stocks could not be compared the last time, and why; nothing while the list is asked about again. */
+  get groupNote(): string {
+    const failed = this.state.failedGroups;
+    if (!failed || this.mine) {
+      return '';
+    }
+    const letter = this.tied.groups.map(group => group.letter)
+      .find(it => it in failed && this.tied.groups.some(group => group.letter === it && group.symbols.some(symbol => this.symbols.includes(symbol))));
+    return letter ? compareFailureText(letter, failed[letter]) : '';
   }
 
   /** "asked Nov 20": the newest view among the stocks of this list. */

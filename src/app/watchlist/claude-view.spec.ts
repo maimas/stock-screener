@@ -1,5 +1,6 @@
 import {
-  ASK_BUTTON, ASKING, cellOf, COMPARING, FACT_LIMITS, factsFor, HELD_NOTE, parseViews, PICK_HELP, pickOf, View, VIEW_HEADING, VIEW_HELP, ViewFacts,
+  ASK_BUTTON, ASKING, cellOf, compareFailureText, COMPARING, FACT_LIMITS, factsFor, HELD_NOTE, parseViews, PICK_HELP, pickOf, pickSentence, View,
+  VIEW_HEADING, VIEW_HELP, ViewFacts,
 } from "./claude-view";
 import {costDistributionFor} from "./market-math";
 import {computeSignal} from "./signal";
@@ -182,8 +183,8 @@ describe("Claude's pick among stocks that move together", () => {
         views: {}, picks: {'2026-11-20': {A: pick('EFGH', ['ABCD', 'EFGH'])}, '2026-11-14': {B: pick('MNOP', ['MNOP', 'QRST', 'UVWX'])}},
       });
       expect(state.picks).toEqual([
-        {day: '2026-11-14', letter: 'B', first: 'MNOP', why: 'It makes a profit and swings less.', members: ['MNOP', 'QRST', 'UVWX']},
-        {day: '2026-11-20', letter: 'A', first: 'EFGH', why: 'It makes a profit and swings less.', members: ['ABCD', 'EFGH']},
+        {day: '2026-11-14', letter: 'B', first: 'MNOP', why: 'It makes a profit and swings less.', members: ['MNOP', 'QRST', 'UVWX'], asked: 'x'},
+        {day: '2026-11-20', letter: 'A', first: 'EFGH', why: 'It makes a profit and swings less.', members: ['ABCD', 'EFGH'], asked: 'x'},
       ]);
     });
 
@@ -232,7 +233,7 @@ describe("Claude's pick among stocks that move together", () => {
     const TODAY = '2026-11-20';
 
     it('marks the stock the AI would take first of its group, and says under the pointer among which and why', () => {
-      const cell = cellOf(state.views['EFGH'], TODAY, false, undefined, pickOf('EFGH', state.picks, TODAY));
+      const cell = cellOf(state.views['EFGH'], TODAY, false, undefined, pickOf('EFGH', state.picks, TODAY, state.views, 'A'));
       expect(cell.first).toBe('first of A');
       expect(cell.word).toBe('BUY SOME');
       expect(cell.tip).toBe('It reports its results next week. Asked Nov 18. Of the 3 stocks of group A that the AI compared ' +
@@ -240,7 +241,7 @@ describe("Claude's pick among stocks that move together", () => {
     });
 
     it('says on the others of the group which one Claude would take first, and does not mark them', () => {
-      const cell = cellOf(state.views['ABCD'], TODAY, true, undefined, pickOf('ABCD', state.picks, TODAY));
+      const cell = cellOf(state.views['ABCD'], TODAY, true, undefined, pickOf('ABCD', state.picks, TODAY, state.views, 'A'));
       expect(cell.first).toBeUndefined();
       expect(cell.tip).toBe('It reports its results next week. Asked Nov 18. Of the 3 stocks of group A that the AI compared ' +
         `(ABCD, EFGH, IJKL), it would take EFGH first: It makes a profit and swings less. Compared Nov 18. ${HELD_NOTE}`);
@@ -336,5 +337,72 @@ describe("factsFor: every figure a stock's details show", () => {
       'earnsOnMoney', 'industryEarnsOnMoney'] as (keyof ViewFacts)[]) {
       expect(bare[missing]).withContext(missing).toBeUndefined();
     }
+  });
+});
+
+// Found by a review of the comparison: a star could vanish, outlive what it was about, or name another group's letter.
+describe("Claude's pick: what a review found", () => {
+  const view = (word: string, asked: string): object => ({
+    view: word, short: 'Results due next week', why: 'It reports its results next week.', sources: [], asked,
+  });
+  const pick = (first: string, members: string[], asked: string) => ({first, why: 'It makes a profit and swings less.', members, asked});
+
+  it('shows a pick the server dated a day after the page\'s own day: the page was left open overnight, or the server is in another time zone', () => {
+    const picks = parseViews({picks: {'2026-11-27': {A: pick('ABCD', ['ABCD', 'EFGH'], '2026-11-27T03:00:00.000Z')}}}).picks;
+    expect(pickOf('ABCD', picks, '2026-11-26')?.first).toBe('ABCD');
+  });
+
+  it('forgets a pick once a stock of it was asked about again: the views it compared are not the ones on the page any more', () => {
+    const state = parseViews({
+      views: {
+        ABCD: {'2026-11-18': view('BUY SOME', '2026-11-18T15:00:00.000Z'), '2026-11-19': view('AVOID', '2026-11-19T15:00:00.000Z')},
+        EFGH: {'2026-11-18': view('WAIT', '2026-11-18T15:01:00.000Z')},
+      },
+      picks: {'2026-11-18': {A: pick('ABCD', ['ABCD', 'EFGH'], '2026-11-18T15:02:00.000Z')}},
+    });
+    expect(pickOf('ABCD', state.picks, '2026-11-20', state.views)).withContext('yesterday\'s star beside today\'s "Avoid"').toBeUndefined();
+    expect(pickOf('EFGH', state.picks, '2026-11-20', state.views)).withContext('nor on the stock it was compared with').toBeUndefined();
+  });
+
+  it('keeps a pick whose stocks were all asked about before it, as they are when a list is asked about', () => {
+    const state = parseViews({
+      views: {ABCD: {'2026-11-18': view('BUY SOME', '2026-11-18T15:00:00.000Z')}, EFGH: {'2026-11-18': view('WAIT', '2026-11-18T15:01:00.000Z')}},
+      picks: {'2026-11-18': {A: pick('ABCD', ['ABCD', 'EFGH', 'GONE'], '2026-11-18T15:02:00.000Z')}},
+    });
+    expect(pickOf('ABCD', state.picks, '2026-11-20', state.views)?.mine).toBeTrue();
+  });
+
+  it('says the letter the stock\'s group has on the page today, not the one of the day it was compared', () => {
+    const state = parseViews({
+      views: {ABCD: {'2026-11-18': view('BUY SOME', '2026-11-18T15:00:00.000Z')}},
+      picks: {'2026-11-18': {A: pick('ABCD', ['ABCD', 'EFGH'], '2026-11-18T15:02:00.000Z')}},
+    });
+    const today = pickOf('ABCD', state.picks, '2026-11-20', state.views, 'B')!;
+    expect(cellOf(state.views['ABCD'], '2026-11-20', false, undefined, today).first).toBe('first of B');
+    expect(pickSentence(today)).toBe('Of the 2 stocks of group B that the AI compared (ABCD, EFGH), it would take this one first: ' +
+      'It makes a profit and swings less. Compared Nov 18.');
+  });
+
+  it('names no letter for a stock that is in no group today', () => {
+    const state = parseViews({
+      views: {ABCD: {'2026-11-18': view('BUY SOME', '2026-11-18T15:00:00.000Z')}},
+      picks: {'2026-11-18': {A: pick('ABCD', ['ABCD', 'EFGH'], '2026-11-18T15:02:00.000Z')}},
+    });
+    const today = pickOf('ABCD', state.picks, '2026-11-20', state.views)!;
+    expect(cellOf(state.views['ABCD'], '2026-11-20', false, undefined, today).first).toBe('first of its group');
+    expect(pickSentence(today)).toContain('Of the 2 stocks that moved together that the AI compared (ABCD, EFGH), it would take this one first');
+  });
+
+  it('reads which groups could not be compared, and says so in a sentence', () => {
+    const state = parseViews({views: {}, failedGroups: {A: 'timeout', b1: 'x', C: 7}});
+    expect(state.failedGroups).toEqual({A: 'timeout'});
+    expect(parseViews({views: {}}).failedGroups).toBeUndefined();
+    expect(compareFailureText('A', 'timeout')).toBe('Group A could not be compared: The AI took too long and was stopped. Ask again.');
+  });
+
+  it('reads the reason of a stock whose symbol starts with a digit: it would stay "asking…" for ever otherwise', () => {
+    const state = parseViews({views: {}, queue: {symbols: ['7203.T'], done: [], failed: {'7203.T': 'timeout'}}, failed: {'7203.T': 'timeout', '.A': 'x'}});
+    expect(state.queue!.failed).toEqual({'7203.T': 'timeout'});
+    expect(state.failed).toEqual({'7203.T': 'timeout'});
   });
 });

@@ -61,10 +61,16 @@ export type GroupPick = {
   why: string,
   /** The stocks that were compared. */
   members: string[],
+  /** When it was made (a time), to tell whether a stock of it was asked about again since; '' when not known. */
+  asked: string,
 };
 
-/** A comparison as one of its stocks sees it: whether that stock is the pick, and with which others it was compared. */
-export type PickFor = GroupPick & { mine: boolean };
+/**
+ * A comparison as one of its stocks sees it: whether that stock is the pick, with which others it was compared, and
+ * the letter the stock's group has on the page today ('' when it is in none): groups are lettered anew by their
+ * size, so the letter of the day of the comparison may be another group's by now.
+ */
+export type PickFor = GroupPick & { mine: boolean, letterNow: string };
 
 export type ViewsState = {
   /** The newest view of each stock. */
@@ -76,6 +82,8 @@ export type ViewsState = {
   failed: Record<string, string>,
   /** Every comparison kept, the oldest first; not there when there is none. */
   picks?: GroupPick[],
+  /** Groups that could not be compared the last time, by letter, with the reason; not there when there is none. */
+  failedGroups?: Record<string, string>,
 };
 
 /** What the page sends about a stock. Each is left out when the stock does not have it. */
@@ -162,6 +170,10 @@ export const PICK_HELP = 'A star marks the stock the AI would take first among t
 export const VIEW_HELP = 'The AI\'s own view of each stock, from the figures in its details and the recent news, asked for with the ' +
   'button above the list. It is an opinion, not a tested signal: it changes nothing else on the page. ' + PICK_HELP;
 export const COMPARING = (letter: string): string => `Comparing group ${letter}…`;
+/** "Group A could not be compared: The AI took too long and was stopped. Ask again." */
+export function compareFailureText(letter: string, reason: string): string {
+  return `Group ${letter} could not be compared: ${viewFailureText(reason)}`;
+}
 export const HELD_NOTE = 'The AI was not told what you hold; your plan and its limit still apply.';
 export const ASK_BUTTON = (stocks: number): string => stocks === 1 ? 'Ask AI about this one' : `Ask AI about these ${stocks}`;
 export const ASKING = (done: number, stocks: number): string => `Asking AI… ${done} of ${stocks}`;
@@ -319,7 +331,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => !!value &
 const strings = (value: unknown): string[] | undefined =>
   Array.isArray(value) && value.every(it => typeof it === 'string') ? value as string[] : undefined;
 const reasons = (value: unknown): Record<string, string> => Object.fromEntries(
-  Object.entries(isRecord(value) ? value : {}).filter(([symbol, reason]) => /^[A-Z]/.test(symbol) && typeof reason === 'string')) as Record<string, string>;
+  Object.entries(isRecord(value) ? value : {}).filter(([symbol, reason]) => /^[A-Z0-9]/.test(symbol) && typeof reason === 'string')) as Record<string, string>;
 
 /** What the server answered, read with care: nothing unknown is passed on, and anything else reads as "no views". */
 export function parseViews(body: unknown): ViewsState {
@@ -357,12 +369,17 @@ export function parseViews(body: unknown): ViewsState {
       const it = value as any, members = strings(it?.members);
       if (/^[A-Z]{1,2}$/.test(letter) && members && members.length >= 2 && typeof it.first === 'string' && members.includes(it.first)
         && typeof it.why === 'string' && it.why.trim()) {
-        picks.push({day, letter, first: it.first, why: it.why, members});
+        picks.push({day, letter, first: it.first, why: it.why, members, asked: typeof it.asked === 'string' ? it.asked : ''});
       }
     });
   });
   if (picks.length) {
     state.picks = picks;
+  }
+  const failedGroups = Object.fromEntries(Object.entries(isRecord(body['failedGroups']) ? body['failedGroups'] : {})
+    .filter(([letter, reason]) => /^[A-Z]{1,2}$/.test(letter) && typeof reason === 'string')) as Record<string, string>;
+  if (Object.keys(failedGroups).length) {
+    state.failedGroups = failedGroups;
   }
   return state;
 }
@@ -394,15 +411,28 @@ export type ViewCell = {
  * The newest comparison of the past week that the stock was part of, as that stock sees it. Nothing when it was
  * never compared, or longer ago than the page shows a view without calling it old.
  */
-export function pickOf(symbol: string, picks: GroupPick[] | undefined, today: string): PickFor | undefined {
-  const mine = (picks ?? []).filter(pick => pick.members.includes(symbol) && pick.day <= today && daysBetween(pick.day, today) <= STALE_AFTER_DAYS);
+export function pickOf(
+  symbol: string, picks: GroupPick[] | undefined, today: string, views: Record<string, View> = {}, letterNow = '',
+): PickFor | undefined {
+  // No "not after today": the server names the day, and its day can be ahead of this page's (a page left open
+  // overnight, a server in another time zone).
+  const mine = (picks ?? []).filter(pick => pick.members.includes(symbol) && daysBetween(pick.day, today) <= STALE_AFTER_DAYS);
   const newest = mine[mine.length - 1];
-  return newest ? {...newest, mine: newest.first === symbol} : undefined;
+  if (!newest) {
+    return undefined;
+  }
+  // A stock of it was asked about again since: the views it compared are not the ones on the page any more.
+  const askedSince = newest.members.some(member => {
+    const view = views[member];
+    return !!view && (view.day > newest.day || (!!view.asked && !!newest.asked && view.asked > newest.asked));
+  });
+  return askedSince ? undefined : {...newest, mine: newest.first === symbol, letterNow};
 }
 
 /** "Of the 3 stocks of group A that the AI compared (ABCD, EFGH, IJKL), it would take this one first: … Compared Nov 26." */
 export function pickSentence(pick: PickFor): string {
-  return `Of the ${pick.members.length} stocks of group ${pick.letter} that the AI compared (${pick.members.join(', ')}), it would take ` +
+  const which = pick.letterNow ? `of group ${pick.letterNow}` : 'that moved together';
+  return `Of the ${pick.members.length} stocks ${which} that the AI compared (${pick.members.join(', ')}), it would take ` +
     `${pick.mine ? 'this one' : pick.first} first: ${pick.why} Compared ${shortDay(pick.day)}.`;
 }
 
@@ -425,6 +455,6 @@ export function cellOf(view: View | undefined, today: string, held: boolean, fai
   ].join(' ');
   return {
     word: view.view, short: view.short, tip, stale, from: stale ? `from ${shortDay(view.day)}` : '',
-    ...(pick?.mine ? {first: `first of ${pick.letter}`} : {}),
+    ...(pick?.mine ? {first: pick.letterNow ? `first of ${pick.letterNow}` : 'first of its group'} : {}),
   };
 }

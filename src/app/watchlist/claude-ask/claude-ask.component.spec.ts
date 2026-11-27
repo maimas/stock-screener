@@ -270,3 +270,25 @@ describe('ClaudeAskComponent: the groups that go with a list', () => {
     expect(button().textContent!.trim()).toBe('Ask AI about these 2');
   });
 });
+
+// Found by a review: a comparison that failed was only in the server's log; the button went back to its words.
+describe('ClaudeAskComponent: a group that could not be compared', () => {
+  it('says beside the button which group of its list could not be compared, and why', () => {
+    const views = new FakeClaudeViews();
+    TestBed.configureTestingModule({
+      imports: [ClaudeAskComponent, NoopAnimationsModule],
+      providers: [{provide: ClaudeViewService, useValue: views}, {provide: ReadingService, useValue: new FakeReadings()}],
+    });
+    const stock = (symbol: string) => makeStock({symbol, price: 80, high52: 100});
+    const fixture = TestBed.createComponent(ClaudeAskComponent);
+    fixture.componentRef.setInput('stocks', [stock('ABCD'), stock('EFGH')]);
+    fixture.componentRef.setInput('tied', {groups: [{letter: 'A', index: 0, symbols: ['ABCD', 'EFGH'], level: 0.7, sector: ''}], alone: [], unknown: []});
+    views.knows({views: {}, failedGroups: {A: 'timeout', C: 'failed'}});
+    fixture.detectChanges();
+    const note = (): string => (fixture.nativeElement.querySelector('.ask-note')?.textContent ?? '').trim();
+    expect(note()).withContext('group C is not of this list').toBe('Group A could not be compared: The AI took too long and was stopped. Ask again.');
+    views.knows({views: {}, queue: {symbols: ['ABCD', 'EFGH'], done: [], failed: {}, comparing: ['A']}, failedGroups: {A: 'timeout'}});
+    fixture.detectChanges();
+    expect(note()).withContext('while it is asked about again').toBe('');
+  });
+});

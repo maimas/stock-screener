@@ -1,12 +1,12 @@
-import {Component, Input, OnDestroy, OnInit} from "@angular/core";
+import {Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges} from "@angular/core";
 import {NgForOf, NgIf} from "@angular/common";
 import {MatButtonModule} from "@angular/material/button";
 import {MatTooltipModule} from "@angular/material/tooltip";
 import {finalize, Subscription} from "rxjs";
 import {Stock} from "../../api/microsoft-money.service";
 import {
-  ASK_BUSY, ASK_ONE, ASK_ONE_AGAIN, ASK_ONE_TIP, askedLine, ASKING_ONE, COMPARING, DETAIL_TITLE, NOT_IN_A_LIST, pickOf, pickSentence, View,
-  viewFailureText, ViewSource, ViewsState, wordSaid,
+  ASK_BUSY, ASK_ONE, ASK_ONE_AGAIN, ASK_ONE_TIP, askedLine, ASKING_ONE, compareFailureText, COMPARING, DETAIL_TITLE, HELD_NOTE, NOT_IN_A_LIST,
+  pickOf, pickSentence, View, viewFailureText, ViewSource, ViewsState, wordSaid,
 } from "../claude-view";
 import {groupsFor, requestFor} from "../claude-groups";
 import {ClaudeViewService, isRefusal, ViewRefusal} from "../claude-view.service";
@@ -14,6 +14,12 @@ import {biggestDropSinceHigh, isoDay} from "../drop-news";
 import {siteOf, sourceTitle} from "../reading";
 import {ReadingService} from "../reading.service";
 import {TipOnFocusDirective} from "../tip-on-focus.directive";
+
+/** YYYY-MM-DD in this computer's time zone, as the page names its days. */
+function localDay(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
 
 const REFUSED: Record<ViewRefusal['refused'], string> = {
   'busy': ASK_BUSY,
@@ -46,6 +52,8 @@ const REFUSED: Record<ViewRefusal['refused'], string> = {
         <p class="said"><span class="word">{{ word }}</span><span class="short"> · {{ said.short }}</span></p>
         <p class="why">{{ said.why }}</p>
         <p class="pick" *ngIf="pickLine">{{ pickLine }}</p>
+        <!-- The AI's word stands here in full: said under it, always, that it does not know what is held. -->
+        <p class="held">{{ heldNote }}</p>
         <ul *ngIf="said.sources.length">
           <li *ngFor="let source of said.sources; trackBy: trackByUrl">
             <a [href]="source.url" target="_blank" rel="noopener noreferrer">{{ titleOf(source) }}</a>
@@ -78,7 +86,7 @@ const REFUSED: Record<ViewRefusal['refused'], string> = {
     .word { font-weight: 600; }
     .short, .pick { color: var(--ink-2); }
     ul { margin: 6px 0 0; padding-left: 18px; max-width: 70ch; }
-    .source, .by, .none, .busy { font-size: var(--text-meta); color: var(--ink-3); }
+    .source, .by, .none, .busy, .held { font-size: var(--text-meta); color: var(--ink-3); }
     .failed { color: var(--warn); }
     .again {
       min-height: 28px; margin: 0; padding: 0; border: 0; background: none; font: inherit; color: var(--link);
@@ -88,7 +96,7 @@ const REFUSED: Record<ViewRefusal['refused'], string> = {
     .ask { margin-top: 8px; }
   `]
 })
-export class ClaudeViewDetailComponent implements OnInit, OnDestroy {
+export class ClaudeViewDetailComponent implements OnChanges, OnInit, OnDestroy {
   @Input() stock?: Stock;
   /** YYYY-MM-DD */
   @Input() today = '';
@@ -97,6 +105,7 @@ export class ClaudeViewDetailComponent implements OnInit, OnDestroy {
   readonly askLabel = ASK_ONE;
   readonly againLabel = ASK_ONE_AGAIN;
   readonly tip = ASK_ONE_TIP;
+  readonly heldNote = HELD_NOTE;
   available = false;
   /** The stock is on its way to the server: a second press before the answer would send it again. */
   sending = false;
@@ -108,6 +117,15 @@ export class ClaudeViewDetailComponent implements OnInit, OnDestroy {
   private work?: Subscription;
 
   constructor(private views: ClaudeViewService, private readings: ReadingService) {
+  }
+
+  /** The details are another stock's: what was said about the one before (a refusal, a request on its way) is not this one's. */
+  ngOnChanges(changes: SimpleChanges): void {
+    const stock = changes['stock'];
+    if (stock && stock.previousValue?.quote?.symbol !== stock.currentValue?.quote?.symbol) {
+      this.note = '';
+      this.sending = false;
+    }
   }
 
   ngOnInit(): void {
@@ -137,9 +155,19 @@ export class ClaudeViewDetailComponent implements OnInit, OnDestroy {
     return this.view ? askedLine(this.view) : '';
   }
 
+  /** The day as the page names it; the day of this computer when the part was not told one. */
+  private get day(): string {
+    return this.today || localDay(new Date());
+  }
+
+  /** The letter this stock's group has on the page today; '' when it is in none. */
+  private get letter(): string {
+    return this.views.letterOf(this.symbol);
+  }
+
   /** Which stock of its group the AI would take first, when this stock was compared in the past week. */
   get pickLine(): string {
-    const pick = pickOf(this.symbol, this.state.picks, this.today);
+    const pick = pickOf(this.symbol, this.state.picks, this.day, this.state.views, this.letter);
     return pick ? pickSentence(pick) : '';
   }
 
@@ -171,18 +199,29 @@ export class ClaudeViewDetailComponent implements OnInit, OnDestroy {
     if (!through) {
       return ASKING_ONE;
     }
-    return queue.done.length + Object.keys(queue.failed).length >= queue.symbols.length && queue.comparing?.length
-      ? COMPARING(queue.comparing[0]) : '';
+    // Only under a stock of a group that is still to be compared: "Comparing group A…" under a stock of no group says nothing true.
+    const letter = this.letter;
+    return queue.done.length + Object.keys(queue.failed).length >= queue.symbols.length && !!letter && queue.comparing?.includes(letter)
+      ? COMPARING(letter) : '';
   }
 
   get canAsk(): boolean {
     return this.available && this.listed && !this.inQueue;
   }
 
-  /** Why there is no answer: the list was not taken just now, or the stock got none the last time it was asked about. */
+  /**
+   * Why there is no answer: the stock was not taken just now, it got none the last time it was asked about, or its
+   * group could not be compared.
+   */
   get failure(): string {
-    const reason = this.state.failed[this.symbol];
-    return this.note || (reason && !this.inQueue ? viewFailureText(reason) : '');
+    if (this.note) {
+      return this.note;
+    }
+    if (this.inQueue) {
+      return '';
+    }
+    const reason = this.state.failed[this.symbol], letter = this.letter, group = letter ? this.state.failedGroups?.[letter] : undefined;
+    return reason ? viewFailureText(reason) : group ? compareFailureText(letter, group) : '';
   }
 
   titleOf(source: ViewSource): string {

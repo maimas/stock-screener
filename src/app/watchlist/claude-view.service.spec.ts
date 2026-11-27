@@ -325,3 +325,46 @@ describe('ClaudeViewService: the groups that go with a list, and the stocks of t
     expect(refuse).toBeDefined();
   });
 });
+
+// Found by a review: the part of a stock's details can be closed before the server has answered; the request was
+// the part's own, so its answer was lost and the list ran with nobody following it.
+describe('ClaudeViewService: the request is the service\'s own', () => {
+  let service: ClaudeViewService;
+  let http: HttpTestingController;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({imports: [HttpClientTestingModule]});
+    service = TestBed.inject(ClaudeViewService);
+    http = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => http.verify());
+
+  it('takes in the answer, and follows the list, when the one who asked is gone before the answer', fakeAsync(() => {
+    const asking = service.askAbout(list).subscribe();
+    const call = http.expectOne(request => request.url === '/claude/views' && request.method === 'POST');
+    asking.unsubscribe();
+    expect(call.cancelled).withContext('the request goes on').toBeFalse();
+    call.flush(server({state: 'asking', queue: queue([])}), {status: 202, statusText: 'Accepted'});
+    expect(service.state$.value.queue).toEqual(queue([]));
+    tick(POLL_MS);
+    http.expectOne('/claude/views').flush(server({views: {ABCD: {'2026-11-26': view('WAIT')}}, failed: {}}));
+    expect(service.state$.value.views['ABCD'].view).toBe('WAIT');
+  }));
+
+  it('sends a list once, however many listen for its answer', () => {
+    const asked = service.askAbout(list);
+    const steps: ViewStep[] = [];
+    asked.subscribe(step => steps.push(step));
+    asked.subscribe(step => steps.push(step));
+    http.expectOne(request => request.url === '/claude/views' && request.method === 'POST')
+      .flush(server({state: 'busy'}), {status: 429, statusText: 'Too Many Requests'});
+    http.expectOne('/claude/views').flush(server({views: {}, failed: {}}));
+    expect(steps).toEqual([{refused: 'busy'}, {refused: 'busy'}]);
+  });
+
+  it('knows the letter a stock\'s group has on the page today', () => {
+    service.setTied({groups: [{letter: 'A', index: 0, symbols: ['ABCD', 'EFGH'], level: 0.7, sector: ''}, {letter: 'B', index: 1, symbols: ['MNOP', 'QRST'], level: 0.6, sector: ''}], alone: ['WXYZ'], unknown: []});
+    expect(['ABCD', 'QRST', 'WXYZ', 'NONE'].map(symbol => service.letterOf(symbol))).toEqual(['A', 'B', '', '']);
+  });
+});

@@ -43,6 +43,10 @@ export class FakeClaudeViews {
     return this.tiedNow;
   }
 
+  letterOf(symbol: string): string {
+    return this.tiedNow.groups.find(group => group.symbols.includes(symbol))?.letter ?? '';
+  }
+
   get registered(): number {
     return this.lists.size;
   }

@@ -155,6 +155,7 @@ describe('ClaudeViewCellComponent: Claude\'s pick among stocks that move togethe
     fixture.componentRef.setInput('symbol', symbol);
     fixture.componentRef.setInput('today', '2026-11-20');
     fixture.componentRef.setInput('compact', compact);
+    views.setTied({groups: [{letter: 'A', index: 0, symbols: ['ABCD', 'EFGH'], level: 0.7, sector: ''}], alone: [], unknown: []});
     views.knows({views: {ABCD: {'2026-11-18': keptView('BUY SOME')}, EFGH: {'2026-11-18': keptView('WAIT')}}, picks: {'2026-11-18': {A: pick}}});
     fixture.detectChanges();
   }
@@ -197,5 +198,50 @@ describe('ClaudeViewCellComponent: Claude\'s pick among stocks that move togethe
     fixture.detectChanges();
     expect(el().querySelector('.first')).toBeNull();
     expect(tip()).not.toContain('compared');
+  });
+});
+
+// Found by a review: groups are lettered anew by their size, so the letter kept with a comparison can be another
+// group's by the next day; and a cell worked its words out anew some ten times a pass.
+describe('ClaudeViewCellComponent: the pick, as a review asked for it', () => {
+  let views: FakeClaudeViews;
+  let fixture: ComponentFixture<ClaudeViewCellComponent>;
+  const group = (letter: string, symbols: string[]) => ({letter, index: 0, symbols, level: 0.7, sector: ''});
+
+  beforeEach(() => {
+    views = new FakeClaudeViews();
+    TestBed.configureTestingModule({
+      imports: [ClaudeViewCellComponent, NoopAnimationsModule],
+      providers: [{provide: ClaudeViewService, useValue: views}],
+    });
+    fixture = TestBed.createComponent(ClaudeViewCellComponent);
+    fixture.componentRef.setInput('symbol', 'ABCD');
+    fixture.componentRef.setInput('today', '2026-11-20');
+    views.knows({
+      views: {ABCD: {'2026-11-18': keptView('BUY SOME')}},
+      picks: {'2026-11-18': {A: {first: 'ABCD', why: 'It makes a profit.', members: ['ABCD', 'EFGH']}}},
+    });
+  });
+
+  const say = (): string => (fixture.nativeElement.textContent ?? '').replace(/\s+/g, ' ').trim();
+
+  it('names the letter its group has on the page today, whatever it was on the day of the comparison', () => {
+    views.setTied({groups: [group('A', ['WXYZ', 'QRST', 'MNOP']), group('B', ['ABCD', 'EFGH'])], alone: [], unknown: []});
+    fixture.detectChanges();
+    expect(say()).toBe('Buy some ★ first of B Results due next week');
+  });
+
+  it('names no letter for a stock that is in no group today', () => {
+    fixture.detectChanges();
+    expect(say()).toBe('Buy some ★ first of its group Results due next week');
+  });
+
+  it('works its words out once for what it knows, not on every look at them', () => {
+    fixture.detectChanges();
+    const first = fixture.componentInstance.cell;
+    expect(fixture.componentInstance.cell).withContext('the same words, kept').toBe(first);
+    views.knows({views: {ABCD: {'2026-11-19': keptView('WAIT')}}});
+    expect(fixture.componentInstance.cell).withContext('new words when the server said something new').not.toBe(first);
+    expect(fixture.componentInstance.cell.word).toBe('WAIT');
   });
 });

@@ -57,6 +57,7 @@ export class ClaudeViewCellComponent implements OnInit, OnDestroy {
 
   private state: ViewsState = {views: {}, history: {}, failed: {}};
   private watching?: Subscription;
+  private made?: { state: ViewsState, symbol: string, today: string, held: boolean, letter: string, cell: ViewCell };
 
   constructor(private views: ClaudeViewService) {
   }
@@ -76,9 +77,20 @@ export class ClaudeViewCellComponent implements OnInit, OnDestroy {
     return said.charAt(0).toUpperCase() + said.slice(1).toLowerCase();
   }
 
+  /**
+   * What the row shows. Worked out once for what is known (what the server said, the stock, the day, the letter of
+   * its group today), not on every look: the template reads it some ten times a pass, in every row of every list.
+   */
   get cell(): ViewCell {
-    return cellOf(this.state.views[this.symbol], this.today, this.held, this.state.failed[this.symbol],
-      pickOf(this.symbol, this.state.picks, this.today));
+    const letter = this.views.letterOf(this.symbol);
+    const made = this.made;
+    if (!made || made.state !== this.state || made.symbol !== this.symbol || made.today !== this.today || made.held !== this.held
+      || made.letter !== letter) {
+      const cell = cellOf(this.state.views[this.symbol], this.today, this.held, this.state.failed[this.symbol],
+        pickOf(this.symbol, this.state.picks, this.today, this.state.views, letter));
+      this.made = {state: this.state, symbol: this.symbol, today: this.today, held: this.held, letter, cell};
+    }
+    return this.made!.cell;
   }
 
   /** The stock is in the list being asked about and its answer is not there yet. */

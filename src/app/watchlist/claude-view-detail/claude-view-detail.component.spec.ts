@@ -2,7 +2,7 @@ import {ComponentFixture, TestBed} from "@angular/core/testing";
 import {NoopAnimationsModule} from "@angular/platform-browser/animations";
 import {ClaudeViewDetailComponent} from "./claude-view-detail.component";
 import {ClaudeViewService} from "../claude-view.service";
-import {ASK_BUSY, ASK_ONE, ASK_ONE_AGAIN, ASKING_ONE, NOT_IN_A_LIST} from "../claude-view";
+import {ASK_BUSY, ASK_ONE, ASK_ONE_AGAIN, ASKING_ONE, HELD_NOTE, NOT_IN_A_LIST} from "../claude-view";
 import {ReadingService} from "../reading.service";
 import {FakeClaudeViews, keptView} from "../testing/fake-claude-views";
 import {FakeReadings} from "../testing/fake-readings";
@@ -90,6 +90,7 @@ describe("ClaudeViewDetailComponent (the AI's view of a stock, in its details)",
   });
 
   it('says which stock of its group the AI would take first, and why', () => {
+    views.setTied(tied(['ABCD', 'EFGH', 'IJKL']));
     create({known: {
       views: {ABCD: {'2026-11-18': keptView('WAIT')}},
       picks: {'2026-11-18': {A: {first: 'EFGH', why: 'It makes a profit and swings less.', members: ['ABCD', 'EFGH', 'IJKL']}}},
@@ -117,6 +118,7 @@ describe("ClaudeViewDetailComponent (the AI's view of a stock, in its details)",
   });
 
   it('says that the AI is reading while this stock is asked about, then which group it compares, and offers nothing meanwhile', () => {
+    views.setTied(tied(['ABCD', 'EFGH']));
     create();
     views.knows({views: {}, queue: {symbols: ['ABCD'], done: [], failed: {}, comparing: ['A']}});
     fixture.detectChanges();
@@ -172,6 +174,57 @@ describe("ClaudeViewDetailComponent (the AI's view of a stock, in its details)",
     create({installed: false, known: {views: {ABCD: {'2026-11-18': keptView('WAIT')}}}});
     expect(say('.said')).toBe('Wait · Results due next week');
     expect(buttons()).toEqual([]);
+  });
+
+  // Found by a review: in the details the AI's word stands in full, and nothing said that it does not know what is
+  // held. That is where it most reads as advice against the plan.
+  it('says under every view that the AI was not told what is held, and that the plan and its limit still apply', () => {
+    create();
+    expect(fixture.nativeElement.querySelector('.held')).withContext('nothing was said yet').toBeNull();
+    views.knows({views: {ABCD: {'2026-11-18': keptView('BUY SOME')}}});
+    fixture.detectChanges();
+    expect(say('.held')).toBe(HELD_NOTE);
+  });
+
+  it('says "Comparing group A…" only under a stock of that group', () => {
+    views.setTied(tied(['EFGH', 'IJKL']));
+    create();
+    views.knows({views: {ABCD: {'2026-11-20': keptView('WAIT')}}, queue: {symbols: ['ABCD', 'EFGH'], done: ['ABCD', 'EFGH'], failed: {}, comparing: ['A']}});
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.busy')).withContext('ABCD is in no group').toBeNull();
+    fixture.componentRef.setInput('stock', stock('EFGH'));
+    fixture.detectChanges();
+    expect(say('.busy')).toBe('Comparing group A…');
+  });
+
+  it('says when its group could not be compared, and why', () => {
+    views.setTied(tied(['ABCD', 'EFGH']));
+    create({known: {views: {ABCD: {'2026-11-20': keptView('WAIT')}}, failedGroups: {A: 'timeout', B: 'failed'}}});
+    expect(say('.failed')).toBe('Group A could not be compared: The AI took too long and was stopped. Ask again.');
+  });
+
+  it('drops what was said about one stock when the details are another stock\'s', () => {
+    create();
+    views.knows({views: {}, queue: {symbols: ['WXYZ'], done: [], failed: {}}});
+    fixture.detectChanges();
+    press(ASK_ONE);
+    expect(say('.failed')).toBe(ASK_BUSY);
+    fixture.componentRef.setInput('stock', stock('EFGH'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.failed')).toBeNull();
+  });
+
+  it('shows the pick also when it was not told the day', () => {
+    views.setTied(tied(['ABCD', 'EFGH']));
+    views.knows({
+      views: {ABCD: {'2026-11-18': keptView('WAIT')}},
+      picks: {[new Date().toISOString().slice(0, 10)]: {A: {first: 'EFGH', why: 'It makes a profit.', members: ['ABCD', 'EFGH']}}},
+    });
+    views.elsewhere = [stock('ABCD')];
+    fixture = TestBed.createComponent(ClaudeViewDetailComponent);
+    fixture.componentRef.setInput('stock', stock('ABCD'));
+    fixture.detectChanges();
+    expect(say('.pick')).toContain('it would take EFGH first');
   });
 
   it('follows the stock whose details it is in', () => {
