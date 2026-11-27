@@ -2,7 +2,7 @@ import {ComponentFixture, TestBed} from "@angular/core/testing";
 import {NoopAnimationsModule} from "@angular/platform-browser/animations";
 import {ClaudeViewDetailComponent} from "./claude-view-detail.component";
 import {ClaudeViewService} from "../claude-view.service";
-import {ASK_BUSY, ASK_ONE, ASK_ONE_AGAIN, ASKING_ONE, HELD_NOTE, NOT_IN_A_LIST} from "../claude-view";
+import {ASK_BUSY, ASK_ONE, ASK_ONE_AGAIN, ASK_ONE_TIP, ASKING_ONE, NOT_IN_A_LIST} from "../claude-view";
 import {MORE_STORAGE_KEY, MoreService} from "../more/more.service";
 import {ReadingService} from "../reading.service";
 import {FakeClaudeViews, keptView} from "../testing/fake-claude-views";
@@ -71,7 +71,7 @@ describe("ClaudeViewDetailComponent (the AI's view of a stock, in its details)",
     create({known: {views: {ABCD: {'2026-11-18': withSources}}}});
     expect(say('.said')).toBe('Wait · Results due next week');
     expect(say('.why')).toBe('It reports its results next week.');
-    expect(say('.by .line')).toBe('Asked Nov 18 · not tested · it was not told what you hold');
+    expect(say('.by .line')).toBe('Asked Nov 18 · not tested · 2 sources');
     expect(buttons()).withContext('it can be asked again').toEqual([ASK_ONE_AGAIN]);
   });
 
@@ -88,7 +88,7 @@ describe("ClaudeViewDetailComponent (the AI's view of a stock, in its details)",
   it('has no list of pages for a view that rests on the figures alone', () => {
     create({known: {views: {ABCD: {'2026-11-18': keptView('AVOID')}}}});
     expect(el().querySelector('ul')).toBeNull();
-    expect(say('.by .line')).toBe('Asked Nov 18 · not tested · it was not told what you hold');
+    expect(say('.by .line')).toBe('Asked Nov 18 · not tested');
   });
 
   it('says which stock of its group the AI would take first, and why', () => {
@@ -178,15 +178,13 @@ describe("ClaudeViewDetailComponent (the AI's view of a stock, in its details)",
     expect(buttons()).toEqual([]);
   });
 
-  // Found by a review: in the details the AI's word stands in full, and nothing said that it does not know what is
-  // held. That is where it most reads as advice against the plan.
-  it('says under every view that the AI was not told what is held, and that the plan and its limit still apply', () => {
-    create();
-    expect(fixture.nativeElement.querySelector('.held')).withContext('nothing was said yet').toBeNull();
-    views.knows({views: {ABCD: {'2026-11-18': keptView('BUY SOME')}}});
-    fixture.detectChanges();
-    expect(say('.by .line')).withContext('in sight, on the line under the word').toContain('it was not told what you hold');
-    expect(say('.held')).withContext('in full, with the sentences').toBe(HELD_NOTE);
+  // The owner: "watchilist and portfolio should not be tied together". The part says nothing of what is held, of a
+  // plan or of a limit; a reviewer had asked for such a note, and the owner had it taken out.
+  it('says nothing about what is held, a plan or a limit: the Watchlist is about the stock', () => {
+    create({known: {views: {ABCD: {'2026-11-18': keptView('BUY SOME')}}}});
+    expect(fixture.nativeElement.querySelector('.held')).toBeNull();
+    expect((fixture.nativeElement.textContent as string)).not.toMatch(/you hold|held|you own|your plan|limit/i);
+    expect(ASK_ONE_TIP).not.toMatch(/you hold|held|you own|your plan|limit/i);
   });
 
   it('says "Comparing group A…" only under a stock of that group', () => {
@@ -276,15 +274,15 @@ describe("ClaudeViewDetailComponent: its signal in sight, its sentences behind t
     create();
     expect(say('.said')).toBe('Wait · Results due next week');
     expect(say('.pick-line')).toBe('Of ABCD, EFGH and IJKL the AI would take EFGH first.');
-    expect(say('.by .line')).toBe('Asked Nov 18 · not tested · it was not told what you hold');
+    expect(say('.by .line')).toBe('Asked Nov 18 · not tested · 1 source');
     expect([hidden('.said'), hidden('.pick-line'), hidden('.by')]).toEqual([false, false, false]);
   });
 
-  it('keeps the sentence, the reason of the comparison, the pages and the note in full for the details\' control', () => {
+  it('keeps the sentence, the reason of the comparison and the pages for the details\' control', () => {
     create();
-    expect([hidden('.why'), hidden('.pick'), hidden('ul'), hidden('.held')]).toEqual([true, true, true, true]);
+    expect([hidden('.why'), hidden('.pick'), hidden('ul')]).toEqual([true, true, true]);
     TestBed.inject(MoreService).toggle('details.words');
-    expect([hidden('.why'), hidden('.pick'), hidden('ul'), hidden('.held')]).toEqual([false, false, false, false]);
+    expect([hidden('.why'), hidden('.pick'), hidden('ul')]).toEqual([false, false, false]);
     expect(say('.why')).toBe('It reports its results next week.');
     expect(say('.pick')).toContain('it would take EFGH first: It makes a profit and swings less.');
   });

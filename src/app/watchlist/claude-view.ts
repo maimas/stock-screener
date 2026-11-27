@@ -174,20 +174,19 @@ export const COMPARING = (letter: string): string => `Comparing group ${letter}�
 export function compareFailureText(letter: string, reason: string): string {
   return `Group ${letter} could not be compared: ${viewFailureText(reason)}`;
 }
-export const HELD_NOTE = 'The AI was not told what you hold; your plan and its limit still apply.';
 export const ASK_BUTTON = (stocks: number): string => stocks === 1 ? 'Ask AI about this one' : `Ask AI about these ${stocks}`;
 export const ASKING = (done: number, stocks: number): string => `Asking AI… ${done} of ${stocks}`;
 /** Where the pointer rests on the button, or the keyboard reaches it: who is asked what, what it costs in time. */
 export const ASK_TIP = 'The AI (Claude Code on this computer) reads each stock\'s figures and the recent news about it, then says buy some, ' +
   'wait or avoid with a short reason. After the list it compares the stocks that move together (the same letter under "Group") ' +
-  'and marks the one it would take first. About half a minute a stock. Nothing about what you hold is sent.';
+  'and marks the one it would take first. About half a minute a stock. Only the stock\'s own figures are sent.';
 /** In a stock's details: the title of the part, and its one button, which asks about that stock alone. */
 export const DETAIL_TITLE = 'AI view';
 export const ASK_ONE = 'Ask AI about this stock';
 export const ASK_ONE_AGAIN = 'Ask again';
 export const ASK_ONE_TIP = 'The AI (Claude Code on this computer) reads this stock\'s figures and the recent news about it, says buy some, ' +
   'wait or avoid with its reason, then compares it with the stocks that move together with it (the same letter under "Group"). ' +
-  'Up to a minute. Nothing about what you hold is sent.';
+  'Up to a minute. Only the stock\'s own figures are sent.';
 export const ASKING_ONE = 'The AI is reading this stock\'s figures and the news about it. This takes up to a minute.';
 export const NOT_IN_A_LIST = 'Add this stock to one of your lists to ask the AI about it.';
 /** "Of ABCD, EFGH and IJKL the AI would take EFGH first." The comparison in one line, for where the reasons are folded away. */
@@ -199,12 +198,10 @@ export function pickShort(pick: PickFor): string {
   return `${among} the AI would take ${which} first.`;
 }
 
-/**
- * "Asked Nov 18 · not tested · it was not told what you hold": the line under the AI's word in a stock's details.
- * That it does not know what is held is said in sight here, and in full with the sentences.
- */
+/** "Asked Nov 18 · not tested · 2 sources": the line under the AI's word in a stock's details. */
 export function askedLine(view: View): string {
-  return `Asked ${shortDay(view.day)} · not tested · it was not told what you hold`;
+  const count = view.sources.length;
+  return `Asked ${shortDay(view.day)} · not tested` + (count ? ` · ${count} source${count === 1 ? '' : 's'}` : '');
 }
 /** The AI's word as the page says it, quietly: "Buy some", "Wait", "Avoid". */
 export function wordSaid(word: string): string {
@@ -451,7 +448,7 @@ export function pickSentence(pick: PickFor): string {
  * What a row shows of Claude's view. `held`: the stock is in one of the reader's portfolios, which Claude was not
  * told. `failed`: why the stock got no answer the last time it was asked about; an earlier view then stays.
  */
-export function cellOf(view: View | undefined, today: string, held: boolean, failed?: string, pick?: PickFor): ViewCell {
+export function cellOf(view: View | undefined, today: string, _held: boolean, failed?: string, pick?: PickFor): ViewCell {
   if (!view) {
     return failed
       ? {word: 'no answer', short: '', tip: viewFailureText(failed), stale: false, from: ''}
@@ -462,7 +459,6 @@ export function cellOf(view: View | undefined, today: string, held: boolean, fai
     view.why, `Asked ${shortDay(view.day)}.`,
     ...(failed ? [`Asked again since, without an answer: ${viewFailureText(failed)}`] : []),
     ...(pick ? [pickSentence(pick)] : []),
-    ...(held ? [HELD_NOTE] : []),
   ].join(' ');
   return {
     word: view.view, short: view.short, tip, stale, from: stale ? `from ${shortDay(view.day)}` : '',

@@ -72,7 +72,8 @@ describe('ClaudeAskComponent (the button that asks Claude about a list)', () => 
     create();
     const tip = fixture.debugElement.query(By.directive(MatTooltip)).injector.get(MatTooltip);
     expect(tip.message).toBe(ASK_TIP);
-    expect(ASK_TIP).toContain('Nothing about what you hold is sent.');
+    expect(ASK_TIP).toContain('Only the stock\'s own figures are sent.');
+    expect(ASK_TIP).withContext('the Watchlist says nothing of what is held').not.toMatch(/you hold|held|you own/i);
     const shown = spyOn(tip, 'show');
     button().dispatchEvent(new FocusEvent('focusin', {bubbles: true}));
     expect(shown).toHaveBeenCalled();

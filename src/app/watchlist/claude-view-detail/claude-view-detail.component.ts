@@ -5,7 +5,7 @@ import {MatTooltipModule} from "@angular/material/tooltip";
 import {finalize, Subscription} from "rxjs";
 import {Stock} from "../../api/microsoft-money.service";
 import {
-  ASK_BUSY, ASK_ONE, ASK_ONE_AGAIN, ASK_ONE_TIP, askedLine, ASKING_ONE, compareFailureText, COMPARING, DETAIL_TITLE, HELD_NOTE, NOT_IN_A_LIST,
+  ASK_BUSY, ASK_ONE, ASK_ONE_AGAIN, ASK_ONE_TIP, askedLine, ASKING_ONE, compareFailureText, COMPARING, DETAIL_TITLE, NOT_IN_A_LIST,
   PickFor, pickOf, pickSentence, pickShort, View, viewFailureText, ViewSource, ViewsState, wordSaid,
 } from "../claude-view";
 import {groupsFor, requestFor} from "../claude-groups";
@@ -51,13 +51,12 @@ const REFUSED: Record<ViewRefusal['refused'], string> = {
       <h4>{{ title }}<span class="note"> · not tested</span></h4>
       <ng-container *ngIf="view as said">
         <p class="said"><span class="word">{{ word }}</span><span class="short"> · {{ said.short }}</span></p>
-        <!-- In sight: the word, the comparison in one line, and the line of when it was asked. The sentences, the pages
-             and the note in full open with the details' one control ("Read these details in sentences"), like every
+        <!-- In sight: the word, the comparison in one line, and the line of when it was asked. The sentences and the
+             pages open with the details' one control ("Read these details in sentences"), like every
              other section's: with all of it in sight this part was as tall as the rest of the details together. -->
         <p class="pick-line" *ngIf="pickBrief">{{ pickBrief }}</p>
         <p class="why" appMoreRest="details.words">{{ said.why }}</p>
         <p class="pick" *ngIf="pickLine" appMoreRest="details.words">{{ pickLine }}</p>
-        <p class="held" appMoreRest="details.words">{{ heldNote }}</p>
         <ul *ngIf="said.sources.length" appMoreRest="details.words">
           <li *ngFor="let source of said.sources; trackBy: trackByUrl">
             <a [href]="source.url" target="_blank" rel="noopener noreferrer">{{ titleOf(source) }}</a>
@@ -93,7 +92,7 @@ const REFUSED: Record<ViewRefusal['refused'], string> = {
     a { color: var(--link); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: rgba(21, 101, 192, 0.35); }
     a:hover { text-decoration-color: currentColor; }
     ul { margin: 6px 0 0; padding-left: 18px; max-width: 70ch; }
-    .source, .by, .none, .busy, .held { font-size: var(--text-meta); color: var(--ink-3); }
+    .source, .by, .none, .busy { font-size: var(--text-meta); color: var(--ink-3); }
     .failed { color: var(--warn); }
     .again {
       min-height: 28px; margin: 0; padding: 0; border: 0; background: none; font: inherit; color: var(--link);
@@ -112,7 +111,6 @@ export class ClaudeViewDetailComponent implements OnChanges, OnInit, OnDestroy {
   readonly askLabel = ASK_ONE;
   readonly againLabel = ASK_ONE_AGAIN;
   readonly tip = ASK_ONE_TIP;
-  readonly heldNote = HELD_NOTE;
   available = false;
   /** The stock is on its way to the server: a second press before the answer would send it again. */
   sending = false;

@@ -48,7 +48,10 @@ import {TipOnFocusDirective} from "../../tip-on-focus.directive";
 })
 export class ClaudeViewCellComponent implements OnInit, OnDestroy {
   @Input() symbol = '';
-  /** The stock is in one of the reader's portfolios, which The AI was not told. */
+  /**
+   * No longer used: the AI's view says nothing about what is held (the owner: "watchilist and portfolio should not be
+   * tied together"). Still taken, because the table's template hands it in; it goes with that binding.
+   */
   @Input() held = false;
   /** YYYY-MM-DD */
   @Input() today = '';

@@ -1,5 +1,5 @@
 import {
-  ASK_BUTTON, ASKING, cellOf, compareFailureText, COMPARING, FACT_LIMITS, factsFor, HELD_NOTE, parseViews, PICK_HELP, pickOf, pickSentence, View,
+  ASK_BUTTON, ASKING, cellOf, compareFailureText, COMPARING, FACT_LIMITS, factsFor, parseViews, PICK_HELP, pickOf, pickSentence, View,
   VIEW_HEADING, VIEW_HELP, ViewFacts,
 } from "./claude-view";
 import {costDistributionFor} from "./market-math";
@@ -137,9 +137,11 @@ describe("Claude's view of a stock", () => {
       expect(old.from).toBe('from Nov 14');
     });
 
-    it('says on a stock that is held that The AI was not told so', () => {
-      expect(HELD_NOTE).toBe('The AI was not told what you hold; your plan and its limit still apply.');
-      expect(cellOf(kept, '2026-11-20', true).tip).toBe(`It reports its results next week. Asked Nov 14. ${HELD_NOTE}`);
+    // The owner: "watchilist and portfolio should not be tied together". A row of the Watchlist says nothing of
+    // what is held, also not that the AI was not told.
+    it('says nothing about what is held, whatever the stock', () => {
+      expect(cellOf(kept, '2026-11-20', true).tip).toBe('It reports its results next week. Asked Nov 14.');
+      expect(cellOf(kept, '2026-11-20', true).tip).not.toMatch(/hold|held|own|plan|limit/i);
     });
 
     it('says "no answer" with the reason when the last ask failed and nothing is kept', () => {
@@ -244,7 +246,7 @@ describe("Claude's pick among stocks that move together", () => {
       const cell = cellOf(state.views['ABCD'], TODAY, true, undefined, pickOf('ABCD', state.picks, TODAY, state.views, 'A'));
       expect(cell.first).toBeUndefined();
       expect(cell.tip).toBe('It reports its results next week. Asked Nov 18. Of the 3 stocks of group A that the AI compared ' +
-        `(ABCD, EFGH, IJKL), it would take EFGH first: It makes a profit and swings less. Compared Nov 18. ${HELD_NOTE}`);
+        '(ABCD, EFGH, IJKL), it would take EFGH first: It makes a profit and swings less. Compared Nov 18.');
     });
 
     it('shows a stock that was not compared as before', () => {

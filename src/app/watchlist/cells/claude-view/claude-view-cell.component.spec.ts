@@ -4,7 +4,6 @@ import {MatTooltip} from "@angular/material/tooltip";
 import {By} from "@angular/platform-browser";
 import {ClaudeViewCellComponent} from "./claude-view-cell.component";
 import {ClaudeViewService} from "../../claude-view.service";
-import {HELD_NOTE} from "../../claude-view";
 import {FakeClaudeViews, keptView} from "../../testing/fake-claude-views";
 
 // One cell of the column "AI · not tested": Claude's word for the stock, a few words of why, and the sentence
@@ -71,11 +70,11 @@ describe('ClaudeViewCellComponent (Claude\'s view of a stock, in its row)', () =
     expect(say()).toBe('Wait Results due next week from Nov 10');
   });
 
-  it('says on a held stock that The AI was not told so', () => {
+  it('says nothing about what is held on a stock that is held: the Watchlist and the portfolio are not tied together', () => {
     views.knows({views: {ABCD: {'2026-11-14': keptView('BUY SOME')}}});
     fixture.componentRef.setInput('held', true);
     fixture.detectChanges();
-    expect(tip().endsWith(HELD_NOTE)).toBeTrue();
+    expect(tip()).toBe('It reports its results next week. Asked Nov 14.');
   });
 
   it('says "asking…" while the stock waits for its answer, and its word as soon as it is there', () => {
