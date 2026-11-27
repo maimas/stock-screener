@@ -515,6 +515,12 @@ tbody tr:hover .symbol,
   margin-top: 4px;
 }
 
+// The instruction, in that room while nothing is ticked: across it, as near the box's heading as it stood before.
+.tick-answer > .hint {
+  flex: 1 1 100%;
+  margin-top: 2px;
+}
+
 // The title and, right beside it, the buttons for all the ticked rows.
 .tick-head {
   display: flex;
