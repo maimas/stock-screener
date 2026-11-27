@@ -136,8 +136,8 @@ describe("Claude's view of a stock", () => {
       expect(old.from).toBe('from Nov 14');
     });
 
-    it('says on a stock that is held that Claude was not told so', () => {
-      expect(HELD_NOTE).toBe('Claude was not told what you hold; your plan and its limit still apply.');
+    it('says on a stock that is held that The AI was not told so', () => {
+      expect(HELD_NOTE).toBe('The AI was not told what you hold; your plan and its limit still apply.');
       expect(cellOf(kept, '2026-11-20', true).tip).toBe(`It reports its results next week. Asked Nov 14. ${HELD_NOTE}`);
     });
 
@@ -145,14 +145,14 @@ describe("Claude's view of a stock", () => {
       const failed = cellOf(undefined, '2026-11-20', false, 'timeout');
       expect(failed.word).toBe('no answer');
       expect(failed.short).toBe('');
-      expect(failed.tip).toBe('Claude took too long and was stopped. Ask again.');
+      expect(failed.tip).toBe('The AI took too long and was stopped. Ask again.');
     });
 
     it('keeps showing the earlier view when a new ask failed, and says so under the pointer', () => {
       const still = cellOf(kept, '2026-11-20', false, 'busy');
       expect(still.word).toBe('WAIT');
       expect(still.tip).toBe('It reports its results next week. Asked Nov 14. Asked again since, without an answer: ' +
-        'Claude was busy with something else. Ask again.');
+        'The AI was busy with something else. Ask again.');
     });
 
     it('shows nothing for a stock that was never asked about', () => {
@@ -161,10 +161,10 @@ describe("Claude's view of a stock", () => {
   });
 
   it('names the column and the button in plain words', () => {
-    expect(VIEW_HEADING).toBe('Claude · not tested');
-    expect(ASK_BUTTON(5)).toBe('Ask Claude about these 5');
-    expect(ASK_BUTTON(1)).toBe('Ask Claude about this one');
-    expect(ASKING(2, 5)).toBe('Asking Claude… 2 of 5');
+    expect(VIEW_HEADING).toBe('AI · not tested');
+    expect(ASK_BUTTON(5)).toBe('Ask AI about these 5');
+    expect(ASK_BUTTON(1)).toBe('Ask AI about this one');
+    expect(ASKING(2, 5)).toBe('Asking AI… 2 of 5');
   });
 });
 
@@ -231,18 +231,18 @@ describe("Claude's pick among stocks that move together", () => {
     });
     const TODAY = '2026-11-20';
 
-    it('marks the stock Claude would take first of its group, and says under the pointer among which and why', () => {
+    it('marks the stock the AI would take first of its group, and says under the pointer among which and why', () => {
       const cell = cellOf(state.views['EFGH'], TODAY, false, undefined, pickOf('EFGH', state.picks, TODAY));
       expect(cell.first).toBe('first of A');
       expect(cell.word).toBe('BUY SOME');
-      expect(cell.tip).toBe('It reports its results next week. Asked Nov 18. Of the 3 stocks of group A that Claude compared ' +
+      expect(cell.tip).toBe('It reports its results next week. Asked Nov 18. Of the 3 stocks of group A that the AI compared ' +
         '(ABCD, EFGH, IJKL), it would take this one first: It makes a profit and swings less. Compared Nov 18.');
     });
 
     it('says on the others of the group which one Claude would take first, and does not mark them', () => {
       const cell = cellOf(state.views['ABCD'], TODAY, true, undefined, pickOf('ABCD', state.picks, TODAY));
       expect(cell.first).toBeUndefined();
-      expect(cell.tip).toBe('It reports its results next week. Asked Nov 18. Of the 3 stocks of group A that Claude compared ' +
+      expect(cell.tip).toBe('It reports its results next week. Asked Nov 18. Of the 3 stocks of group A that the AI compared ' +
         `(ABCD, EFGH, IJKL), it would take EFGH first: It makes a profit and swings less. Compared Nov 18. ${HELD_NOTE}`);
     });
 

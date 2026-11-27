@@ -14,7 +14,7 @@ import {flatCloses, makeStock, reportedQuarters} from "./testing/fixtures";
 
 // The owner of the page asked for the details of a stock "summarized by AI and added to a column as an AI suggestion
 // to act on the stock", and chose one button for the whole list. On the Watchlist every list of the reader's own has
-// that button, and its table a column "Claude · not tested".
+// that button, and its table a column "AI · not tested".
 describe("WatchlistTableComponent: Claude's view of the stocks of a list", () => {
   let views: FakeClaudeViews;
   let fixture: ComponentFixture<WatchlistTableComponent>;
@@ -52,7 +52,7 @@ describe("WatchlistTableComponent: Claude's view of the stocks of a list", () =>
 
   it('puts the button in the head of a list of the reader\'s own, with the stocks of that list', () => {
     const first = listOf(page().watchLists[0].title);
-    expect(first.querySelector('app-claude-ask button')!.textContent!.trim()).toBe('Ask Claude about these 2');
+    expect(first.querySelector('app-claude-ask button')!.textContent!.trim()).toBe('Ask AI about these 2');
     const asks = fixture.debugElement.queryAll(By.directive(ClaudeAskComponent));
     expect(asks.length).withContext('one for the one list that is loaded').toBe(1);
     expect((asks[0].componentInstance as ClaudeAskComponent).stocks.map(it => it.quote!.symbol)).toEqual(['ABCD', 'EFGH']);
@@ -102,7 +102,7 @@ describe("WatchlistTableComponent: Claude's view of the stocks of a list", () =>
 
   it('says on the heading what the column is, that it is not tested, and how its past views turned out', () => {
     const column = page().tableDefinition.find(it => it.columnName === 'claudeView')!;
-    expect(column.columnDisplayName).toBe('Claude · not tested');
+    expect(column.columnDisplayName).toBe('AI · not tested');
     expect(column.columnTooltip).toBe(VIEW_HELP);
     views.knows({views: {ABCD: {'2020-01-06': keptView('WAIT')}}});
     expect(page().tableDefinition.find(it => it.columnName === 'claudeView')!.columnTooltip)

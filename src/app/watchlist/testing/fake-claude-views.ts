@@ -2,6 +2,7 @@ import {BehaviorSubject, Observable, of, Subject} from "rxjs";
 import {Stock} from "../../api/microsoft-money.service";
 import {GroupRequest, parseViews, ViewRequest, ViewsState} from "../claude-view";
 import {ViewStep} from "../claude-view.service";
+import {NO_GROUPS, TiedGroups} from "../tied-groups";
 
 /** Stands in for the views of Claude Code in tests: what is known, what was asked about, and the steps a test sends. */
 export class FakeClaudeViews {
@@ -30,6 +31,16 @@ export class FakeClaudeViews {
 
   unregister(owner: object): void {
     this.lists.delete(owner);
+  }
+
+  private tiedNow: TiedGroups = NO_GROUPS;
+
+  setTied(tied: TiedGroups): void {
+    this.tiedNow = tied;
+  }
+
+  tied(): TiedGroups {
+    return this.tiedNow;
   }
 
   get registered(): number {

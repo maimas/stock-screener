@@ -14,7 +14,7 @@ import {TipOnFocusDirective} from "../../tip-on-focus.directive";
  * letters ("Buy some"), the size of the table's other secondary text, no filled shape, no green or red. The short
  * view of the table ("Key columns") shows the word alone, so its rows stay one line tall.
  *
- * The stock Claude would take first among those of its group that it compared (the stocks that move together) wears
+ * The stock the AI would take first among those of its group that it compared (the stocks that move together) wears
  * a plain star, and under "All columns" the words "first of A"; every compared stock says under the pointer which
  * one that is and why.
  */
@@ -48,7 +48,7 @@ import {TipOnFocusDirective} from "../../tip-on-focus.directive";
 })
 export class ClaudeViewCellComponent implements OnInit, OnDestroy {
   @Input() symbol = '';
-  /** The stock is in one of the reader's portfolios, which Claude was not told. */
+  /** The stock is in one of the reader's portfolios, which The AI was not told. */
   @Input() held = false;
   /** YYYY-MM-DD */
   @Input() today = '';

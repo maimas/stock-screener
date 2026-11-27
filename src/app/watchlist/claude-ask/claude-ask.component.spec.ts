@@ -10,7 +10,7 @@ import {FakeClaudeViews, keptView} from "../testing/fake-claude-views";
 import {FakeReadings} from "../testing/fake-readings";
 import {flatCloses, makeStock, reportedQuarters} from "../testing/fixtures";
 
-// The one button above a list: "Ask Claude about these 5". It sends each stock's figures, nothing about what is
+// The one button above a list: "Ask AI about these 5". It sends each stock's figures, nothing about what is
 // owned, and says how far Claude is while the rows fill in.
 describe('ClaudeAskComponent (the button that asks Claude about a list)', () => {
   let views: FakeClaudeViews;
@@ -42,10 +42,10 @@ describe('ClaudeAskComponent (the button that asks Claude about a list)', () => 
 
   it('offers to ask about the stocks of the list, by their number', () => {
     create();
-    expect(button().textContent!.trim()).toBe('Ask Claude about these 2');
+    expect(button().textContent!.trim()).toBe('Ask AI about these 2');
     expect(button().type).toBe('button');
     create([stock('ABCD')]);
-    expect(button().textContent!.trim()).toBe('Ask Claude about this one');
+    expect(button().textContent!.trim()).toBe('Ask AI about this one');
   });
 
   // Seen on the page: it stood beside "Edit list" as a grey box of the browser's own. It is a link like its neighbour.
@@ -106,14 +106,14 @@ describe('ClaudeAskComponent (the button that asks Claude about a list)', () => 
     create();
     views.knows({views: {}, queue: {symbols: ['ABCD', 'EFGH'], done: ['ABCD'], failed: {}}});
     fixture.detectChanges();
-    expect(button().textContent!.trim()).toBe('Asking Claude… 1 of 2');
+    expect(button().textContent!.trim()).toBe('Asking AI… 1 of 2');
     expect(button().disabled).toBeTrue();
     views.knows({views: {}, queue: {symbols: ['ABCD', 'EFGH'], done: ['ABCD'], failed: {EFGH: 'timeout'}}});
     fixture.detectChanges();
-    expect(button().textContent!.trim()).withContext('a stock that got no answer is through too').toBe('Asking Claude… 2 of 2');
+    expect(button().textContent!.trim()).withContext('a stock that got no answer is through too').toBe('Asking AI… 2 of 2');
     views.knows({views: {}, failed: {EFGH: 'timeout'}});
     fixture.detectChanges();
-    expect(button().textContent!.trim()).toBe('Ask Claude about these 2');
+    expect(button().textContent!.trim()).toBe('Ask AI about these 2');
     expect(button().disabled).toBeFalse();
   });
 
@@ -121,7 +121,7 @@ describe('ClaudeAskComponent (the button that asks Claude about a list)', () => 
     create();
     views.knows({views: {}, queue: {symbols: ['WXYZ'], done: [], failed: {}}});
     fixture.detectChanges();
-    expect(button().textContent!.trim()).toBe('Ask Claude about these 2');
+    expect(button().textContent!.trim()).toBe('Ask AI about these 2');
     button().click();
     expect(views.asked.length).withContext('nothing is sent while Claude is busy').toBe(0);
     fixture.detectChanges();
@@ -140,7 +140,7 @@ describe('ClaudeAskComponent (the button that asks Claude about a list)', () => 
     expect(say('.ask-note')).withContext('a new press clears the old words').toBe('');
     views.steps.next({refused: 'failed'});
     fixture.detectChanges();
-    expect(say('.ask-note')).toBe('Claude could not be asked. Try again.');
+    expect(say('.ask-note')).toBe('The AI could not be asked. Try again.');
   });
 
   // Found by a review: a second click before the first answer cancelled the first request and sent the list again;
@@ -173,7 +173,7 @@ describe('ClaudeAskComponent (the button that asks Claude about a list)', () => 
     create(symbols.map(stock));
     views.knows({views: {AAAA: {'2026-11-20': keptView('WAIT')}, BBBB: {'2026-11-10': keptView('WAIT')}, CCCC: {'2026-11-15': keptView('WAIT')}}});
     fixture.detectChanges();
-    expect(button().textContent!.trim()).toBe('Ask Claude about 10 of these 12');
+    expect(button().textContent!.trim()).toBe('Ask AI about 10 of these 12');
     button().click();
     expect(views.asked[0].map(it => it.symbol)).toEqual(['DDDD', 'EEEE', 'FFFF', 'GGGG', 'HHHH', 'IIII', 'JJJJ', 'KKKK', 'LLLL', 'BBBB']);
   });
@@ -257,7 +257,7 @@ describe('ClaudeAskComponent: the groups that go with a list', () => {
     create([stock('ABCD'), stock('EFGH')], [tiedGroup('A', 0, ['ABCD', 'EFGH'])]);
     views.knows({views: {}, queue: {symbols: ['ABCD', 'EFGH'], done: ['ABCD'], failed: {}, comparing: ['A', 'B']}});
     fixture.detectChanges();
-    expect(button().textContent!.trim()).withContext('a stock is still to come').toBe('Asking Claude… 1 of 2');
+    expect(button().textContent!.trim()).withContext('a stock is still to come').toBe('Asking AI… 1 of 2');
     views.knows({views: {}, queue: {symbols: ['ABCD', 'EFGH'], done: ['ABCD'], failed: {EFGH: 'timeout'}, comparing: ['A', 'B']}});
     fixture.detectChanges();
     expect(button().textContent!.trim()).toBe('Comparing group A…');
@@ -267,6 +267,6 @@ describe('ClaudeAskComponent: the groups that go with a list', () => {
     expect(button().textContent!.trim()).toBe('Comparing group B…');
     views.knows({views: {}, failed: {EFGH: 'timeout'}});
     fixture.detectChanges();
-    expect(button().textContent!.trim()).toBe('Ask Claude about these 2');
+    expect(button().textContent!.trim()).toBe('Ask AI about these 2');
   });
 });

@@ -1,11 +1,10 @@
-import {Component, Input, OnDestroy, OnInit} from "@angular/core";
+import {Component, Input, OnChanges, OnDestroy, OnInit} from "@angular/core";
 import {NgIf} from "@angular/common";
 import {MatTooltipModule} from "@angular/material/tooltip";
 import {finalize, forkJoin, Observable, of, Subscription} from "rxjs";
 import {Stock} from "../../api/microsoft-money.service";
-import {
-  ASK_BUSY, ASK_BUTTON, ASK_TIP, ASKING, COMPARING, factsFor, GroupRequest, shortDay, viewFailureText, ViewRequest, ViewsState,
-} from "../claude-view";
+import {ASK_BUSY, ASK_BUTTON, ASK_TIP, ASKING, COMPARING, shortDay, viewFailureText, ViewRequest, ViewsState} from "../claude-view";
+import {groupsFor, requestFor} from "../claude-groups";
 import {ClaudeViewService, isRefusal, ViewRefusal} from "../claude-view.service";
 import {biggestDropSinceHigh, isoDay} from "../drop-news";
 import {ReadingAbout, ReadingState} from "../reading";
@@ -15,19 +14,16 @@ import {TipOnFocusDirective} from "../tip-on-focus.directive";
 
 /** As many stocks as the server takes in one list (tools/claude/claude-view.js). */
 export const MOST_AT_ONCE = 10;
-/** As many groups, and stocks a group, as the server takes to compare (tools/claude/claude-compare.js). */
-export const MOST_GROUPS = 8;
-export const MOST_MEMBERS = 10;
 
 const REFUSED: Record<ViewRefusal['refused'], string> = {
   'busy': ASK_BUSY,
   'not-installed': viewFailureText('not-installed'),
-  'failed': 'Claude could not be asked. Try again.',
+  'failed': 'The AI could not be asked. Try again.',
 };
 
 /**
- * The one button above a list of the Watchlist: "Ask Claude about these 5". It has the Claude Code on this computer
- * give its view of every stock of the list (the column "Claude · not tested"), one stock after the other, and says
+ * The one button above a list of the Watchlist: "Ask AI about these 5". It has the Claude Code on this computer
+ * give its view of every stock of the list (the column "AI · not tested"), one stock after the other, and says
  * how far it is while the rows fill in.
  *
  * What is sent about a stock is its figures as its details show them, and what kind of news a reading of its biggest
@@ -63,7 +59,7 @@ const REFUSED: Record<ViewRefusal['refused'], string> = {
     .ask-note:empty { display: none; }
   `]
 })
-export class ClaudeAskComponent implements OnInit, OnDestroy {
+export class ClaudeAskComponent implements OnChanges, OnInit, OnDestroy {
   /** The stocks of the list, as the table shows them. */
   @Input() stocks: Stock[] = [];
   /** Which stocks of the page move together (the lettered groups of the "Group" column). */
@@ -81,6 +77,10 @@ export class ClaudeAskComponent implements OnInit, OnDestroy {
   private work?: Subscription;
 
   constructor(private views: ClaudeViewService, private readings: ReadingService) {
+  }
+
+  ngOnChanges(): void {
+    this.views.setTied(this.tied);
   }
 
   ngOnInit(): void {
@@ -113,7 +113,7 @@ export class ClaudeAskComponent implements OnInit, OnDestroy {
       return through >= queue.symbols.length && queue.comparing?.length ? COMPARING(queue.comparing[0]) : ASKING(through, queue.symbols.length);
     }
     const count = this.symbols.length;
-    return count > MOST_AT_ONCE ? `Ask Claude about ${MOST_AT_ONCE} of these ${count}` : ASK_BUTTON(count);
+    return count > MOST_AT_ONCE ? `Ask AI about ${MOST_AT_ONCE} of these ${count}` : ASK_BUTTON(count);
   }
 
   /** "asked Nov 20": the newest view among the stocks of this list. */
@@ -131,25 +131,6 @@ export class ClaudeAskComponent implements OnInit, OnDestroy {
     const dayOf = (it: Stock): string => this.state.views[it.quote!.symbol!]?.day ?? '';
     return known.map((stock, at) => ({stock, at})).sort((a, b) => dayOf(a.stock).localeCompare(dayOf(b.stock)) || a.at - b.at)
       .slice(0, MOST_AT_ONCE).map(it => it.stock);
-  }
-
-  /**
-   * The groups to compare after the list: each group a stock of the list is in, with its stocks that are in any of
-   * the reader's own lists (the list's own first). A group with one such stock has nothing to be compared with.
-   */
-  private groupsOf(stocks: Stock[], list: ViewRequest[], now: Date): GroupRequest[] {
-    const asked = new Map(list.map(it => [it.symbol, it]));
-    const listed = new Map(this.views.listed().map(stock => [stock.quote!.symbol!, stock]));
-    const mine = new Set(stocks.map(it => it.quote!.symbol!));
-    return this.tied.groups.filter(group => group.symbols.some(symbol => mine.has(symbol)))
-      .map((group): GroupRequest => ({
-        letter: group.letter,
-        members: [...group.symbols.filter(symbol => mine.has(symbol)), ...group.symbols.filter(symbol => !mine.has(symbol) && listed.has(symbol))]
-          .slice(0, MOST_MEMBERS)
-          .map(symbol => asked.get(symbol) ?? requestFor(listed.get(symbol)!, now)),
-      }))
-      .filter(group => group.members.length >= 2)
-      .slice(0, MOST_GROUPS);
   }
 
   ask(): void {
@@ -173,7 +154,7 @@ export class ClaudeAskComponent implements OnInit, OnDestroy {
     this.work = forkJoin(kept).subscribe(states => {
       const list: ViewRequest[] = stocks.map((stock, at) => requestFor(stock, now, aboutOf(states[at], stock)));
       // The service follows the list from here; this button only says why a list was not taken.
-      this.work = this.views.askAbout(list, this.groupsOf(stocks, list, now)).pipe(finalize(() => this.sending = false)).subscribe(step => {
+      this.work = this.views.askAbout(list, groupsFor(list, this.tied, this.views.listed(), now)).pipe(finalize(() => this.sending = false)).subscribe(step => {
         this.sending = false;
         if (isRefusal(step)) {
           this.note = REFUSED[step.refused];
@@ -181,11 +162,6 @@ export class ClaudeAskComponent implements OnInit, OnDestroy {
       });
     });
   }
-}
-
-/** A stock as it is sent: its symbol, its name and its figures. */
-function requestFor(stock: Stock, now: Date, about?: ReadingAbout): ViewRequest {
-  return {symbol: stock.quote!.symbol!, name: stock.quote?.displayName || stock.quote!.symbol!, facts: factsFor(stock, now, about)};
 }
 
 /** What kind of news the kept reading found, when it is about the very day of the stock's biggest fall. */

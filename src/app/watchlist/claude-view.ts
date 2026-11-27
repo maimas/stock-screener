@@ -10,7 +10,7 @@ import {
 
 /**
  * Claude's view of a stock: one of three words and a short reason, given by the Claude Code on this computer when
- * the reader presses "Ask Claude about these" above a list (the job itself is tools/claude/claude-view.js).
+ * the reader presses "Ask AI about these" above a list (the job itself is tools/claude/claude-view.js).
  *
  * The owner of the page asked for it: the details of a stock "summarized by AI and added to a column as an AI
  * suggestion to act on the stock", to save reading the details and to hear something the mark does not say. It is
@@ -56,7 +56,7 @@ export type GroupPick = {
   day: string,
   /** The group's letter that day. */
   letter: string,
-  /** The stock Claude would take first. */
+  /** The stock the AI would take first. */
   first: string,
   why: string,
   /** The stocks that were compared. */
@@ -155,27 +155,27 @@ type NumberFact = keyof typeof FACT_LIMITS;
 const MIN_ANALYSTS = 3;
 const STALE_AFTER_DAYS = 7;
 
-export const VIEW_HEADING = 'Claude · not tested';
+export const VIEW_HEADING = 'AI · not tested';
 /** What the star is, in the words the page has for a group ("Group": stocks with the same letter moved closely together). */
-export const PICK_HELP = 'A star marks the stock Claude would take first among the stocks with the same letter under "Group" ' +
+export const PICK_HELP = 'A star marks the stock the AI would take first among the stocks with the same letter under "Group" ' +
   '(they moved closely together over the past year) that it compared. That is its own pick, not tested: the page\'s marks rank no stock.';
-export const VIEW_HELP = 'Claude\'s own view of each stock, from the figures in its details and the recent news, asked for with the ' +
+export const VIEW_HELP = 'The AI\'s own view of each stock, from the figures in its details and the recent news, asked for with the ' +
   'button above the list. It is an opinion, not a tested signal: it changes nothing else on the page. ' + PICK_HELP;
 export const COMPARING = (letter: string): string => `Comparing group ${letter}…`;
-export const HELD_NOTE = 'Claude was not told what you hold; your plan and its limit still apply.';
-export const ASK_BUTTON = (stocks: number): string => stocks === 1 ? 'Ask Claude about this one' : `Ask Claude about these ${stocks}`;
-export const ASKING = (done: number, stocks: number): string => `Asking Claude… ${done} of ${stocks}`;
+export const HELD_NOTE = 'The AI was not told what you hold; your plan and its limit still apply.';
+export const ASK_BUTTON = (stocks: number): string => stocks === 1 ? 'Ask AI about this one' : `Ask AI about these ${stocks}`;
+export const ASKING = (done: number, stocks: number): string => `Asking AI… ${done} of ${stocks}`;
 /** Where the pointer rests on the button, or the keyboard reaches it: who is asked what, what it costs in time. */
-export const ASK_TIP = 'Claude Code on this computer reads each stock\'s figures and the recent news about it, then says BUY SOME, ' +
-  'WAIT or AVOID with a short reason. After the list it compares the stocks that move together (the same letter under "Group") ' +
+export const ASK_TIP = 'The AI (Claude Code on this computer) reads each stock\'s figures and the recent news about it, then says buy some, ' +
+  'wait or avoid with a short reason. After the list it compares the stocks that move together (the same letter under "Group") ' +
   'and marks the one it would take first. About half a minute a stock. Nothing about what you hold is sent.';
-export const ASK_BUSY = 'Claude is busy with another list. Try again in a minute.';
+export const ASK_BUSY = 'The AI is busy with another list. Try again in a minute.';
 
 const FAILURE_TEXT: Record<string, string> = {
-  'busy': 'Claude was busy with something else. Ask again.',
-  'timeout': 'Claude took too long and was stopped. Ask again.',
-  'failed': 'Claude Code did not answer. Ask again.',
-  'no-answer': 'Claude did not give a usable answer. Ask again.',
+  'busy': 'The AI was busy with something else. Ask again.',
+  'timeout': 'The AI took too long and was stopped. Ask again.',
+  'failed': 'The AI did not answer. Ask again.',
+  'no-answer': 'The AI did not give a usable answer. Ask again.',
   'not-saved': 'The answer could not be saved. Ask again.',
   'signed-out': 'Claude Code is not signed in. In the project folder, run "docker compose exec reader claude" and type /login.',
   'not-installed': 'Claude Code is not running. Start the app again with "docker compose up -d".',
@@ -368,7 +368,7 @@ export type ViewCell = {
   stale: boolean,
   /** "from Nov 14", for a view that old. */
   from: string,
-  /** "first of A", on the stock Claude would take first among those of its group that it compared; not there otherwise. */
+  /** "first of A", on the stock the AI would take first among those of its group that it compared; not there otherwise. */
   first?: string,
 };
 
@@ -382,9 +382,9 @@ export function pickOf(symbol: string, picks: GroupPick[] | undefined, today: st
   return newest ? {...newest, mine: newest.first === symbol} : undefined;
 }
 
-/** "Of the 3 stocks of group A that Claude compared (ABCD, EFGH, IJKL), it would take this one first: … Compared Nov 26." */
-function pickSentence(pick: PickFor): string {
-  return `Of the ${pick.members.length} stocks of group ${pick.letter} that Claude compared (${pick.members.join(', ')}), it would take ` +
+/** "Of the 3 stocks of group A that the AI compared (ABCD, EFGH, IJKL), it would take this one first: … Compared Nov 26." */
+export function pickSentence(pick: PickFor): string {
+  return `Of the ${pick.members.length} stocks of group ${pick.letter} that the AI compared (${pick.members.join(', ')}), it would take ` +
     `${pick.mine ? 'this one' : pick.first} first: ${pick.why} Compared ${shortDay(pick.day)}.`;
 }
 

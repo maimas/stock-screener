@@ -7,7 +7,7 @@ import {ClaudeViewService} from "../../claude-view.service";
 import {HELD_NOTE} from "../../claude-view";
 import {FakeClaudeViews, keptView} from "../../testing/fake-claude-views";
 
-// One cell of the column "Claude · not tested": Claude's word for the stock, a few words of why, and the sentence
+// One cell of the column "AI · not tested": Claude's word for the stock, a few words of why, and the sentence
 // where the pointer rests or the Tab key stops.
 describe('ClaudeViewCellComponent (Claude\'s view of a stock, in its row)', () => {
   let views: FakeClaudeViews;
@@ -71,7 +71,7 @@ describe('ClaudeViewCellComponent (Claude\'s view of a stock, in its row)', () =
     expect(say()).toBe('Wait Results due next week from Nov 10');
   });
 
-  it('says on a held stock that Claude was not told so', () => {
+  it('says on a held stock that The AI was not told so', () => {
     views.knows({views: {ABCD: {'2026-11-14': keptView('BUY SOME')}}});
     fixture.componentRef.setInput('held', true);
     fixture.detectChanges();
@@ -91,7 +91,7 @@ describe('ClaudeViewCellComponent (Claude\'s view of a stock, in its row)', () =
     views.knows({views: {}, failed: {ABCD: 'timeout'}});
     fixture.detectChanges();
     expect(say()).toBe('No answer');
-    expect(tip()).toBe('Claude took too long and was stopped. Ask again.');
+    expect(tip()).toBe('The AI took too long and was stopped. Ask again.');
   });
 
   // Found by a review of the page: in capitals, at 14px and weight 600, the word was louder than the tested mark
@@ -167,7 +167,7 @@ describe('ClaudeViewCellComponent: Claude\'s pick among stocks that move togethe
     create('ABCD');
     expect(say()).toBe('Buy some ★ first of A Results due next week');
     expect(el().querySelector('.first')!.getAttribute('aria-label')).withContext('read aloud as words, not as "black star"').toBe('first of A');
-    expect(tip()).toContain('Of the 2 stocks of group A that Claude compared (ABCD, EFGH), it would take this one first: It makes a profit and swings less.');
+    expect(tip()).toContain('Of the 2 stocks of group A that the AI compared (ABCD, EFGH), it would take this one first: It makes a profit and swings less.');
   });
 
   it('marks no other stock of the group, and says under the pointer which one Claude would take first', () => {
