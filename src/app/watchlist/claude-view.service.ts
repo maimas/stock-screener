@@ -1,7 +1,8 @@
 import {Injectable} from "@angular/core";
 import {HttpClient, HttpErrorResponse} from "@angular/common/http";
 import {
-  BehaviorSubject, catchError, concat, concatMap, filter, map, Observable, of, scan, shareReplay, Subscription, switchMap, take, takeWhile, tap, timer,
+  BehaviorSubject, catchError, concat, concatMap, filter, map, Observable, of, scan, shareReplay, Subscription, switchMap, take, takeWhile, tap, timeout,
+  timer,
 } from "rxjs";
 import {MicrosoftMoneyService, Stock} from "../api/microsoft-money.service";
 import {FactsContext, GroupRequest, localDay, parseViews, ViewRequest, ViewsState} from "./claude-view";
@@ -9,8 +10,13 @@ import {loadLog} from "./snapshot-log";
 import {NO_GROUPS, TiedGroups} from "./tied-groups";
 import {POLL_MS, ReadingService} from "./reading.service";
 
-/** A list of ten stocks takes about five minutes; the page asks how it is going for at most twenty. */
-export const MAX_VIEW_POLLS = 600;
+/**
+ * A list of ten stocks usually takes about five minutes, and can take three minutes a stock and one more run for each
+ * of its groups; the page asks how it is going for at most fifty.
+ */
+export const MAX_VIEW_POLLS = 1500;
+/** As long as a press waits for the state of the market before it goes without it. */
+export const MARKET_WAIT_MS = 5000;
 /** As many polls in a row may go unanswered (the app restarting, the database away for a moment) before the page stops asking: half a minute. */
 export const MAX_FAILED_POLLS = 15;
 
@@ -138,6 +144,7 @@ export class ClaudeViewService {
   context(): Observable<FactsContext> {
     const known = (): FactsContext => ({log: loadLog(), today: localDay(new Date())});
     return this.money.getMarket().pipe(
+      timeout(MARKET_WAIT_MS),
       map(market => ({...known(), market})),
       catchError(() => of<FactsContext>({...known(), market: {}})),
     );

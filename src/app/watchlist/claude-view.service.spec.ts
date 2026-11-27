@@ -395,3 +395,23 @@ describe('ClaudeViewService: what the page knows beside a stock', () => {
     expect(context!.market).toEqual({});
   });
 });
+
+describe('ClaudeViewService: what a review of the waits found', () => {
+  // Ten stocks at three minutes each, and their groups after them: the page follows a list for as long as that.
+  it('follows a list for as long as ten stocks and their groups can take', () => {
+    expect(MAX_VIEW_POLLS * POLL_MS).toBeGreaterThanOrEqual(45 * 60_000);
+  });
+
+  it('does not keep a press waiting for the market: after five seconds it goes without it', fakeAsync(() => {
+    TestBed.configureTestingModule({imports: [HttpClientTestingModule]});
+    const service = TestBed.inject(ClaudeViewService), http = TestBed.inject(HttpTestingController);
+    let context: {today?: string, market?: unknown} | undefined;
+    service.context().subscribe(it => context = it);
+    tick(4900);
+    expect(context).toBeUndefined();
+    tick(200);
+    expect(context!.today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(context!.market).toEqual({});
+    expect(http.expectOne(request => request.url.includes('QuoteSummary')).cancelled).toBeTrue();
+  }));
+});

@@ -1,5 +1,5 @@
 import {
-  ASK_BUTTON, ASKING, cellOf, compareFailureText, COMPARING, FACT_LIMITS, factsFor, parseViews, PICK_HELP, pickOf, pickSentence, View,
+  ASK_BUTTON, ASK_ONE_TIP, ASKING, ASKING_ONE, cellOf, compareFailureText, COMPARING, FACT_LIMITS, factsFor, parseViews, PICK_HELP, pickOf, pickSentence, View,
   VIEW_HEADING, VIEW_HELP, ViewFacts,
 } from "./claude-view";
 import {costDistributionFor} from "./market-math";

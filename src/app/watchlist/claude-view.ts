@@ -237,8 +237,8 @@ export const ASK_ONE = 'Ask AI about this stock';
 export const ASK_ONE_AGAIN = 'Ask again';
 export const ASK_ONE_TIP = 'The AI (Claude Code on this computer) reads this stock\'s figures and the recent news about it, says buy some, ' +
   'wait or avoid with its reason, then compares it with the stocks that move together with it (the same letter under "Group"). ' +
-  'Up to a minute. Only the stock\'s own figures are sent.';
-export const ASKING_ONE = 'The AI is reading this stock\'s figures and the news about it. This takes up to a minute.';
+  'Usually about half a minute. Only the stock\'s own figures are sent.';
+export const ASKING_ONE = 'The AI is reading this stock\'s figures and the news about it. Usually about half a minute, at most three.';
 export const NOT_IN_A_LIST = 'Add this stock to one of your lists to ask the AI about it.';
 /** "Of ABCD, EFGH and IJKL the AI would take EFGH first." The comparison in one line, for where the reasons are folded away. */
 export function pickShort(pick: PickFor): string {
@@ -384,7 +384,9 @@ export function factsFor(stock: Stock, now: Date = new Date(), dropAbout?: Readi
   const symbol = stock.quote?.symbol, {log, today, market} = context;
   if (symbol && log && today) {
     const since = signal?.verdict === 'DIP BUY' ? dipBuySince(log, symbol, today) : undefined;
-    if (since) {
+    // Only when the log knew the stock before that day: the log also records what is held, so a stock's first day
+    // in it can be the day it was bought, and "marked since" would then be the age of a holding, untrue of the mark.
+    if (since && Object.keys(log.days).some(day => day < since.day && !!log.days[day].s[symbol])) {
       put('markedDaysAgo', daysBetween(since.day, today));
       if (isNum(price) && since.price > 0) {
         put('sinceMarked', (price / since.price - 1) * 100);
@@ -398,7 +400,10 @@ export function factsFor(stock: Stock, now: Date = new Date(), dropAbout?: Readi
   // and the state of the market:
   if (isNum(market?.vix)) {
     put('vix', market!.vix);
-    facts.fearHigh = market!.vix! >= VIX_HIGH ? 'yes' : 'no';
+    // Of the figure as it is sent: "25" beside "not high" would contradict itself.
+    if (facts.vix !== undefined) {
+      facts.fearHigh = facts.vix >= VIX_HIGH ? 'yes' : 'no';
+    }
   }
   if (isNum(market?.spy) && isNum(market?.spyHigh52) && market!.spyHigh52! > 0) {
     put('marketBelowHigh', Math.max(0, (1 - market!.spy! / market!.spyHigh52!) * 100));
