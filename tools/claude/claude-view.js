@@ -88,7 +88,8 @@ const FACT_FIELDS = {
   sinceMarked: number(-100, 100000, 'Price since it was first marked', signed),
   targetChange: number(-100, 1000, 'Analysts\' middle target against 4 weeks ago', signed),
   vix: number(0, 200, 'Market fear index (VIX)', plain),
-  fearHigh: word(['yes', 'no'], 'Market fear is high, 25 or more: in tests a better time to buy stocks that dropped', true),
+  // What a fearful market meant in the tests is said with its figures in what the tests say, not promised in a label.
+  fearHigh: word(['yes', 'no'], 'Market fear is high by the page\'s measure (25 or more)', true),
   marketBelowHigh: number(0, 100, 'The market (S&P 500) below its highest price of the past year', percent),
 };
 
@@ -262,12 +263,17 @@ function testedSummary(figures) {
     said.push(`Within 13 weeks the typical one traded ${whole(Math.abs(s.lowIn13Weeks))}% below the price it was marked at.`);
   }
   if ([f?.stocks, f?.holding, f?.withStop, f?.stopPercent].every(isNumber)) {
-    said.push(`Selling after a fall of ${f.stopPercent}% lowered the average result on one list of ${f.stocks} stocks ` +
-      `(${signedOne(f.withStop)} against ${signedOne(f.holding)} for keeping).`);
+    // What it did follows the two figures: the backtests are run again, and a word typed here must not outlive them.
+    said.push(`Selling after a fall of ${f.stopPercent}% ${f.withStop < f.holding ? 'lowered' : 'did not lower'} the average result on one list of ` +
+      `${f.stocks} stocks (${signedOne(f.withStop)} against ${signedOne(f.holding)} for keeping).`);
   }
   if ([r?.stocks, r?.fromYear, r?.toYear, r?.growing, r?.others].every(isNumber)) {
-    said.push(`Not proven outside those years: a simpler version of the rule on ${r.stocks} stocks over ${r.fromYear} to ${r.toYear} showed no ` +
-      `advantage (${signedOne(r.growing)} against ${signedOne(r.others)} for the other stocks that dropped).`);
+    const versus = `(${signedOne(r.growing)} against ${signedOne(r.others)}`;
+    said.push(r.growing <= r.others
+      ? `Not proven outside those years: a simpler version of the rule on ${r.stocks} stocks over ${r.fromYear} to ${r.toYear} showed no ` +
+        `advantage ${versus} for the other stocks that dropped).`
+      : `Over a longer history a simpler version of the rule on ${r.stocks} stocks over ${r.fromYear} to ${r.toYear} did better than the ` +
+        `other stocks that dropped ${versus}).`);
   }
   if ([v?.stocks, v?.fromYear, v?.toYear, v?.vixHigh, v?.high?.mean, v?.low?.mean].every(isNumber)) {
     said.push(`When the fear index was ${v.vixHigh} or more, stocks that dropped gained ${signedOne(v.high.mean)} over 6 months, against ` +

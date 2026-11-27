@@ -78,11 +78,11 @@ const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
  * @param available  whether Claude Code can be reached (a boolean, or a promise of one)
  * @param figures    the figures the backtests record; only tests replace them
  * @param retryMs    how long a stock waits when Claude is busy with something else, and
- * @param maxRetries how many times it is asked again before it is given up
+ * @param maxRetries how many times it is asked again before it is given up (40 times 5 s: a run can take three minutes)
  */
 function viewRoutes({
   storage, run = question => runRecipe(recipe, question), compare = question => runRecipe(compareRecipe, question),
-  available = installedCheck(), now = () => new Date(), log = console, figures = recordedFigures(), retryMs = 5000, maxRetries = 24,
+  available = installedCheck(), now = () => new Date(), log = console, figures = recordedFigures(), retryMs = 5000, maxRetries = 40,
 }) {
   let queue;                                        // the list being asked about: {symbols, done, failed, comparing?}
   const failed = new Map();                         // stock -> why it got no view the last time it was asked about
@@ -137,6 +137,10 @@ function viewRoutes({
     }
     const reading = {...made.reading, day, percent: Math.abs(size), model: outcome.model, version: outcome.version};
     try {
+      // A reading of this very day is there already (asked for on its own, or with an earlier view): it stays.
+      if ((await storage.read(READINGS)).value?.readings?.[asked.symbol]?.day === day) {
+        return;
+      }
       await storage.merge(READINGS, {v: 1, readings: {[asked.symbol]: reading}});
       log.log(`[claude] and read why ${asked.symbol} fell on ${day}`);
     } catch (error) {

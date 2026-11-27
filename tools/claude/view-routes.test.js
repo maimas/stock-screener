@@ -291,3 +291,37 @@ test('quotes the tests in full in the question', async () => {
   runs[0].resolve(answer());
   await finished();
 });
+
+// A reading the owner asked for on its own ("Read it for me") is a run made for that question alone: a view's
+// by-product does not take its place.
+test('leaves a reading of the same day as it is, and takes the place of a reading of another day', async () => {
+  const own = {what: 'Asked for on its own.', about: 'company', sources: [page], readAt: '2026-11-20T10:00:00.000Z', day: '2026-11-03', percent: 12, model: 'm', version: '1'};
+  const older = {...own, what: 'About an earlier fall.', day: '2026-07-01', percent: 17};
+  await storage.merge('readings', {v: 1, readings: {ABCD: own, EFGH: older}});
+  const fell = symbol => stock(symbol, {bigDropDay: '2026-11-03', bigDropPercent: -12});
+  await post({list: [fell('ABCD'), fell('EFGH')]});
+  for (let i = 0; i < 2; i++) {
+    await asked(i + 1);
+    runs[i].resolve({...answer(), output: {...answer().output, fall: {what: 'The company lowered its sales forecast', about: 'company'}}});
+  }
+  await finished();
+  const kept = (await storage.read('readings')).value.readings;
+  assert.deepEqual(kept.ABCD, own);
+  assert.equal(kept.EFGH.day, '2026-11-03');
+  assert.equal(kept.EFGH.what, 'The company lowered its sales forecast.');
+});
+
+// A run may take three minutes now; a stock that finds Claude busy with one waits that long and a little more.
+test('waits for Claude to be free for as long as a run can take before it gives a stock up', async () => {
+  server.close();
+  server = await start({maxRetries: undefined});
+  base = `http://127.0.0.1:${server.address().port}`;
+  await post({list: [stock('ABCD')]});
+  for (let i = 0; i < 38; i++) {
+    await asked(i + 1);
+    runs[i].resolve({ok: false, reason: 'busy'});
+  }
+  await asked(39);
+  runs[38].resolve(answer());
+  assert.deepEqual(Object.keys((await finished()).views), ['ABCD']);
+});

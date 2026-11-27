@@ -288,7 +288,7 @@ test('takes every indicator of the app: the tested cases, the rest of the table,
     'Price since it was first marked: -4.2%',
     'Analysts\' middle target against 4 weeks ago: -6.5%',
     'Market fear index (VIX): 26.8',
-    'Market fear is high, 25 or more: in tests a better time to buy stocks that dropped (tested): yes',
+    'Market fear is high by the page\'s measure (25 or more) (tested): yes',
     'The market (S&P 500) below its highest price of the past year: 8.3%',
   ]) {
     assert.ok(question.includes(`${line}\n`), `${line}\n in:\n${question}`);
@@ -353,4 +353,33 @@ test('keeps the view when what is said of the fall is not usable, and says nothi
     assert.equal(made.fall, undefined, JSON.stringify(fall));
   }
   assert.deepEqual(viewFrom({...good, fall: {what: 'whatever', about: 'unclear'}}, links, NOW).fall, {what: '', about: 'unclear'});
+});
+
+// The project's rule: a sentence that says something the recorded figures could contradict follows the figures. The
+// backtests are run again every week; a word typed here must not outlive the result it described.
+test('says of selling early and of the longer history what the figures say, also when they turn the other way', () => {
+  const base = {
+    fresh: {stocks: 234, holding: 12.0102, withStop: 8.1163, stopPercent: 20},
+    regime: {stocks: 424, fromYear: 1994, toYear: 2022, growing: 10.9874, others: 13.4836},
+    sentiment: {stocks: 424, fromYear: 1994, toYear: 2026, vixHigh: 25, high: {mean: 20.4137}, low: {mean: 7.2881}},
+  };
+  assert.match(testedSummary(base), /Selling after a fall of 20% lowered the average result/);
+  assert.match(testedSummary(base), /Not proven outside those years: .* showed no advantage \(\+11\.0% against \+13\.5%/);
+  assert.match(testedSummary(base), /When the fear index was 25 or more, stocks that dropped gained \+20\.4% over 6 months, against \+7\.3% at other times/);
+
+  const turned = {
+    fresh: {...base.fresh, withStop: 14.2},
+    regime: {...base.regime, growing: 15.1},
+    sentiment: {...base.sentiment, high: {mean: 5.1}},
+  };
+  const said = testedSummary(turned);
+  assert.match(said, /Selling after a fall of 20% did not lower the average result on one list of 234 stocks \(\+14\.2% against \+12\.0% for keeping\)/);
+  assert.doesNotMatch(said, /lowered the average/);
+  assert.match(said, /Over a longer history a simpler version of the rule on 424 stocks over 1994 to 2022 did better than the other stocks that dropped \(\+15\.1% against \+13\.5%\)/);
+  assert.doesNotMatch(said, /no advantage|Not proven/);
+  assert.match(said, /When the fear index was 25 or more, stocks that dropped gained \+5\.1% over 6 months, against \+7\.3% at other times/);
+});
+
+test('the label of the fear figure does not promise more than its own figures say', () => {
+  assert.equal(FACT_FIELDS.fearHigh.label, 'Market fear is high by the page\'s measure (25 or more)');
 });
