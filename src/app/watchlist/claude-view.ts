@@ -169,6 +169,24 @@ export const ASKING = (done: number, stocks: number): string => `Asking AI… ${
 export const ASK_TIP = 'The AI (Claude Code on this computer) reads each stock\'s figures and the recent news about it, then says buy some, ' +
   'wait or avoid with a short reason. After the list it compares the stocks that move together (the same letter under "Group") ' +
   'and marks the one it would take first. About half a minute a stock. Nothing about what you hold is sent.';
+/** In a stock's details: the title of the part, and its one button, which asks about that stock alone. */
+export const DETAIL_TITLE = 'AI view';
+export const ASK_ONE = 'Ask AI about this stock';
+export const ASK_ONE_AGAIN = 'Ask again';
+export const ASK_ONE_TIP = 'The AI (Claude Code on this computer) reads this stock\'s figures and the recent news about it, says buy some, ' +
+  'wait or avoid with its reason, then compares it with the stocks that move together with it (the same letter under "Group"). ' +
+  'Up to a minute. Nothing about what you hold is sent.';
+export const ASKING_ONE = 'The AI is reading this stock\'s figures and the news about it. This takes up to a minute.';
+export const NOT_IN_A_LIST = 'Add this stock to one of your lists to ask the AI about it.';
+/** "Asked Nov 18 · not tested · 2 sources" */
+export function askedLine(view: View): string {
+  const count = view.sources.length;
+  return `Asked ${shortDay(view.day)} · not tested` + (count ? ` · ${count} source${count === 1 ? '' : 's'}` : '');
+}
+/** The AI's word as the page says it, quietly: "Buy some", "Wait", "Avoid". */
+export function wordSaid(word: string): string {
+  return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+}
 export const ASK_BUSY = 'The AI is busy with another list. Try again in a minute.';
 
 const FAILURE_TEXT: Record<string, string> = {
